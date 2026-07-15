@@ -69,7 +69,8 @@ export const TILE_MAP = new Map(TILE_DEFINITIONS.map((tile) => [tile.id, tile]))
 export const TILE_GROUPS = (['man', 'pin', 'sou', 'honor'] as Suit[]).map((suit) => ({
   suit,
   label: suitNames[suit],
-  tiles: TILE_DEFINITIONS.filter((tile) => tile.suit === suit && !tile.isRed),
+  tiles: [
+    ...TILE_DEFINITIONS.filter((tile) => tile.suit === suit && !tile.isRed),
+    ...TILE_DEFINITIONS.filter((tile) => tile.suit === suit && tile.isRed),
+  ],
 }))
-
-export const RED_TILES = redTiles

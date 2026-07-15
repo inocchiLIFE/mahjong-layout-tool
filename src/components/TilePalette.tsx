@@ -1,4 +1,4 @@
-import { RED_TILES, TILE_GROUPS } from '../data/tiles'
+import { TILE_GROUPS } from '../data/tiles'
 import type { TileDefinition } from '../types'
 
 interface TilePaletteProps {
@@ -7,7 +7,7 @@ interface TilePaletteProps {
 
 const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void }) => (
   <button
-    className="palette-tile"
+    className={`palette-tile${tile.isRed ? ' red-tile' : ''}`}
     type="button"
     draggable
     onClick={onAdd}
@@ -18,6 +18,7 @@ const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void 
     title={`${tile.label}を追加（ドラッグもできます）`}
     aria-label={`${tile.label}を作業エリアに追加`}
   >
+    {tile.isRed && <span className="red-badge">赤</span>}
     <img src={tile.asset} alt={tile.label} draggable={false} />
   </button>
 )
@@ -36,23 +37,13 @@ export const TilePalette = ({ onAddTile }: TilePaletteProps) => (
       {TILE_GROUPS.map((group) => (
         <section className="tile-group" key={group.suit}>
           <h3>{group.label}</h3>
-          <div className="tile-grid">
+          <div className={`tile-grid${group.suit === 'honor' ? ' honor-grid' : ''}`}>
             {group.tiles.map((tile) => (
               <PaletteTile key={tile.id} tile={tile} onAdd={() => onAddTile(tile.id)} />
             ))}
           </div>
         </section>
       ))}
-
-      <section className="tile-group red-group">
-        <h3>赤牌</h3>
-        <div className="tile-grid red-grid">
-          {RED_TILES.map((tile) => (
-            <PaletteTile key={tile.id} tile={tile} onAdd={() => onAddTile(tile.id)} />
-          ))}
-        </div>
-      </section>
     </div>
   </aside>
 )
-

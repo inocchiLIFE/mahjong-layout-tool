@@ -2,6 +2,10 @@ export type Suit = 'man' | 'pin' | 'sou' | 'honor'
 
 export type Rotation = 0 | 90 | 180 | 270
 
+export type SymbolType = 'rectangle' | 'cross' | 'circle'
+
+export type PlacementMode = 'select' | 'text' | SymbolType
+
 export interface TileDefinition {
   id: string
   label: string
@@ -14,9 +18,8 @@ export interface TileDefinition {
   order: number
 }
 
-export interface PlacedTile {
+export interface CanvasElementBase {
   id: string
-  tileId: string
   x: number
   y: number
   rotation: Rotation
@@ -24,30 +27,44 @@ export interface PlacedTile {
   zIndex: number
 }
 
-export interface TextItem {
-  id: string
+export interface TileElement extends CanvasElementBase {
+  kind: 'tile'
+  tileId: string
+}
+
+export interface TextElement extends CanvasElementBase {
+  kind: 'text'
   text: string
-  x: number
-  y: number
-  rotation: Rotation
-  selected: boolean
-  zIndex: number
   color: string
   fontSize: number
 }
 
+export interface SymbolElement extends CanvasElementBase {
+  kind: 'symbol'
+  symbolType: SymbolType
+}
+
+export type CanvasElement = TileElement | TextElement | SymbolElement
+
 export interface Scene {
-  tiles: PlacedTile[]
-  texts: TextItem[]
+  elements: CanvasElement[]
+  width: number
+  height: number
 }
 
 export interface SavedLayout {
-  version: 1
+  version: 2
   savedAt: string
   scene: Scene
   settings: {
     showGrid: boolean
     snapToGrid: boolean
   }
+}
+
+export interface ElementPosition {
+  id: string
+  x: number
+  y: number
 }
 
