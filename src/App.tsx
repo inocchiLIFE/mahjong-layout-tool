@@ -556,7 +556,8 @@ const App = () => {
     // 牌一覧からのクリック追加は、常に左上の初期位置から開始する。
     // 途中で牌を移動しても追加の開始位置は変えず、既存牌だけを避ける。
     let x = dropX ?? 32
-    const y = dropY ?? 32
+    // Align palette additions with the ruler's first tick, directly below it.
+    const y = dropY ?? 0
 
     if (!isDropped) {
       const overlapsTile = (candidateX: number) => scene.elements.some((element) => element.kind === 'tile'
@@ -753,7 +754,8 @@ const App = () => {
           : randomHand(type)
     const totalWidth = count * TILE_WIDTH + (count - 1) * TILE_GAP
     const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
-    const startX = Math.max(20, (width - totalWidth) / 2)
+    // The ruler begins at x=32 and the canvas begins immediately below it.
+    const startX = 32
     const zStart = nextZIndex()
     // A generated hand remains replaceable until the user moves a tile.  Moved
     // (or manually added) tiles are kept as a separate hand when generating again.
@@ -766,7 +768,7 @@ const App = () => {
       width,
       elements: [
         ...retained,
-        ...tileIds.map((tileId, index) => makeTile(tileId, startX + index * (TILE_WIDTH + TILE_GAP), 76, zStart + index)),
+        ...tileIds.map((tileId, index) => makeTile(tileId, startX + index * (TILE_WIDTH + TILE_GAP), 0, zStart + index)),
       ],
     })
     setRulerCount(count)
