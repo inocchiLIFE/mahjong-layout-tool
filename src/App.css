@@ -44,6 +44,7 @@
 .quick-access button:first-child { color: #c157c9; font-size: 21px; }
 .quick-access button:hover:not(:disabled) { background: rgba(255,255,255,.8); }
 .quick-access button:disabled { opacity: .36; cursor: default; }
+.ribbon-collapse-button { margin-left: auto; min-width: 30px; padding-inline: 7px !important; color: #244a40 !important; font-size: 18px !important; line-height: 1; }
 
 .brand-mark {
   width: 34px;
@@ -324,7 +325,7 @@
 .drawing-preview { position: absolute; inset: 0; z-index: 9997; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .placed-text.editing { opacity: .28; }
 .text-visual, .symbol-visual { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; transform-origin: center; pointer-events: none; }
-.text-visual { padding: 4px 8px; line-height: 1.35; letter-spacing: .03em; text-align: left; white-space: nowrap; }
+.text-visual { left: 0; top: 0; padding: 4px 8px; line-height: 1.35; letter-spacing: .03em; text-align: left; white-space: nowrap; }
 .placed-symbol { color: #244a40; }
 .symbol-visual { box-sizing: border-box; }
 .symbol-rectangle { border-style: solid; border-color: currentColor; border-radius: 5px; }
@@ -343,7 +344,7 @@
 .drop-symbol-circle { border: 4px solid currentColor; border-radius: 50%; }
 .drop-symbol-cross { display: grid; place-items: center; font: 700 49px/1 "Yu Gothic", sans-serif; }
 .drop-symbol-triangle { overflow: visible; }
-.workspace-text-editor { position: absolute; z-index: 10000; min-width: 180px; height: 38px; padding: 0 10px; border: 2px solid #18745d; border-radius: 6px; outline: none; background: #fff; color: #172c27; box-shadow: 0 4px 18px rgba(18, 73, 61, .2); font: 600 18px "Yu Mincho", serif; }
+.workspace-text-editor { position: absolute; z-index: 10000; min-width: 180px; min-height: 1.35em; padding: 4px 8px; border: 2px solid #18745d; border-radius: 6px; outline: none; background: #fff; box-shadow: 0 4px 18px rgba(18, 73, 61, .2); line-height: 1.35; letter-spacing: .03em; font-weight: 400; }
 .workspace-resize-handle { position: absolute; right: 0; bottom: 0; z-index: 10001; width: 24px; height: 24px; border: 0; border-radius: 10px 0 4px 0; background: linear-gradient(135deg, transparent 38%, #55776e 39%, #55776e 48%, transparent 49%, transparent 61%, #55776e 62%, #55776e 71%, transparent 72%); cursor: nwse-resize; touch-action: none; }
 .element-resize-handle { position: absolute; z-index: 10002; width: 20px; height: 20px; padding: 0; border: 2px solid #fff; border-radius: 4px; background: #18745d; box-shadow: 0 0 0 1px #0d5746, 0 2px 5px rgba(0,0,0,.2); cursor: nwse-resize; touch-action: none; }
 .is-capturing .export-hidden { display: none !important; }

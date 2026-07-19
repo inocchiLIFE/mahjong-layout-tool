@@ -6,6 +6,7 @@ import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
 import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
 import { SymbolPresetDialog, type SymbolPreset } from './components/SymbolPresetDialog'
+import { DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
@@ -61,6 +62,7 @@ const SAVED_LAYOUTS_KEY = 'mahjong-layout-tool:saved-pages-v1'
 const HELP_KEY = 'mahjong-layout-tool:help-seen'
 const PREFERENCES_KEY = 'mahjong-layout-tool:preferences-v1'
 const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
+const DRAWING_PRESETS_KEY = 'mahjong-layout-tool:drawing-presets-v1'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   snapToGrid: false,
@@ -347,6 +349,17 @@ const readSymbolPresets = () => {
   } catch { return defaults }
 }
 
+const createDrawingPresets = (): Record<DrawingTool, DrawingPreset> => ({
+  draw: { color: '#244a40', strokeWidth: 4, eraserSize: 24 }, line: { color: '#244a40', strokeWidth: 4, eraserSize: 24 }, curve: { color: '#244a40', strokeWidth: 4, eraserSize: 24 }, arrow: { color: '#244a40', strokeWidth: 4, eraserSize: 24 }, eraser: { color: '#244a40', strokeWidth: 4, eraserSize: 24 },
+})
+const readDrawingPresets = (): Record<DrawingTool, DrawingPreset> => {
+  const defaults = createDrawingPresets()
+  try {
+    const saved = JSON.parse(localStorage.getItem(DRAWING_PRESETS_KEY) ?? '{}') as Partial<Record<DrawingTool, Partial<DrawingPreset>>>
+    return (Object.keys(defaults) as DrawingTool[]).reduce((result, tool) => ({ ...result, [tool]: { ...defaults[tool], ...saved[tool] } }), {} as Record<DrawingTool, DrawingPreset>)
+  } catch { return defaults }
+}
+
 const loadImageFile = (file: File) => new Promise<{ src: string; width: number; height: number }>((resolve, reject) => {
   if (!file.type.startsWith('image/')) {
     reject(new Error('not-image'))
@@ -401,6 +414,8 @@ const App = () => {
   const [eraserSize, setEraserSize] = useState(24)
   const [symbolPresets, setSymbolPresets] = useState(readSymbolPresets)
   const [symbolPresetTarget, setSymbolPresetTarget] = useState<SymbolType | null>(null)
+  const [drawingPresets, setDrawingPresets] = useState(readDrawingPresets)
+  const [drawingPresetTarget, setDrawingPresetTarget] = useState<DrawingTool | null>(null)
   const symbolColors = (Object.keys(symbolPresets) as SymbolType[]).reduce((colors, symbolType) => {
     colors[symbolType] = symbolPresets[symbolType].color ?? defaultShapeColor
     return colors
@@ -792,14 +807,17 @@ const App = () => {
 
   const commitDrawing = (points: CanvasPoint[], drawingType: DrawingType = 'freehand') => {
     if (points.length < 2) return
-    const bounds = getDrawingVisualBounds(points, drawingType, defaultShapeStrokeWidth)
+    const tool: DrawingTool = drawingType === 'freehand' ? 'draw' : drawingType
+    const preset = drawingPresets[tool]
+    const strokeWidth = preset.strokeWidth
+    const bounds = getDrawingVisualBounds(points, drawingType, strokeWidth)
     const x = Math.floor(bounds.minX)
     const y = Math.floor(bounds.minY)
     const width = Math.max(8, Math.ceil(bounds.maxX - x))
     const height = Math.max(8, Math.ceil(bounds.maxY - y))
     const relative = points.map((point) => ({ x: point.x - x, y: point.y - y }))
     const item = makeDrawing(relative, x, y, width, height, nextZIndex(), drawingType)
-    history.commit({ ...scene, elements: [...scene.elements, { ...item, color: defaultShapeColor, strokeWidth: defaultShapeStrokeWidth }] })
+    history.commit({ ...scene, elements: [...scene.elements, { ...item, color: preset.color, strokeWidth }] })
   }
 
   const addImageFile = async (file: File, anchor?: { x: number; y: number } | null) => {
@@ -1306,6 +1324,7 @@ const App = () => {
         onHelp={() => setHelpOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenSymbolPreset={setSymbolPresetTarget}
+        onOpenDrawingPreset={setDrawingPresetTarget}
         symbolColors={symbolColors}
       />
 
@@ -1316,6 +1335,7 @@ const App = () => {
           trashActive={trashActive}
           onSelectPlacementMode={setPlacementMode}
           onOpenSymbolPreset={setSymbolPresetTarget}
+          onOpenDrawingPreset={setDrawingPresetTarget}
           symbolColors={symbolColors}
           symbolSizes={symbolSizes}
         />
@@ -1336,6 +1356,7 @@ const App = () => {
               snapToGrid={snapToGrid}
               placementMode={placementMode}
               eraserSize={eraserSize}
+              textStyle={defaultTextStyle}
               symbolColors={symbolColors}
               symbolSizes={symbolSizes}
               editTextRequest={editTextRequest}
@@ -1462,6 +1483,19 @@ const App = () => {
           localStorage.setItem(SYMBOL_PRESETS_KEY, JSON.stringify(next))
           setSymbolPresetTarget(null)
           notify('これから配置する図形の設定を保存しました')
+        }}
+      />}
+      {drawingPresetTarget && <DrawingPresetDialog
+        tool={drawingPresetTarget}
+        preset={drawingPresets[drawingPresetTarget]}
+        onClose={() => setDrawingPresetTarget(null)}
+        onSave={(preset) => {
+          const next = { ...drawingPresets, [drawingPresetTarget]: preset }
+          setDrawingPresets(next)
+          localStorage.setItem(DRAWING_PRESETS_KEY, JSON.stringify(next))
+          if (drawingPresetTarget === 'eraser') setEraserSize(preset.eraserSize)
+          setDrawingPresetTarget(null)
+          notify('描画ツールの既定設定を保存しました')
         }}
       />}
     </div>

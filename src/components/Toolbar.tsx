@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { PlacementMode, SymbolType } from '../types'
+import type { DrawingTool } from './DrawingPresetDialog'
 import { TEXT_COLOR_PALETTE, readCustomColors, saveCustomColors } from '../utils/colors'
 
 interface ToolbarProps {
@@ -47,6 +48,7 @@ interface ToolbarProps {
   onHelp: () => void
   onOpenSettings: () => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
+  onOpenDrawingPreset: (tool: DrawingTool) => void
   symbolColors: Record<SymbolType, string>
 }
 
@@ -166,6 +168,13 @@ export const Toolbar = (props: ToolbarProps) => {
         ] as Array<[RibbonTab, string]>).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => { setActiveTab(id); if (ribbonCollapsed) setRibbonCollapsed(false) }} onDoubleClick={() => setRibbonCollapsed((value) => !value)} title="ダブルクリックでリボンを折りたたむ">{label}</button>
         ))}
+        <button
+          className="ribbon-collapse-button"
+          type="button"
+          onClick={() => setRibbonCollapsed((value) => !value)}
+          title={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
+          aria-label={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
+        >{ribbonCollapsed ? '⌄' : '⌃'}</button>
       </div>
 
       <div className="ribbon-content" role="tabpanel">
@@ -273,7 +282,7 @@ export const Toolbar = (props: ToolbarProps) => {
                 onClick={() => props.onSetPlacementMode(props.placementMode === mode ? 'select' : mode)}
                 active={props.placementMode === mode}
                 iconColor={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? props.symbolColors[mode as SymbolType] : undefined}
-                onContextMenu={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? () => props.onOpenSymbolPreset(mode as SymbolType) : undefined}
+                onContextMenu={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? () => props.onOpenSymbolPreset(mode as SymbolType) : ['draw', 'line', 'curve', 'arrow', 'eraser'].includes(mode) ? () => props.onOpenDrawingPreset(mode as DrawingTool) : undefined}
               />
             ))}
           </div>

@@ -42,6 +42,7 @@ interface WorkspaceProps {
   snapToGrid: boolean
   placementMode: PlacementMode
   eraserSize: number
+  textStyle: { fontFamily: string; fontSize: number; color: string }
   symbolColors: Record<SymbolType, string>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   editTextRequest: EditTextRequest | null
@@ -417,8 +418,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
   const updatePlacementPreview = (point: CanvasPoint) => {
     const mode = props.placementMode
+    // Text uses the editor itself as its preview.  Avoid showing a second,
+    // misleading blue placeholder before the user clicks.
     if (mode === 'text') {
-      setPlacementPreview({ kind: 'text', x: point.x - 70, y: point.y - 20, width: 140, height: 40, label: '文字' })
+      setPlacementPreview(null)
       return
     }
     if (mode === 'rectangle' || mode === 'circle' || mode === 'triangle' || mode === 'cross' || mode === 'wave') {
@@ -802,7 +805,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   fontFamily: element.fontFamily,
                   width: baseWidth,
                   height: baseHeight,
-                  transform: `translate(-50%, -50%) rotate(${element.rotation}deg)`,
+                  transform: `rotate(${element.rotation}deg)`,
+                  transformOrigin: 'top left',
                 }}
               >{element.text}</span>
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
@@ -906,7 +910,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       {editor && (
         <input
           className="workspace-text-editor export-hidden"
-          style={{ left: editor.x + camera.x, top: editor.y + camera.y }}
+          style={{
+            left: editor.x + camera.x,
+            top: editor.y + camera.y,
+            color: props.textStyle.color,
+            fontSize: props.textStyle.fontSize,
+            fontFamily: props.textStyle.fontFamily,
+          }}
           value={editor.value}
           autoFocus
           placeholder="文字を入力"

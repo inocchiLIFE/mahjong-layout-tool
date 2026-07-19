@@ -1,6 +1,7 @@
 import type { DragEvent as ReactDragEvent } from 'react'
 import { TILE_GROUPS } from '../data/tiles'
 import type { PlacementMode, SymbolType, TileDefinition } from '../types'
+import type { DrawingTool } from './DrawingPresetDialog'
 
 interface TilePaletteProps {
   onAddTile: (tileId: string) => void
@@ -8,6 +9,7 @@ interface TilePaletteProps {
   trashActive: boolean
   onSelectPlacementMode: (mode: PlacementMode) => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
+  onOpenDrawingPreset: (tool: DrawingTool) => void
   symbolColors: Record<SymbolType, string>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
 }
@@ -83,7 +85,7 @@ const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: Pl
   window.requestAnimationFrame(() => preview.remove())
 }
 
-export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, symbolColors, symbolSizes }: TilePaletteProps) => (
+export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, onOpenDrawingPreset, symbolColors, symbolSizes }: TilePaletteProps) => (
   <aside className={`palette-panel${trashActive ? ' trash-active' : ''}`} aria-label="牌一覧と削除エリア">
     <div className="palette-trash-message" aria-hidden={!trashActive}>
       <strong>ここで離して削除</strong>
@@ -126,7 +128,7 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
                 event.dataTransfer.effectAllowed = 'copy'
                 setSymbolDragPreview(event, choice.mode, symbolColors[choice.mode as SymbolType], symbolSizes[choice.mode as SymbolType])
               }}
-              onContextMenu={(event) => { if (choice.dragOnly) { event.preventDefault(); onOpenSymbolPreset(choice.mode as SymbolType) } }}
+              onContextMenu={(event) => { if (choice.dragOnly) { event.preventDefault(); onOpenSymbolPreset(choice.mode as SymbolType) } else if (['draw', 'line', 'curve', 'arrow', 'eraser'].includes(choice.mode)) { event.preventDefault(); onOpenDrawingPreset(choice.mode as DrawingTool) } }}
               aria-pressed={!choice.dragOnly && placementMode === choice.mode}
               aria-label={choice.dragOnly ? `${choice.label}をドラッグして配置` : `${choice.label}配置ツール`}
             >
