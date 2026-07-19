@@ -6,6 +6,8 @@
   .app-shell { width: 125vw; height: 125dvh; zoom: calc(.8 * var(--app-scale, 1.1)); }
   .app-shell .ribbon-tabs { min-height: 36px; padding-inline: 15px; }
   .app-shell .ribbon-tabs button { height: 34px; padding-inline: 14px; font-size: 12.5px; }
+  .app-shell .ribbon-tabs .quick-access button { width: 34px; height: 34px; padding: 0; font-size: 26px; }
+  .app-shell .ribbon-tabs .quick-access button:first-child { font-size: 23px; }
   .app-shell .ribbon-content { min-height: 90px; padding: 5px 15px 8px; }
   .app-shell .tool-group { min-height: 61px; padding: 14px 11px 0; gap: 6px; }
   .app-shell .tool-group-label { top: 0; left: 11px; font-size: 10px; }
@@ -38,8 +40,8 @@
 }
 
 .quick-access { display: flex; align-items: center; gap: 3px; align-self: stretch; margin-right: 9px; padding: 0 8px 0 0; border-right: 1px solid #c4d2cb; }
-.quick-access button { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 3px; color: #5d7169; background: transparent; font: 20px/1 "Yu Gothic UI", sans-serif; cursor: pointer; }
-.quick-access button:first-child { color: #ea9def; font-size: 17px; }
+.quick-access button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 3px; color: #5d7169; background: transparent; font: 23px/1 "Yu Gothic UI", sans-serif; cursor: pointer; }
+.quick-access button:first-child { color: #c157c9; font-size: 21px; }
 .quick-access button:hover:not(:disabled) { background: rgba(255,255,255,.8); }
 .quick-access button:disabled { opacity: .36; cursor: default; }
 
