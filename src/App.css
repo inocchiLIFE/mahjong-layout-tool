@@ -37,10 +37,10 @@
   opacity: .75;
 }
 
-.quick-access { display: flex; align-items: center; gap: 3px; align-self: stretch; padding-right: 5px; border-right: 1px solid rgba(255,255,255,.16); }
-.quick-access button { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 3px; color: #dce8e3; background: transparent; font: 20px/1 "Yu Gothic UI", sans-serif; cursor: pointer; }
+.quick-access { display: flex; align-items: center; gap: 3px; align-self: stretch; margin-right: 9px; padding: 0 8px 0 0; border-right: 1px solid #c4d2cb; }
+.quick-access button { width: 24px; height: 24px; padding: 0; border: 0; border-radius: 3px; color: #5d7169; background: transparent; font: 20px/1 "Yu Gothic UI", sans-serif; cursor: pointer; }
 .quick-access button:first-child { color: #ea9def; font-size: 17px; }
-.quick-access button:hover:not(:disabled) { background: rgba(255,255,255,.14); }
+.quick-access button:hover:not(:disabled) { background: rgba(255,255,255,.8); }
 .quick-access button:disabled { opacity: .36; cursor: default; }
 
 .brand-mark {

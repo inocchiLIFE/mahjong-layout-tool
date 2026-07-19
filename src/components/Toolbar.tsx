@@ -140,6 +140,11 @@ export const Toolbar = (props: ToolbarProps) => {
   return (
     <section className="toolbar" aria-label="編集ツール">
       <div className="ribbon-tabs" role="tablist" aria-label="リボンタブ">
+        <div className="quick-access" aria-label="クイックアクセスツールバー">
+          <button type="button" title="保存（Ctrl+S）" aria-label="保存（Ctrl+S）" onClick={props.onSaveLocal}>▣</button>
+          <button type="button" title="元に戻す（Ctrl+Z）" aria-label="元に戻す" onClick={props.onUndo} disabled={!props.canUndo}>↶</button>
+          <button type="button" title="やり直す（Ctrl+Y）" aria-label="やり直す" onClick={props.onRedo} disabled={!props.canRedo}>↷</button>
+        </div>
         {([
           ['home', 'ホーム'],
           ['insert', '挿入'],
