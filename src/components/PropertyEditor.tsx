@@ -34,7 +34,7 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
   const [text, setText] = useState(element.kind === 'text' ? element.text : '')
   const [color, setColor] = useState(element.kind === 'image' ? '#244a40' : element.color)
   const [fontSize, setFontSize] = useState(element.kind === 'text' ? element.fontSize : 22)
-  const [fontFamily, setFontFamily] = useState(element.kind === 'text' ? element.fontFamily : 'serif')
+  const [fontFamily, setFontFamily] = useState(element.kind === 'text' ? element.fontFamily : 'sans-serif')
   const [strokeWidth, setStrokeWidth] = useState(element.kind === 'symbol' || element.kind === 'drawing' ? element.strokeWidth : 4)
   const [opacity, setOpacity] = useState(element.kind === 'image' ? element.opacity : 1)
   const [customColors, setCustomColors] = useState(readCustomColors)

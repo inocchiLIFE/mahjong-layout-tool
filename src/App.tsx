@@ -110,7 +110,7 @@ const parseElement = (value: unknown): CanvasElement | null => {
       text: item.text,
       color: normalizeTextColor(item.color),
       fontSize: typeof item.fontSize === 'number' ? clamp(item.fontSize, 12, 72) : 22,
-      fontFamily: typeof item.fontFamily === 'string' ? item.fontFamily : 'serif',
+      fontFamily: typeof item.fontFamily === 'string' ? item.fontFamily : 'sans-serif',
     }
   }
   if (item.kind === 'symbol' && isSymbolType(item.symbolType)) {
@@ -303,7 +303,7 @@ const App = () => {
   const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
   const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? true)
   const [snapToGrid, setSnapToGrid] = useState(initialLayout?.settings.snapToGrid ?? false)
-  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: 'serif', fontSize: 22, color: '#172c27' })
+  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: 'sans-serif', fontSize: 22, color: '#172c27' })
   const [defaultShapeColor, setDefaultShapeColor] = useState('#244a40')
   const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(4)
   const [placementMode, setPlacementMode] = useState<PlacementMode>('select')

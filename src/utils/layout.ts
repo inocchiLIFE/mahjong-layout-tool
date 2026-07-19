@@ -113,7 +113,11 @@ const rotateDimensions = (width: number, height: number, rotation: Rotation) =>
 
 export const getSymbolBaseDimensions = (symbolType: SymbolType) => {
   if (symbolType === 'rectangle') return { width: TILE_WIDTH * 3 + TILE_GAP * 2, height: TILE_HEIGHT }
-  if (symbolType === 'circle' || symbolType === 'triangle') {
+  if (symbolType === 'circle') {
+    const diameter = TILE_WIDTH * 2 + TILE_GAP
+    return { width: diameter, height: diameter }
+  }
+  if (symbolType === 'triangle') {
     return { width: TILE_WIDTH * 2 + TILE_GAP, height: TILE_HEIGHT }
   }
   if (symbolType === 'wave') return { width: TILE_WIDTH * 5 + TILE_GAP * 4, height: GRID_SIZE }
@@ -186,7 +190,7 @@ export const makeText = (text: string, x: number, y: number, zIndex: number): Te
   text,
   color: '#172c27',
   fontSize: 22,
-  fontFamily: 'serif',
+  fontFamily: 'sans-serif',
 })
 
 export const makeDrawing = (
