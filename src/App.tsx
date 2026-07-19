@@ -900,7 +900,45 @@ const App = () => {
     const sources = scene.elements.filter((element) => element.selected)
     if (!sources.length) return
     setClipboard(sources.map((element) => ({ ...element })))
+    const notation = (['man', 'pin', 'sou', 'honor'] as const).map((suit) => {
+      const digits = sources
+        .filter((element): element is TileElement => element.kind === 'tile' && TILE_MAP.get(element.tileId)?.suit === suit)
+        .sort((left, right) => (TILE_MAP.get(left.tileId)?.rank ?? 0) - (TILE_MAP.get(right.tileId)?.rank ?? 0))
+        .map((element) => element.tileId.startsWith('aka-') ? '0' : String(TILE_MAP.get(element.tileId)?.rank ?? ''))
+        .join('')
+      return digits ? `${digits}${suit === 'man' ? 'm' : suit === 'pin' ? 'p' : suit === 'sou' ? 's' : 'z'}` : ''
+    }).join('')
+    if (notation) void navigator.clipboard?.writeText(notation).catch(() => undefined)
     notify(`${sources.length}件をコピーしました`)
+  }
+
+  const pasteTileNotation = (text: string) => {
+    const matches = [...text.toLowerCase().matchAll(/([0-9]+)([mpsz])/g)]
+    if (!matches.length || matches.map((match) => match[0]).join('') !== text.toLowerCase()) return false
+    const tileIds = matches.flatMap((match) => [...match[1]].map((digit) => {
+      const suffix = match[2]
+      if (suffix === 'z') return digit >= '1' && digit <= '7' ? ['ton', 'nan', 'sha', 'pei', 'haku', 'hatsu', 'chun'][Number(digit) - 1] : null
+      if (digit === '0') return suffix === 'm' ? 'aka-man5' : suffix === 'p' ? 'aka-pin5' : 'aka-sou5'
+      return digit >= '1' && digit <= '9' ? `${suffix === 'm' ? 'man' : suffix === 'p' ? 'pin' : 'sou'}${digit}` : null
+    }))
+    if (!tileIds.length || tileIds.some((tileId) => !tileId || !TILE_MAP.has(tileId))) return false
+    const totalWidth = tileIds.length * TILE_WIDTH + Math.max(0, tileIds.length - 1) * TILE_GAP
+    let startX = 32
+    while (scene.elements.some((element) => element.kind === 'tile' && element.y < TILE_HEIGHT && element.y + TILE_HEIGHT > 0 && startX < element.x + TILE_WIDTH && startX + totalWidth > element.x)) startX += TILE_WIDTH + TILE_GAP
+    const zStart = nextZIndex()
+    history.commit({
+      ...scene,
+      elements: [
+        ...scene.elements.map((element) => ({ ...element, selected: false })),
+        ...tileIds.map((tileId, index) => {
+          const tile = makeTile(tileId!, startX + index * (TILE_WIDTH + TILE_GAP), 0, zStart + index)
+          delete tile.autoX; delete tile.autoY; delete tile.autoOrder
+          return { ...tile, selected: true }
+        }),
+      ],
+    })
+    setRulerCount((count) => Math.min(13, count + tileIds.length))
+    return true
   }
 
   const pasteClipboard = (anchor?: { x: number; y: number }) => {
@@ -1180,6 +1218,8 @@ const App = () => {
   imagePasteAction.current = addImageFile
   const textPasteAction = useRef(commitText)
   textPasteAction.current = commitText
+  const tileNotationPasteAction = useRef(pasteTileNotation)
+  tileNotationPasteAction.current = pasteTileNotation
 
   useEffect(() => {
     const handlePaste = (event: ClipboardEvent) => {
@@ -1190,11 +1230,13 @@ const App = () => {
       if (file) {
         event.preventDefault()
         void imagePasteAction.current(file)
-      } else if (keyboardActions.current.pasteClipboard()) {
-        event.preventDefault()
       } else {
         const text = event.clipboardData?.getData('text/plain').trim()
-        if (text) {
+        if (tileNotationPasteAction.current(text ?? '')) {
+          event.preventDefault()
+        } else if (keyboardActions.current.pasteClipboard()) {
+          event.preventDefault()
+        } else if (text) {
           event.preventDefault()
           textPasteAction.current(text)
         }
