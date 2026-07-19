@@ -3,7 +3,10 @@
 /* Desktop uses an 80% density by default. The larger logical canvas keeps the
    physical app filling the viewport while preserving more working room. */
 @media (min-width: 651px) {
-  .app-shell { width: 125vw; height: 125dvh; zoom: calc(.8 * var(--app-scale, 1.1)); }
+  /* Keep the physical application bounds equal to the viewport at every UI
+     size.  Without the inverse dimensions, zoom made the right side clip and
+     shifted the canvas centre whenever the setting was changed. */
+  .app-shell { width: calc(125vw / var(--app-scale, 1.1)); height: calc(125dvh / var(--app-scale, 1.1)); zoom: calc(.8 * var(--app-scale, 1.1)); }
   .app-shell .ribbon-tabs { min-height: 36px; padding-inline: 15px; }
   .app-shell .ribbon-tabs button { height: 34px; padding-inline: 14px; font-size: 12.5px; }
   .app-shell .ribbon-tabs .quick-access button { width: 34px; height: 34px; padding: 0; font-size: 26px; }
@@ -44,7 +47,7 @@
 .quick-access button:first-child { color: #c157c9; font-size: 21px; }
 .quick-access button:hover:not(:disabled) { background: rgba(255,255,255,.8); }
 .quick-access button:disabled { opacity: .36; cursor: default; }
-.ribbon-collapse-button { margin-left: auto; min-width: 30px; padding-inline: 7px !important; color: #244a40 !important; font-size: 18px !important; line-height: 1; }
+.ribbon-collapse-button { position: absolute; top: 0; right: 12px; z-index: 2; min-width: 30px; padding-inline: 7px !important; color: #244a40 !important; font-size: 18px !important; line-height: 1; background: #edf3ef !important; box-shadow: -8px 0 9px #edf3ef; }
 
 .brand-mark {
   width: 34px;
@@ -73,6 +76,7 @@
 
 .toolbar {
   display: block;
+  position: relative;
   padding: 0;
   overflow: visible;
   background: rgba(251, 250, 244, .96);
@@ -293,7 +297,7 @@
 }
 .workspace-canvas.capture-hide-grid { background-image: none !important; }
 
-.empty-canvas { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 22px; color: #738b83; pointer-events: none; }
+.empty-canvas { position: absolute; left: 50%; top: 50%; display: flex; align-items: center; justify-content: center; gap: 22px; color: #738b83; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; }
 .empty-tile-stack { display: flex; }
 .empty-tile-stack span { width: 34px; height: 47px; margin-left: -10px; display: grid; place-items: center; border-radius: 4px; background: #f7f5ed; border: 1px solid #cbd6d0; font-family: "Yu Mincho", serif; font-weight: 800; box-shadow: 3px 3px 0 rgba(36, 74, 64, .12); }
 .empty-tile-stack span:first-child { margin-left: 0; color: #b94336; transform: rotate(-7deg); }
