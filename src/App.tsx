@@ -66,6 +66,7 @@ const HELP_KEY = 'mahjong-layout-tool:help-seen'
 const PREFERENCES_KEY = 'mahjong-layout-tool:preferences-v1'
 const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
 const DRAWING_PRESETS_KEY = 'mahjong-layout-tool:drawing-presets-v1'
+const HAND_SUITS_KEY = 'mahjong-layout-tool:hand-suits-v1'
 const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, eraserSize: 24 }
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
@@ -367,6 +368,13 @@ const readDrawingPresets = (): Record<DrawingTool, DrawingPreset> => {
   } catch { return defaults }
 }
 
+const readHandSuits = (): Array<'man' | 'pin' | 'sou'> => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(HAND_SUITS_KEY) ?? '[]') as unknown
+    return Array.isArray(saved) ? saved.filter((suit): suit is 'man' | 'pin' | 'sou' => suit === 'man' || suit === 'pin' || suit === 'sou') : []
+  } catch { return [] }
+}
+
 const loadImageFile = (file: File) => new Promise<{ src: string; width: number; height: number }>((resolve, reject) => {
   if (!file.type.startsWith('image/')) {
     reject(new Error('not-image'))
@@ -418,12 +426,12 @@ const App = () => {
   const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, color: preferences.defaultTextColor })
   const [defaultShapeColor, setDefaultShapeColor] = useState(preferences.defaultShapeColor)
   const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(preferences.defaultShapeStrokeWidth)
-  const [eraserSize, setEraserSize] = useState(24)
+  const [eraserSize, setEraserSize] = useState(() => readDrawingPresets().eraser.eraserSize)
   const [symbolPresets, setSymbolPresets] = useState(readSymbolPresets)
   const [symbolPresetTarget, setSymbolPresetTarget] = useState<SymbolType | null>(null)
   const [drawingPresets, setDrawingPresets] = useState(readDrawingPresets)
   const [drawingPresetTarget, setDrawingPresetTarget] = useState<DrawingTool | null>(null)
-  const [handSuits, setHandSuits] = useState<Array<'man' | 'pin' | 'sou'>>([])
+  const [handSuits, setHandSuits] = useState(readHandSuits)
   const symbolColors = (Object.keys(symbolPresets) as SymbolType[]).reduce((colors, symbolType) => {
     colors[symbolType] = symbolPresets[symbolType].color ?? defaultShapeColor
     return colors
@@ -474,7 +482,7 @@ const App = () => {
     syncChannelRef.current?.postMessage({ type: 'layouts', sender: tabIdRef.current })
   }
 
-  const savePreferences = (next: AppPreferences) => {
+  const applySharedPreferences = (next: AppPreferences) => {
     setPreferences(next)
     setShowGrid(next.showGrid)
     setSnapToGrid(next.snapToGrid)
@@ -482,6 +490,10 @@ const App = () => {
     setDefaultShapeColor(next.defaultShapeColor)
     setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
     localStorage.setItem(PREFERENCES_KEY, JSON.stringify(next))
+  }
+
+  const savePreferences = (next: AppPreferences) => {
+    applySharedPreferences(next)
     setSettingsOpen(false)
     notify('設定を保存しました')
   }
@@ -551,6 +563,34 @@ const App = () => {
       if (syncChannelRef.current === channel) syncChannelRef.current = null
     }
   }, [storageReady])
+
+  // Keep preferences and reusable tool defaults in sync across tabs, while
+  // intentionally leaving each tab's workspace scene untouched.
+  useEffect(() => {
+    const syncSharedState = (event: StorageEvent) => {
+      if (event.key === PREFERENCES_KEY) {
+        const next = readPreferences()
+        setPreferences(next)
+        setShowGrid(next.showGrid)
+        setSnapToGrid(next.snapToGrid)
+        setDefaultTextStyle({ fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, color: next.defaultTextColor })
+        setDefaultShapeColor(next.defaultShapeColor)
+        setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
+      } else if (event.key === SYMBOL_PRESETS_KEY) {
+        setSymbolPresets(readSymbolPresets())
+      } else if (event.key === DRAWING_PRESETS_KEY) {
+        const next = readDrawingPresets()
+        setDrawingPresets(next)
+        setEraserSize(next.eraser.eraserSize)
+      } else if (event.key === HAND_SUITS_KEY) {
+        setHandSuits(readHandSuits())
+      } else if (event.key === 'mahjong-layout-tool:custom-colors-v1') {
+        window.dispatchEvent(new Event('mahjong-custom-colors-changed'))
+      }
+    }
+    window.addEventListener('storage', syncSharedState)
+    return () => window.removeEventListener('storage', syncSharedState)
+  }, [])
 
   const nextZIndex = () => Math.max(0, ...scene.elements.map((element) => element.zIndex)) + 1
 
@@ -1383,22 +1423,33 @@ const App = () => {
             saveProperties(selectedText.id, style)
             return
           }
-          setDefaultTextStyle((current) => ({
-            fontFamily: style.fontFamily ?? current.fontFamily,
-            fontSize: style.fontSize === undefined ? current.fontSize : clamp(style.fontSize, 12, 72),
-            color: style.color ?? current.color,
-          }))
+          applySharedPreferences({
+            ...preferences,
+            defaultFontFamily: style.fontFamily ?? defaultTextStyle.fontFamily,
+            defaultTextFontSize: style.fontSize === undefined ? defaultTextStyle.fontSize : clamp(style.fontSize, 12, 72),
+            defaultTextColor: style.color ?? defaultTextStyle.color,
+          })
         }}
         onUpdateSelectedShapeColor={(color) => {
-          setDefaultShapeColor(color)
+          applySharedPreferences({ ...preferences, defaultShapeColor: color })
           if (selectedColoredElement) updateElementColor(selectedColoredElement.id, color)
         }}
-        onUpdateShapeStrokeWidth={(strokeWidth) => selectedColoredElement ? updateElementStrokeWidth(selectedColoredElement.id, strokeWidth) : setDefaultShapeStrokeWidth(clamp(strokeWidth, 1, 20))}
-        onUpdateEraserSize={(size) => setEraserSize(clamp(size, 8, 80))}
+        onUpdateShapeStrokeWidth={(strokeWidth) => selectedColoredElement ? updateElementStrokeWidth(selectedColoredElement.id, strokeWidth) : applySharedPreferences({ ...preferences, defaultShapeStrokeWidth: clamp(strokeWidth, 1, 20) })}
+        onUpdateEraserSize={(size) => {
+          const eraserSize = clamp(size, 8, 80)
+          setEraserSize(eraserSize)
+          const next = { ...drawingPresets, eraser: { ...drawingPresets.eraser, eraserSize } }
+          setDrawingPresets(next)
+          localStorage.setItem(DRAWING_PRESETS_KEY, JSON.stringify(next))
+        }}
         onEditProperties={() => selectedEditable && setPropertyElementId(selectedEditable.id)}
         onRandomHand={generateHand}
         handSuits={handSuits}
-        onToggleHandSuit={(suit) => setHandSuits((current) => current.includes(suit) ? current.filter((value) => value !== suit) : [...current, suit])}
+        onToggleHandSuit={(suit) => setHandSuits((current) => {
+          const next = current.includes(suit) ? current.filter((value) => value !== suit) : [...current, suit]
+          localStorage.setItem(HAND_SUITS_KEY, JSON.stringify(next))
+          return next
+        })}
         onShuffle={shuffleTiles}
         onSetPlacementMode={setPlacementMode}
         onToggleGrid={() => setShowGrid((value) => !value)}
