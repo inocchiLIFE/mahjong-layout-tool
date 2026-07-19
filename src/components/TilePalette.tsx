@@ -9,6 +9,7 @@ interface TilePaletteProps {
   onSelectPlacementMode: (mode: PlacementMode) => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   symbolColors: Record<SymbolType, string>
+  symbolSizes: Record<SymbolType, { width: number; height: number }>
 }
 
 const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void }) => (
@@ -42,10 +43,9 @@ const symbolChoices: Array<{ mode: PlacementMode; icon: string; label: string; h
   { mode: 'text', icon: 'T', label: 'クリック文字', hint: '自由入力' },
 ]
 
-const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: PlacementMode, color: string) => {
+const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: PlacementMode, color: string, size: { width: number; height: number }) => {
   if (mode !== 'rectangle' && mode !== 'circle' && mode !== 'triangle' && mode !== 'cross' && mode !== 'wave') return
-  const width = mode === 'wave' ? 240 : mode === 'rectangle' ? 148 : mode === 'cross' ? 48 : 98
-  const height = mode === 'wave' ? 16 : 66
+  const { width, height } = size
   const preview = document.createElement('div')
   preview.style.position = 'fixed'
   preview.style.left = '-10000px'
@@ -78,7 +78,7 @@ const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: Pl
   window.requestAnimationFrame(() => preview.remove())
 }
 
-export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, symbolColors }: TilePaletteProps) => (
+export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, symbolColors, symbolSizes }: TilePaletteProps) => (
   <aside className={`palette-panel${trashActive ? ' trash-active' : ''}`} aria-label="牌一覧と削除エリア">
     <div className="palette-trash-message" aria-hidden={!trashActive}>
       <strong>ここで離して削除</strong>
@@ -119,7 +119,7 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
                 if (!choice.dragOnly) return
                 event.dataTransfer.setData('application/x-mahjong-symbol', choice.mode)
                 event.dataTransfer.effectAllowed = 'copy'
-                setSymbolDragPreview(event, choice.mode, symbolColors[choice.mode as SymbolType])
+                setSymbolDragPreview(event, choice.mode, symbolColors[choice.mode as SymbolType], symbolSizes[choice.mode as SymbolType])
               }}
               onContextMenu={(event) => { if (choice.dragOnly) { event.preventDefault(); onOpenSymbolPreset(choice.mode as SymbolType) } }}
               aria-pressed={!choice.dragOnly && placementMode === choice.mode}

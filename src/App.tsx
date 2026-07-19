@@ -405,6 +405,10 @@ const App = () => {
     colors[symbolType] = symbolPresets[symbolType].color ?? defaultShapeColor
     return colors
   }, {} as Record<SymbolType, string>)
+  const symbolSizes = (Object.keys(symbolPresets) as SymbolType[]).reduce((sizes, symbolType) => {
+    sizes[symbolType] = { width: symbolPresets[symbolType].width, height: symbolPresets[symbolType].height }
+    return sizes
+  }, {} as Record<SymbolType, { width: number; height: number }>)
   const [placementMode, setPlacementMode] = useState<PlacementMode>('select')
   const [editTextRequest, setEditTextRequest] = useState<{ id: string; token: number } | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -1306,6 +1310,7 @@ const App = () => {
           onSelectPlacementMode={setPlacementMode}
           onOpenSymbolPreset={setSymbolPresetTarget}
           symbolColors={symbolColors}
+          symbolSizes={symbolSizes}
         />
         <section className="workspace-panel">
           <div className="workspace-scroll">
@@ -1325,6 +1330,7 @@ const App = () => {
               placementMode={placementMode}
               eraserSize={eraserSize}
               symbolColors={symbolColors}
+              symbolSizes={symbolSizes}
               editTextRequest={editTextRequest}
               onDropTile={addTile}
               onDropFiles={(files, x, y) => {

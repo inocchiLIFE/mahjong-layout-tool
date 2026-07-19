@@ -43,6 +43,7 @@ interface WorkspaceProps {
   placementMode: PlacementMode
   eraserSize: number
   symbolColors: Record<SymbolType, string>
+  symbolSizes: Record<SymbolType, { width: number; height: number }>
   editTextRequest: EditTextRequest | null
   onDropTile: (tileId: string, x: number, y: number) => void
   onDropFiles: (files: File[], x: number, y: number) => void
@@ -421,7 +422,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       return
     }
     if (mode === 'rectangle' || mode === 'circle' || mode === 'triangle' || mode === 'cross' || mode === 'wave') {
-      const dimensions = getSymbolBaseDimensions(mode)
+      const dimensions = props.symbolSizes[mode]
       setPlacementPreview({
         kind: 'symbol',
         symbolType: mode,
@@ -639,7 +640,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const y = toCanvasCoordinate(event.clientY, bounds.top, camera.y)
     const symbolType = event.dataTransfer.getData('application/x-mahjong-symbol')
     if (symbolType === 'rectangle' || symbolType === 'circle' || symbolType === 'triangle' || symbolType === 'cross' || symbolType === 'wave') {
-      const dimensions = getSymbolBaseDimensions(symbolType)
+      const dimensions = props.symbolSizes[symbolType]
       setDropPreview({
         kind: 'symbol',
         x: x - dimensions.width / 2,
@@ -660,7 +661,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       setDropPreview({ kind: 'image', x: x - 80, y: y - 55, width: 160, height: 110, label: '画像' })
       return
     }
-    if (event.dataTransfer.types.includes('text/plain')) {
+    if (event.dataTransfer.types.includes('text/plain') && !event.dataTransfer.types.includes('application/x-mahjong-symbol')) {
       setDropPreview({ kind: 'text', x: x - 70, y: y - 20, width: 140, height: 40, label: '文字' })
     }
   }
