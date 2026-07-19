@@ -276,6 +276,25 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     props.onBeginDrag()
   }
 
+  const beginSelectedAreaDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const selected = props.scene.elements.filter((element) => element.selected && !element.locked)
+    if (!selected.length || props.placementMode !== 'select') return false
+    setDraggingIds(new Set(selected.map((element) => element.id)))
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      primaryId: selected[0].id,
+      starts: selected.map((element) => ({ id: element.id, x: element.x, y: element.y })),
+      moved: false,
+      inTrash: false,
+      toggleOnClick: false,
+    }
+    props.onBeginDrag()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    return true
+  }
+
   const moveElementDrag = useCallback((clientX: number, clientY: number) => {
     const currentProps = propsRef.current
     const drag = dragRef.current
@@ -475,6 +494,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       return
     }
     if (event.target !== event.currentTarget) return
+    if (beginSelectedAreaDrag(event)) return
     const point = canvasPoint(event)
     const state: MarqueeState = {
       startX: point.x,
@@ -675,7 +695,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     width: Math.abs(marquee.currentX - marquee.startX),
     height: Math.abs(marquee.currentY - marquee.startY),
   } : undefined
-  const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || element.kind === 'image' || element.kind === 'drawing') && element.selected && !element.locked) ?? null
+  const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || element.kind === 'image' || (element.kind === 'drawing' && element.drawingType !== 'freehand')) && element.selected && !element.locked) ?? null
 
   return (
     <div
@@ -687,6 +707,15 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       onPointerUp={finishCanvasPointer}
       onPointerCancel={finishCanvasPointer}
       onPointerLeave={() => setPlacementPreview(null)}
+      onDoubleClick={(event) => {
+        if (event.target !== event.currentTarget || props.placementMode !== 'select') return
+        const bounds = event.currentTarget.getBoundingClientRect()
+        const point = {
+          x: toCanvasCoordinate(event.clientX, bounds.left, camera.x),
+          y: toCanvasCoordinate(event.clientY, bounds.top, camera.y),
+        }
+        setEditor({ x: point.x, y: point.y, value: '' })
+      }}
       onDragEnter={updateDropPreview}
       onDragOver={(event) => {
         if (event.dataTransfer.types.includes('application/x-mahjong-tile') || event.dataTransfer.types.includes('application/x-mahjong-symbol') || event.dataTransfer.types.includes('Files') || event.dataTransfer.types.includes('text/plain')) {

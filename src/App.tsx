@@ -6,7 +6,7 @@ import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
 import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
 import { SymbolPresetDialog, type SymbolPreset } from './components/SymbolPresetDialog'
-import { DEFAULT_DRAWING_PRESET, DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
+import { DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
@@ -64,6 +64,7 @@ const HELP_KEY = 'mahjong-layout-tool:help-seen'
 const PREFERENCES_KEY = 'mahjong-layout-tool:preferences-v1'
 const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
 const DRAWING_PRESETS_KEY = 'mahjong-layout-tool:drawing-presets-v1'
+const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, eraserSize: 24 }
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   snapToGrid: false,
@@ -357,7 +358,10 @@ const readDrawingPresets = (): Record<DrawingTool, DrawingPreset> => {
   const defaults = createDrawingPresets()
   try {
     const saved = JSON.parse(localStorage.getItem(DRAWING_PRESETS_KEY) ?? '{}') as Partial<Record<DrawingTool, Partial<DrawingPreset>>>
-    return (Object.keys(defaults) as DrawingTool[]).reduce((result, tool) => ({ ...result, [tool]: { ...defaults[tool], ...saved[tool] } }), {} as Record<DrawingTool, DrawingPreset>)
+    return (Object.keys(defaults) as DrawingTool[]).reduce((result, tool) => ({
+      ...result,
+      [tool]: { ...defaults[tool], ...saved[tool], color: saved[tool]?.color === '#244a40' ? null : saved[tool]?.color ?? null },
+    }), {} as Record<DrawingTool, DrawingPreset>)
   } catch { return defaults }
 }
 
@@ -818,7 +822,7 @@ const App = () => {
     const height = Math.max(8, Math.ceil(bounds.maxY - y))
     const relative = points.map((point) => ({ x: point.x - x, y: point.y - y }))
     const item = makeDrawing(relative, x, y, width, height, nextZIndex(), drawingType)
-    history.commit({ ...scene, elements: [...scene.elements, { ...item, color: preset.color, strokeWidth }] })
+    history.commit({ ...scene, elements: [...scene.elements, { ...item, color: preset.color ?? defaultShapeColor, strokeWidth }] })
   }
 
   const addImageFile = async (file: File, anchor?: { x: number; y: number } | null) => {
@@ -1327,7 +1331,7 @@ const App = () => {
         onOpenSymbolPreset={setSymbolPresetTarget}
         onOpenDrawingPreset={setDrawingPresetTarget}
         symbolColors={symbolColors}
-        drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
+        drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />
 
       <main className="app-body">
@@ -1339,7 +1343,7 @@ const App = () => {
           onOpenSymbolPreset={setSymbolPresetTarget}
           onOpenDrawingPreset={setDrawingPresetTarget}
           symbolColors={symbolColors}
-          drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
+          drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
           symbolSizes={symbolSizes}
         />
         <section className="workspace-panel">
@@ -1491,6 +1495,7 @@ const App = () => {
       {drawingPresetTarget && <DrawingPresetDialog
         tool={drawingPresetTarget}
         preset={drawingPresets[drawingPresetTarget]}
+        fallbackColor={defaultShapeColor}
         onClose={() => setDrawingPresetTarget(null)}
         onSave={(preset) => {
           const next = { ...drawingPresets, [drawingPresetTarget]: preset }

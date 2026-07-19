@@ -1,13 +1,12 @@
 import { useState, type FormEvent } from 'react'
 
 export type DrawingTool = 'draw' | 'line' | 'curve' | 'arrow' | 'eraser'
-export interface DrawingPreset { color: string; strokeWidth: number; eraserSize: number }
-export const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: '#244a40', strokeWidth: 4, eraserSize: 24 }
+export interface DrawingPreset { color: string | null; strokeWidth: number; eraserSize: number }
 
 const LABELS: Record<DrawingTool, string> = { draw: 'ペン', line: '直線', curve: '曲線', arrow: '矢印', eraser: '消しゴム' }
 
-export const DrawingPresetDialog = ({ tool, preset, onSave, onClose }: { tool: DrawingTool; preset: DrawingPreset; onSave: (value: DrawingPreset) => void; onClose: () => void }) => {
-  const [draft, setDraft] = useState(preset)
+export const DrawingPresetDialog = ({ tool, preset, fallbackColor, onSave, onClose }: { tool: DrawingTool; preset: DrawingPreset; fallbackColor: string; onSave: (value: DrawingPreset) => void; onClose: () => void }) => {
+  const [draft, setDraft] = useState<DrawingPreset>({ ...preset, color: preset.color ?? fallbackColor })
   const submit = (event: FormEvent) => { event.preventDefault(); onSave(draft) }
   const isEraser = tool === 'eraser'
   return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
@@ -16,10 +15,10 @@ export const DrawingPresetDialog = ({ tool, preset, onSave, onClose }: { tool: D
       <span className="eyebrow">TOOL DEFAULT</span><h2>{LABELS[tool]}の既定設定</h2>
       <p>ここでの設定は、これから配置・描画する{LABELS[tool]}に使われます。</p>
       {isEraser ? <label>サイズ<input type="number" min="8" max="80" value={draft.eraserSize} onChange={(event) => setDraft({ ...draft, eraserSize: Math.max(8, Math.min(80, Number(event.target.value) || 8)) })} /></label> : <>
-        <label>色 <span className="color-field"><input type="color" value={draft.color} onChange={(event) => setDraft({ ...draft, color: event.target.value })} /><code>{draft.color}</code></span></label>
+        <label>色 <span className="color-field"><input type="color" value={draft.color ?? fallbackColor} onChange={(event) => setDraft({ ...draft, color: event.target.value })} /><code>{draft.color ?? fallbackColor}</code></span></label>
         <label>線の太さ<input type="number" min="1" max="20" value={draft.strokeWidth} onChange={(event) => setDraft({ ...draft, strokeWidth: Math.max(1, Math.min(20, Number(event.target.value) || 1)) })} /></label>
       </>}
-      <div className="property-actions"><button type="button" onClick={() => setDraft(DEFAULT_DRAWING_PRESET)}>初期値に戻す</button><button type="button" onClick={onClose}>キャンセル</button><button className="primary-button" type="submit">既定設定に保存</button></div>
+      <div className="property-actions"><button type="button" onClick={() => setDraft({ color: null, strokeWidth: 4, eraserSize: 24 })}>初期値に戻す</button><button type="button" onClick={onClose}>キャンセル</button><button className="primary-button" type="submit">既定設定に保存</button></div>
     </form>
   </div>
 }
