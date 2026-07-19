@@ -916,14 +916,7 @@ const App = () => {
   const pasteTileNotation = (text: string, anchor = pasteAnchorRef.current) => {
     const normalized = text.trim().replace(/\s/g, '')
     const notationText = normalized.normalize('NFKC').toLowerCase()
-    const matches = [...notationText.matchAll(/([0-9]+)([mpsz])/g)]
-    const notationTiles = matches.flatMap((match) => [...match[1]].map((digit) => {
-      const suffix = match[2]
-      if (suffix === 'z') return digit >= '1' && digit <= '7' ? ['ton', 'nan', 'sha', 'pei', 'haku', 'hatsu', 'chun'][Number(digit) - 1] : null
-      if (digit === '0') return suffix === 'm' ? 'aka-man5' : suffix === 'p' ? 'aka-pin5' : 'aka-sou5'
-      return digit >= '1' && digit <= '9' ? `${suffix === 'm' ? 'man' : suffix === 'p' ? 'pin' : 'sou'}${digit}` : null
-    }))
-    const characterTiles = [...normalized].map((character) => {
+    const characterTile = (character: string) => {
       const manRank = '一二三四五六七八九'.indexOf(character)
       if (manRank >= 0) return `man${manRank + 1}`
       const pinRank = '①②③④⑤⑥⑦⑧⑨'.indexOf(character)
@@ -931,8 +924,23 @@ const App = () => {
       const souRank = '123456789１２３４５６７８９'.indexOf(character)
       if (souRank >= 0) return `sou${souRank % 9 + 1}`
       return ({ 東: 'ton', 南: 'nan', 西: 'sha', 北: 'pei', 白: 'haku', 發: 'hatsu', 発: 'hatsu', 中: 'chun' } as Record<string, string>)[character] ?? null
-    })
-    const tileIds = matches.length && matches.map((match) => match[0]).join('') === notationText ? notationTiles : characterTiles
+    }
+    const tileIds: Array<string | null> = []
+    for (let index = 0; index < normalized.length;) {
+      const match = notationText.slice(index).match(/^([0-9]+)([mpsz])/)
+      if (match) {
+        const [, digits, suffix] = match
+        tileIds.push(...[...digits].map((digit) => {
+          if (suffix === 'z') return digit >= '1' && digit <= '7' ? ['ton', 'nan', 'sha', 'pei', 'haku', 'hatsu', 'chun'][Number(digit) - 1] : null
+          if (digit === '0') return suffix === 'm' ? 'aka-man5' : suffix === 'p' ? 'aka-pin5' : 'aka-sou5'
+          return digit >= '1' && digit <= '9' ? `${suffix === 'm' ? 'man' : suffix === 'p' ? 'pin' : 'sou'}${digit}` : null
+        }))
+        index += match[0].length
+      } else {
+        tileIds.push(characterTile(normalized[index]))
+        index += 1
+      }
+    }
     if (!tileIds.length || tileIds.some((tileId) => !tileId || !TILE_MAP.has(tileId))) return false
     const totalWidth = tileIds.length * TILE_WIDTH + Math.max(0, tileIds.length - 1) * TILE_GAP
     let startX = clamp(anchor?.x ?? 32, 0, scene.width - totalWidth)
