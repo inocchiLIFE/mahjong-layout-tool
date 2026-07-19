@@ -53,8 +53,10 @@ import {
 import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
+const TAB_AUTO_SAVE_SESSION_KEY = 'mahjong-layout-tool:auto-save-tab-id-v1'
 const SAVED_LAYOUTS_KEY = 'mahjong-layout-tool:saved-pages-v1'
 const HELP_KEY = 'mahjong-layout-tool:help-seen'
+const SYNC_CHANNEL = 'mahjong-layout-tool:tab-sync-v1'
 const EMPTY_SCENE: Scene = {
   elements: [],
   width: DEFAULT_WORKSPACE_WIDTH,
@@ -287,7 +289,15 @@ const loadImageFile = (file: File) => new Promise<{ src: string; width: number; 
 
 const App = () => {
   const [sharedLayout] = useState(readSharedLayout)
-  const [initialLayout] = useState(() => sharedLayout ?? parseSavedLayout(localStorage.getItem(AUTO_SAVE_KEY)))
+  const [tabAutoSaveKey] = useState(() => {
+    let tabId = sessionStorage.getItem(TAB_AUTO_SAVE_SESSION_KEY)
+    if (!tabId) {
+      tabId = createId('workspace')
+      sessionStorage.setItem(TAB_AUTO_SAVE_SESSION_KEY, tabId)
+    }
+    return `${AUTO_SAVE_KEY}:${tabId}`
+  })
+  const [initialLayout] = useState(() => sharedLayout)
   const history = useSceneHistory(initialLayout?.scene ?? EMPTY_SCENE)
   const scene = history.scene
   const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
@@ -315,6 +325,8 @@ const App = () => {
   const toastTimerRef = useRef<number | null>(null)
   const restoreHistoryLoadRef = useRef(history.load)
   const sharedLayoutRef = useRef(sharedLayout)
+  const syncChannelRef = useRef<BroadcastChannel | null>(null)
+  const tabIdRef = useRef(createId('tab'))
   restoreHistoryLoadRef.current = history.load
 
   const notify = (message: string) => {
@@ -330,6 +342,10 @@ const App = () => {
     settings: { showGrid, snapToGrid },
   })
 
+  const notifySavedLayoutsChanged = () => {
+    syncChannelRef.current?.postMessage({ type: 'layouts', sender: tabIdRef.current })
+  }
+
   useEffect(() => {
     let cancelled = false
     const restoreLargeStorage = async () => {
@@ -342,12 +358,7 @@ const App = () => {
         }
         if (!cancelled) setSavedLayouts(parseNamedSavedLayouts(storedLayouts))
 
-        let storedAutoSave = await readLargeValue<unknown>(AUTO_SAVE_KEY)
-        if (storedAutoSave === null) {
-          const legacyAutoSave = parseSavedLayout(localStorage.getItem(AUTO_SAVE_KEY))
-          storedAutoSave = legacyAutoSave
-          if (legacyAutoSave) await writeLargeValue(AUTO_SAVE_KEY, legacyAutoSave)
-        }
+        const storedAutoSave = await readLargeValue<unknown>(tabAutoSaveKey)
         const restored = storedAutoSave ? parseSavedLayout(JSON.stringify(storedAutoSave)) : null
         if (!cancelled && !sharedLayoutRef.current && restored) {
           restoreHistoryLoadRef.current(restored.scene)
@@ -355,7 +366,6 @@ const App = () => {
           setShowGrid(restored.settings.showGrid)
           setSnapToGrid(restored.settings.snapToGrid)
         }
-        localStorage.removeItem(AUTO_SAVE_KEY)
         localStorage.removeItem(SAVED_LAYOUTS_KEY)
       } catch {
         if (!cancelled) notify('大容量保存の初期化に失敗しました')
@@ -365,16 +375,17 @@ const App = () => {
     }
     void restoreLargeStorage()
     return () => { cancelled = true }
-  }, [])
+  }, [tabAutoSaveKey])
 
   useEffect(() => {
     if (!storageReady) return
-    void writeLargeValue(AUTO_SAVE_KEY, {
-        version: 3,
-        savedAt: new Date().toISOString(),
-        scene,
-        settings: { showGrid, snapToGrid },
-      } satisfies SavedLayout).then(() => {
+    const layout = {
+      version: 3,
+      savedAt: new Date().toISOString(),
+      scene,
+      settings: { showGrid, snapToGrid },
+    } satisfies SavedLayout
+    void writeLargeValue(tabAutoSaveKey, layout).then(() => {
       autoSaveWarningShownRef.current = false
     }).catch(() => {
       if (!autoSaveWarningShownRef.current) {
@@ -382,7 +393,24 @@ const App = () => {
         setToast('ブラウザの保存領域を確保できませんでした')
       }
     })
-  }, [scene, showGrid, snapToGrid, storageReady])
+  }, [scene, showGrid, snapToGrid, storageReady, tabAutoSaveKey])
+
+  useEffect(() => {
+    if (!storageReady || typeof BroadcastChannel === 'undefined') return
+    const channel = new BroadcastChannel(SYNC_CHANNEL)
+    syncChannelRef.current = channel
+
+    channel.onmessage = (event: MessageEvent<{ type?: string; sender?: string }>) => {
+      if (event.data.sender === tabIdRef.current) return
+      if (event.data.type === 'layouts') {
+        void readLargeValue<unknown>(SAVED_LAYOUTS_KEY).then((stored) => setSavedLayouts(parseNamedSavedLayouts(stored)))
+      }
+    }
+    return () => {
+      channel.close()
+      if (syncChannelRef.current === channel) syncChannelRef.current = null
+    }
+  }, [storageReady])
 
   const nextZIndex = () => Math.max(0, ...scene.elements.map((element) => element.zIndex)) + 1
 
@@ -872,6 +900,7 @@ const App = () => {
     try {
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
+      notifySavedLayoutsChanged()
       notify(`「${name}」を保存しました`)
     } catch {
       notify('保存できませんでした。ブラウザの保存設定を確認してください')
@@ -892,6 +921,7 @@ const App = () => {
     try {
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
+      notifySavedLayoutsChanged()
       notify(`「${saved.name}」を削除しました`)
     } catch {
       notify('保存ページを更新できませんでした')
@@ -903,6 +933,7 @@ const App = () => {
     try {
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
+      notifySavedLayoutsChanged()
       notify('保存ページのタイトルを更新しました')
     } catch {
       notify('保存ページのタイトルを更新できませんでした')
@@ -920,6 +951,7 @@ const App = () => {
       const next = [saved, ...savedLayouts]
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
+      notifySavedLayoutsChanged()
       loadLayout(layout, `「${name}」を読み込みました`)
     } catch {
       notify('共有ファイルを読み込めませんでした')
