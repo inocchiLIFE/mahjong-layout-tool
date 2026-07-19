@@ -147,7 +147,9 @@ const isPalettePoint = (clientX: number, clientY: number) => {
 
 // Matches the desktop density setting in App.css. Pointer positions are reported
 // in screen pixels, so convert them back to the workspace's logical pixels.
-const getDisplayScale = () => window.matchMedia('(min-width: 651px)').matches ? 0.8 : 1
+const getDisplayScale = () => window.matchMedia('(min-width: 651px)').matches
+  ? 0.8 * Number.parseFloat(getComputedStyle(document.querySelector('.app-shell') ?? document.documentElement).getPropertyValue('--app-scale')) || 0.88
+  : 1
 const toLogicalDelta = (value: number) => value / getDisplayScale()
 const toCanvasCoordinate = (client: number, edge: number, cameraOffset: number) =>
   toLogicalDelta(client - edge) - cameraOffset

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
 import { ContextMenu } from './components/ContextMenu'
 import { HelpModal } from './components/HelpModal'
@@ -69,6 +69,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   defaultTextColor: '#172c27',
   defaultShapeColor: '#244a40',
   defaultShapeStrokeWidth: 4,
+  uiScale: 1.1,
 }
 const SYNC_CHANNEL = 'mahjong-layout-tool:tab-sync-v1'
 const EMPTY_SCENE: Scene = {
@@ -314,6 +315,7 @@ const readPreferences = (): AppPreferences => {
       defaultTextColor: typeof saved.defaultTextColor === 'string' ? saved.defaultTextColor : DEFAULT_PREFERENCES.defaultTextColor,
       defaultShapeColor: typeof saved.defaultShapeColor === 'string' ? saved.defaultShapeColor : DEFAULT_PREFERENCES.defaultShapeColor,
       defaultShapeStrokeWidth: typeof saved.defaultShapeStrokeWidth === 'number' ? clamp(saved.defaultShapeStrokeWidth, 1, 12) : DEFAULT_PREFERENCES.defaultShapeStrokeWidth,
+      uiScale: typeof saved.uiScale === 'number' ? clamp(saved.uiScale, 0.9, 1.3) : DEFAULT_PREFERENCES.uiScale,
     }
   } catch {
     return DEFAULT_PREFERENCES
@@ -1215,7 +1217,7 @@ const App = () => {
     : null
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={{ '--app-scale': preferences.uiScale } as CSSProperties}>
       <header className="app-header">
         <div className="brand-mark" aria-hidden="true"><span>牌</span></div>
         <div className="brand-copy">

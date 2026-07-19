@@ -3,7 +3,7 @@
 /* Desktop uses an 80% density by default. The larger logical canvas keeps the
    physical app filling the viewport while preserving more working room. */
 @media (min-width: 651px) {
-  .app-shell { width: 125vw; height: 125dvh; zoom: .8; }
+  .app-shell { width: 125vw; height: 125dvh; zoom: calc(.8 * var(--app-scale, 1.1)); }
   .app-shell .ribbon-tabs { min-height: 36px; padding-inline: 15px; }
   .app-shell .ribbon-tabs button { height: 34px; padding-inline: 14px; font-size: 12.5px; }
   .app-shell .ribbon-content { min-height: 90px; padding: 5px 15px 8px; }
