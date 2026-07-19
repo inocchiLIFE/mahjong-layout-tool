@@ -161,6 +161,20 @@ const arrowHeadPoints = (points: CanvasPoint[]) => {
   return getArrowHeadPoints(points).map((point) => `${point.x},${point.y}`).join(' ')
 }
 
+/** Near-horizontal and near-vertical lines snap their endpoints to the grid,
+ * making clean axes easy without changing ordinary diagonal lines. */
+const constrainStraightLine = (start: CanvasPoint, end: CanvasPoint): CanvasPoint[] => {
+  const deltaX = end.x - start.x
+  const deltaY = end.y - start.y
+  const horizontal = Math.abs(deltaY) <= Math.abs(deltaX) * 0.25
+  const vertical = Math.abs(deltaX) <= Math.abs(deltaY) * 0.25
+  if (!horizontal && !vertical) return [start, end]
+
+  const snappedStart = { x: snap(start.x, true), y: snap(start.y, true) }
+  if (horizontal) return [snappedStart, { x: snap(end.x, true), y: snappedStart.y }]
+  return [snappedStart, { x: snappedStart.x, y: snap(end.y, true) }]
+}
+
 export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref) => {
   const propsRef = useRef(props)
   propsRef.current = props
@@ -452,7 +466,14 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       const point = canvasPoint(event)
       const previous = activeDrawing.points.at(-1)
       if (!previous || Math.hypot(point.x - previous.x, point.y - previous.y) >= 2) {
-        const next = { ...activeDrawing, points: props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? [activeDrawing.points[0], point] : [...activeDrawing.points, point] }
+        const next = {
+          ...activeDrawing,
+          points: props.placementMode === 'line'
+            ? constrainStraightLine(activeDrawing.points[0], point)
+            : props.placementMode === 'curve' || props.placementMode === 'arrow'
+              ? [activeDrawing.points[0], point]
+              : [...activeDrawing.points, point],
+        }
         drawingRef.current = next
         setDrawing(next)
       }
@@ -487,7 +508,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const activeDrawing = drawingRef.current
     if (activeDrawing?.pointerId === event.pointerId) {
       const point = canvasPoint(event)
-      const points = props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? [activeDrawing.points[0], point] : [...activeDrawing.points, point]
+      const points = props.placementMode === 'line'
+        ? constrainStraightLine(activeDrawing.points[0], point)
+        : props.placementMode === 'curve' || props.placementMode === 'arrow'
+          ? [activeDrawing.points[0], point]
+          : [...activeDrawing.points, point]
       drawingRef.current = null
       setDrawing(null)
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
