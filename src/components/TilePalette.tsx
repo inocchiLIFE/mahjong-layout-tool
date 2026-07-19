@@ -32,6 +32,8 @@ const symbolChoices: Array<{ mode: PlacementMode; icon: string; label: string; h
   { mode: 'triangle', icon: '△', label: '三角形', hint: 'ドラッグして配置', dragOnly: true },
   { mode: 'cross', icon: '✕', label: 'バツ', hint: 'ドラッグして配置', dragOnly: true },
   { mode: 'wave', icon: '〰', label: '波線（牌5枚分）', hint: 'ドラッグして配置', dragOnly: true },
+  { mode: 'draw', icon: '✎', label: 'ペン', hint: '手描きで線を書く' },
+  { mode: 'eraser', icon: '⌫', label: '消しゴム', hint: '要素をクリックして削除' },
   { mode: 'line', icon: '╱', label: '直線', hint: 'ドラッグで描画' },
   { mode: 'curve', icon: '⌒', label: '曲線', hint: 'ドラッグで描画' },
   { mode: 'arrow', icon: '→', label: '矢印', hint: 'ドラッグで描画' },

@@ -6,7 +6,7 @@ export type SymbolType = 'rectangle' | 'cross' | 'circle' | 'triangle' | 'wave'
 
 export type DrawingType = 'freehand' | 'line' | 'curve' | 'arrow'
 
-export type PlacementMode = 'select' | 'text' | 'draw' | 'line' | 'curve' | 'arrow' | SymbolType
+export type PlacementMode = 'select' | 'text' | 'draw' | 'line' | 'curve' | 'arrow' | 'eraser' | SymbolType
 
 export interface CanvasPoint {
   x: number

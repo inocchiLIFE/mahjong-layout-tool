@@ -432,6 +432,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       return
     }
     if (event.button !== 0) return
+    if (props.placementMode === 'eraser') {
+      props.onClearSelection()
+      return
+    }
     if (props.placementMode === 'curve' && curveDraft) {
       const apex = canvasPoint(event)
       props.onCommitDrawing([curveDraft.start, apex, curveDraft.end], 'curve')
@@ -555,7 +559,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
     if (props.placementMode === 'text') {
       setEditor({ x: state.startX, y: state.startY, value: '' })
-    } else if (props.placementMode !== 'select' && props.placementMode !== 'draw' && props.placementMode !== 'line' && props.placementMode !== 'curve' && props.placementMode !== 'arrow') {
+    } else if (props.placementMode !== 'select' && props.placementMode !== 'draw' && props.placementMode !== 'line' && props.placementMode !== 'curve' && props.placementMode !== 'arrow' && props.placementMode !== 'eraser') {
       props.onPlaceSymbol(props.placementMode, state.startX, state.startY)
     } else {
       props.onClearSelection()
@@ -638,7 +642,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   return (
     <div
       ref={ref}
-      className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? ' drawing-mode' : ''}`}
+      className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? ' drawing-mode' : ''}${props.placementMode === 'eraser' ? ' eraser-mode' : ''}`}
       style={{ width: props.scene.width, height: props.scene.height }}
       onPointerDown={beginCanvasPointer}
       onPointerMove={moveCanvasPointer}
@@ -704,6 +708,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             height: dimensions.height,
           },
           onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => {
+            if (props.placementMode === 'eraser') {
+              event.preventDefault()
+              event.stopPropagation()
+              if (!element.locked) props.onDeleteDragged([element.id])
+              return
+            }
             if (props.placementMode !== 'draw' && props.placementMode !== 'line' && props.placementMode !== 'curve' && props.placementMode !== 'arrow') beginElementDrag(event, element)
           },
           onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => openContextMenu(event, element),

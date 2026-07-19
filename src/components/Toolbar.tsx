@@ -237,7 +237,7 @@ export const Toolbar = (props: ToolbarProps) => {
             <span className="tool-group-label">配置（Escで解除）</span>
             <ToolButton label="選択" icon="↖" onClick={() => props.onSetPlacementMode('select')} active={props.placementMode === 'select'} />
             {([
-              ['text', 'クリック文字', 'T'], ['draw', '線を描く', '✎'], ['line', '直線', '╱'], ['curve', '曲線', '⌒'], ['arrow', '矢印', '→'],
+              ['text', 'クリック文字', 'T'], ['draw', 'ペン', '✎'], ['eraser', '消しゴム', '⌫'], ['line', '直線', '╱'], ['curve', '曲線', '⌒'], ['arrow', '矢印', '→'],
               ['rectangle', '長方形', '▭'], ['triangle', '三角形', '△'], ['cross', 'バツ', '✕'], ['circle', '丸', '〇'], ['wave', '波線（牌5枚分）', '〰'],
             ] as Array<[PlacementMode, string, string]>).map(([mode, label, icon]) => (
               <ToolButton
