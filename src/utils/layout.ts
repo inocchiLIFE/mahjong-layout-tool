@@ -174,11 +174,15 @@ const forcedShapeShifts = (count: 6 | 7, no: number, mirrored: boolean): number[
 }
 
 /** Generates one of the specified 6/7-tile study shapes using a single suit. */
-export const randomShapeHand = (count: 6 | 7) => {
+export const randomShapeHand = (count: 6 | 7, onlyTriplet = false) => {
   const patterns = SHAPE_HANDS[count]
-  const index = Math.floor(Math.random() * patterns.length)
+  const candidates = patterns
+    .map((hand, index) => ({ hand, index }))
+    .filter(({ hand }) => !onlyTriplet || [...hand].some((tile) => hand.split(tile).length - 1 >= 3))
+  const selected = candidates[Math.floor(Math.random() * candidates.length)]
+  const index = selected.index
   const mirrored = Math.random() < .5
-  const tiles = patterns[index].split('').map(Number).map((rank) => mirrored ? 10 - rank : rank)
+  const tiles = selected.hand.split('').map(Number).map((rank) => mirrored ? 10 - rank : rank)
   const forced = forcedShapeShifts(count, index + 1, mirrored)
   const min = Math.min(...tiles)
   const max = Math.max(...tiles)
