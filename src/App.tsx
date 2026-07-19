@@ -448,6 +448,7 @@ const App = () => {
   const imageInputRef = useRef<HTMLInputElement>(null)
   const shareInputRef = useRef<HTMLInputElement>(null)
   const imageAnchorRef = useRef<{ x: number; y: number } | null>(null)
+  const pasteAnchorRef = useRef<CanvasPoint | null>(null)
   const autoSaveWarningShownRef = useRef(false)
   const toastTimerRef = useRef<number | null>(null)
   const restoreHistoryLoadRef = useRef(history.load)
@@ -912,7 +913,7 @@ const App = () => {
     notify(`${sources.length}件をコピーしました`)
   }
 
-  const pasteTileNotation = (text: string) => {
+  const pasteTileNotation = (text: string, anchor = pasteAnchorRef.current) => {
     const matches = [...text.toLowerCase().matchAll(/([0-9]+)([mpsz])/g)]
     if (!matches.length || matches.map((match) => match[0]).join('') !== text.toLowerCase()) return false
     const tileIds = matches.flatMap((match) => [...match[1]].map((digit) => {
@@ -923,15 +924,16 @@ const App = () => {
     }))
     if (!tileIds.length || tileIds.some((tileId) => !tileId || !TILE_MAP.has(tileId))) return false
     const totalWidth = tileIds.length * TILE_WIDTH + Math.max(0, tileIds.length - 1) * TILE_GAP
-    let startX = 32
-    while (scene.elements.some((element) => element.kind === 'tile' && element.y < TILE_HEIGHT && element.y + TILE_HEIGHT > 0 && startX < element.x + TILE_WIDTH && startX + totalWidth > element.x)) startX += TILE_WIDTH + TILE_GAP
+    let startX = clamp(anchor?.x ?? 32, 0, scene.width - totalWidth)
+    const startY = clamp(anchor?.y ?? 0, 0, scene.height - TILE_HEIGHT)
+    if (!anchor) while (scene.elements.some((element) => element.kind === 'tile' && element.y < TILE_HEIGHT && element.y + TILE_HEIGHT > 0 && startX < element.x + TILE_WIDTH && startX + totalWidth > element.x)) startX += TILE_WIDTH + TILE_GAP
     const zStart = nextZIndex()
     history.commit({
       ...scene,
       elements: [
         ...scene.elements.map((element) => ({ ...element, selected: false })),
         ...tileIds.map((tileId, index) => {
-          const tile = makeTile(tileId!, startX + index * (TILE_WIDTH + TILE_GAP), 0, zStart + index)
+          const tile = makeTile(tileId!, startX + index * (TILE_WIDTH + TILE_GAP), startY, zStart + index)
           delete tile.autoX; delete tile.autoY; delete tile.autoOrder
           return { ...tile, selected: true }
         }),
@@ -1440,6 +1442,7 @@ const App = () => {
                 files.filter((file) => file.type.startsWith('image/')).forEach((file, index) => void addImageFile(file, { x: x + index * 20, y: y + index * 20 }))
               }}
               onDropText={(text, x, y) => commitText(text, x, y)}
+              onCursorCanvasPoint={(point) => { pasteAnchorRef.current = point }}
               onSelectElement={selectElement}
               onSelectRange={selectRange}
               onClearSelection={clearSelection}

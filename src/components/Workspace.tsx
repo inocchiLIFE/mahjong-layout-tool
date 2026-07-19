@@ -50,6 +50,7 @@ interface WorkspaceProps {
   onDropTile: (tileId: string, x: number, y: number) => void
   onDropFiles: (files: File[], x: number, y: number) => void
   onDropText: (text: string, x: number, y: number) => void
+  onCursorCanvasPoint: (point: CanvasPoint) => void
   onSelectElement: (id: string, additive: boolean) => void
   onSelectRange: (ids: string[], additive: boolean) => void
   onClearSelection: () => void
@@ -514,6 +515,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   }
 
   const moveCanvasPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    props.onCursorCanvasPoint(canvasPoint(event))
     const pan = panRef.current
     if (pan?.pointerId === event.pointerId) {
       setCamera({ x: pan.startX + toLogicalDelta(event.clientX - pan.startClientX), y: pan.startY + toLogicalDelta(event.clientY - pan.startClientY) })
