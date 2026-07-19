@@ -143,9 +143,9 @@ export const Toolbar = (props: ToolbarProps) => {
         {([
           ['home', 'ホーム'],
           ['insert', '挿入'],
+          ['hand', '配牌'],
           ['file', '保存・出力'],
           ['view', '設定'],
-          ['hand', '配牌'],
         ] as Array<[RibbonTab, string]>).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}>{label}</button>
         ))}
