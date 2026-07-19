@@ -751,11 +751,6 @@ const App = () => {
         : type === 6 || type === 7
           ? randomShapeHand(type)
           : randomHand(type)
-    const orderedTileIds = [...tileIds].sort((left, right) => {
-      const leftTile = TILE_MAP.get(left)
-      const rightTile = TILE_MAP.get(right)
-      return (leftTile?.rank ?? 99) - (rightTile?.rank ?? 99) || (leftTile?.order ?? 999) - (rightTile?.order ?? 999)
-    })
     const totalWidth = count * TILE_WIDTH + (count - 1) * TILE_GAP
     const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
     const startX = Math.max(20, (width - totalWidth) / 2)
@@ -771,7 +766,7 @@ const App = () => {
       width,
       elements: [
         ...retained,
-        ...orderedTileIds.map((tileId, index) => makeTile(tileId, startX + index * (TILE_WIDTH + TILE_GAP), 76, zStart + index)),
+        ...tileIds.map((tileId, index) => makeTile(tileId, startX + index * (TILE_WIDTH + TILE_GAP), 76, zStart + index)),
       ],
     })
     setRulerCount(count)
