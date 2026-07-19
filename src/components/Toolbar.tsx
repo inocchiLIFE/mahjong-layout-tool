@@ -35,7 +35,7 @@ interface ToolbarProps {
   onUpdateShapeStrokeWidth: (strokeWidth: number) => void
   onUpdateEraserSize: (size: number) => void
   onEditProperties: () => void
-  onRandomHand: (count: 13 | 14) => void
+  onRandomHand: (count: 6 | 7 | 13 | 14) => void
   onShuffle: () => void
   onSetPlacementMode: (mode: PlacementMode) => void
   onToggleGrid: () => void
@@ -308,6 +308,8 @@ export const Toolbar = (props: ToolbarProps) => {
           <span className="tool-group-label">配牌</span>
           <ToolButton label="13枚" icon="13" onClick={() => props.onRandomHand(13)} />
           <ToolButton label="14枚" icon="14" onClick={() => props.onRandomHand(14)} />
+          <ToolButton label="6枚形" icon="6" onClick={() => props.onRandomHand(6)} />
+          <ToolButton label="7枚形" icon="7" onClick={() => props.onRandomHand(7)} />
           <ToolButton label="シャッフル" icon="⤨" onClick={props.onShuffle} disabled={!props.hasItems} />
         </div>}
 

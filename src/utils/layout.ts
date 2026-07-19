@@ -160,6 +160,34 @@ export const randomHand = (count: 13 | 14) => {
   return sortTileIds(wall.slice(0, count))
 }
 
+const SHAPE_HANDS: Record<6 | 7, string[]> = {
+  6: ['334556', '344568', '223446', '333445', '445678', '111233', '445567', '334445', '344456', '334568', '134568', '344567', '234446'],
+  7: ['5556777', '2345678', '2345699', '2345777', '2333456', '3334455', '5666777', '2456777', '5566677', '3345555', '3455777', '3334456', '3334567', '4556777', '2345567', '4566667', '3344445', '3335777', '1166678'],
+}
+
+const forcedShapeShifts = (count: 6 | 7, no: number, mirrored: boolean): number[] | null => {
+  if (count === 6 && no === 13) return mirrored ? [-3, -2, -1, 0] : [0, 1, 2, 3]
+  if (count === 7 && (no === 3 || no === 19)) return [0]
+  if (count === 7 && no === 11) return mirrored ? [-2, -1, 0, 1] : [-1, 0, 1, 2]
+  if (count === 7 && no === 14) return [-2, -1, 0, 1, 2]
+  return null
+}
+
+/** Generates one of the specified 6/7-tile study shapes using a single suit. */
+export const randomShapeHand = (count: 6 | 7) => {
+  const patterns = SHAPE_HANDS[count]
+  const index = Math.floor(Math.random() * patterns.length)
+  const mirrored = Math.random() < .5
+  const tiles = patterns[index].split('').map(Number).map((rank) => mirrored ? 10 - rank : rank)
+  const forced = forcedShapeShifts(count, index + 1, mirrored)
+  const min = Math.min(...tiles)
+  const max = Math.max(...tiles)
+  const shifts = forced ?? Array.from({ length: Math.min(3, 9 - max) - Math.max(-3, 1 - min) + 1 }, (_, offset) => Math.max(-3, 1 - min) + offset)
+  const shift = shifts[Math.floor(Math.random() * shifts.length)] ?? 0
+  const suit = (['man', 'pin', 'sou'] as const)[Math.floor(Math.random() * 3)]
+  return tiles.map((rank) => `${suit}${rank + shift}`).sort((a, b) => (TILE_MAP.get(a)?.rank ?? 0) - (TILE_MAP.get(b)?.rank ?? 0))
+}
+
 const makeBase = (prefix: string, x: number, y: number, zIndex: number) => ({
   id: createId(prefix),
   x: Math.round(x),

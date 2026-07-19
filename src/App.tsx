@@ -52,6 +52,7 @@ import {
   makeText,
   makeTile,
   randomHand,
+  randomShapeHand,
   snap,
 } from './utils/layout'
 import { readLargeValue, writeLargeValue } from './utils/largeStorage'
@@ -736,8 +737,8 @@ const App = () => {
     notify(selectedTiles.length ? `${selectedTiles.length}枚を等間隔で整列しました` : 'すべての牌を等間隔で整列しました')
   }
 
-  const generateHand = (count: 13 | 14) => {
-    const tileIds = randomHand(count)
+  const generateHand = (count: 6 | 7 | 13 | 14) => {
+    const tileIds = count === 6 || count === 7 ? randomShapeHand(count) : randomHand(count)
     const totalWidth = count * TILE_WIDTH + (count - 1) * TILE_GAP
     const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
     const startX = Math.max(20, (width - totalWidth) / 2)
@@ -752,7 +753,7 @@ const App = () => {
       ],
     })
     setRulerCount(count)
-    notify(`${count}枚の配牌を生成し、理牌しました`)
+    notify(`${count}枚${count === 6 || count === 7 ? '形' : 'の配牌'}を生成し、理牌しました`)
   }
 
   const shuffleTiles = () => {
