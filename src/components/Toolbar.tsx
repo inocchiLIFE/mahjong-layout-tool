@@ -36,6 +36,8 @@ interface ToolbarProps {
   onUpdateEraserSize: (size: number) => void
   onEditProperties: () => void
   onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous') => void
+  handSuits: Array<'man' | 'pin' | 'sou'>
+  onToggleHandSuit: (suit: 'man' | 'pin' | 'sou') => void
   onShuffle: () => void
   onSetPlacementMode: (mode: PlacementMode) => void
   onToggleGrid: () => void
@@ -314,6 +316,13 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="13枚" icon="13" onClick={() => props.onRandomHand(13)} />
           <ToolButton label="14枚" icon="14" onClick={() => props.onRandomHand(14)} />
           <ToolButton label="シャッフル" icon="⤨" onClick={props.onShuffle} disabled={!props.hasItems} />
+        </div>}
+
+        {activeTab === 'hand' && <div className="tool-group hand-suit-filter-group">
+          <span className="tool-group-label">使用する種類</span>
+          <div className="hand-suit-filters" aria-label="配牌に使用する種類">
+            {([['man', '萬子'], ['pin', '筒子'], ['sou', '索子']] as const).map(([suit, label]) => <label key={suit}><input type="checkbox" checked={props.handSuits.includes(suit)} onChange={() => props.onToggleHandSuit(suit)} />{label}</label>)}
+          </div>
         </div>}
 
         {activeTab === 'view' && <div className="tool-group">

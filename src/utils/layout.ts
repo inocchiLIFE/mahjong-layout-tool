@@ -174,7 +174,23 @@ const forcedShapeShifts = (count: 6 | 7, no: number, mirrored: boolean): number[
 }
 
 /** Generates one of the specified 6/7-tile study shapes using a single suit. */
-export const randomShapeHand = (count: 6 | 7, onlyTriplet = false) => {
+type NumberedSuit = 'man' | 'pin' | 'sou'
+const pickNumberedSuit = (suits: readonly NumberedSuit[]) => {
+  const choices = suits.length ? suits : (['man', 'pin', 'sou'] as const)
+  return choices[Math.floor(Math.random() * choices.length)]
+}
+
+export const randomSingleSuitHand = (count: 13 | 14, suits: readonly NumberedSuit[]) => {
+  const suit = pickNumberedSuit(suits)
+  const wall = Array.from({ length: 9 }, (_, index) => Array.from({ length: 4 }, () => `${suit}${index + 1}`)).flat()
+  for (let index = wall.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(Math.random() * (index + 1))
+    ;[wall[index], wall[target]] = [wall[target], wall[index]]
+  }
+  return sortTileIds(wall.slice(0, count))
+}
+
+export const randomShapeHand = (count: 6 | 7, onlyTriplet = false, suits: readonly NumberedSuit[] = []) => {
   const patterns = SHAPE_HANDS[count]
   const candidates = patterns
     .map((hand, index) => ({ hand, index }))
@@ -188,13 +204,13 @@ export const randomShapeHand = (count: 6 | 7, onlyTriplet = false) => {
   const max = Math.max(...tiles)
   const shifts = forced ?? Array.from({ length: Math.min(3, 9 - max) - Math.max(-3, 1 - min) + 1 }, (_, offset) => Math.max(-3, 1 - min) + offset)
   const shift = shifts[Math.floor(Math.random() * shifts.length)] ?? 0
-  const suit = (['man', 'pin', 'sou'] as const)[Math.floor(Math.random() * 3)]
+  const suit = pickNumberedSuit(suits)
   return tiles.map((rank) => `${suit}${rank + shift}`).sort((a, b) => (TILE_MAP.get(a)?.rank ?? 0) - (TILE_MAP.get(b)?.rank ?? 0))
 }
 
 /** Five-tile connected shapes: one sequence plus a ryanmen or kanchan taatsu.
  * The ranges must touch or overlap, so the two components never have a gap. */
-export const randomContinuousHand = () => {
+export const randomContinuousHand = (suits: readonly NumberedSuit[] = []) => {
   const candidates: number[][] = []
   const ryanmenTaatsu = Array.from({ length: 6 }, (_, index) => [index + 2, index + 3]) // 23–78
   const kanchanTaatsu = Array.from({ length: 7 }, (_, index) => [index + 1, index + 3]) // 13–79
@@ -223,7 +239,7 @@ export const randomContinuousHand = () => {
   const maximumShift = Math.min(3, 9 - max)
   const shifts = Array.from({ length: maximumShift - minimumShift + 1 }, (_, index) => minimumShift + index)
   const shift = shifts[Math.floor(Math.random() * shifts.length)] ?? 0
-  const suit = (['man', 'pin', 'sou'] as const)[Math.floor(Math.random() * 3)]
+  const suit = pickNumberedSuit(suits)
   return tiles.map((rank) => `${suit}${rank + shift}`).sort((a, b) => (TILE_MAP.get(a)?.rank ?? 0) - (TILE_MAP.get(b)?.rank ?? 0))
 }
 

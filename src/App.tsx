@@ -54,6 +54,7 @@ import {
   randomHand,
   randomShapeHand,
   randomContinuousHand,
+  randomSingleSuitHand,
   snap,
 } from './utils/layout'
 import { readLargeValue, writeLargeValue } from './utils/largeStorage'
@@ -422,6 +423,7 @@ const App = () => {
   const [symbolPresetTarget, setSymbolPresetTarget] = useState<SymbolType | null>(null)
   const [drawingPresets, setDrawingPresets] = useState(readDrawingPresets)
   const [drawingPresetTarget, setDrawingPresetTarget] = useState<DrawingTool | null>(null)
+  const [handSuits, setHandSuits] = useState<Array<'man' | 'pin' | 'sou'>>([])
   const symbolColors = (Object.keys(symbolPresets) as SymbolType[]).reduce((colors, symbolType) => {
     colors[symbolType] = symbolPresets[symbolType].color ?? defaultShapeColor
     return colors
@@ -746,12 +748,12 @@ const App = () => {
   const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous') => {
     const count = type === '6-triplet' ? 6 : type === 'continuous' ? 5 : type
     const tileIds = type === 'continuous'
-      ? randomContinuousHand()
+      ? randomContinuousHand(handSuits)
       : type === '6-triplet'
-        ? randomShapeHand(6, true)
+        ? randomShapeHand(6, true, handSuits)
         : type === 6 || type === 7
-          ? randomShapeHand(type)
-          : randomHand(type)
+          ? randomShapeHand(type, false, handSuits)
+          : handSuits.length ? randomSingleSuitHand(type, handSuits) : randomHand(type)
     const totalWidth = count * TILE_WIDTH + (count - 1) * TILE_GAP
     const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
     // The ruler begins at x=32 and the canvas begins immediately below it.
@@ -1332,6 +1334,8 @@ const App = () => {
         onUpdateEraserSize={(size) => setEraserSize(clamp(size, 8, 80))}
         onEditProperties={() => selectedEditable && setPropertyElementId(selectedEditable.id)}
         onRandomHand={generateHand}
+        handSuits={handSuits}
+        onToggleHandSuit={(suit) => setHandSuits((current) => current.includes(suit) ? current.filter((value) => value !== suit) : [...current, suit])}
         onShuffle={shuffleTiles}
         onSetPlacementMode={setPlacementMode}
         onToggleGrid={() => setShowGrid((value) => !value)}
