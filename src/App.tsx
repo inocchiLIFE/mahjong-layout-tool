@@ -1121,6 +1121,7 @@ const App = () => {
     clearSelection,
     undo: history.undo,
     redo: history.redo,
+    saveQuickLayout,
   })
   keyboardActions.current = {
     deleteSelected,
@@ -1132,6 +1133,7 @@ const App = () => {
     clearSelection,
     undo: history.undo,
     redo: history.redo,
+    saveQuickLayout,
   }
 
   const imagePasteAction = useRef(addImageFile)
@@ -1172,10 +1174,15 @@ const App = () => {
         keyboardActions.current.clearSelection()
         return
       }
-      if (target.matches('input, textarea, select')) return
-
       const command = event.ctrlKey || event.metaKey
       const key = event.key.toLowerCase()
+      if (command && key === 's') {
+        event.preventDefault()
+        keyboardActions.current.saveQuickLayout()
+        return
+      }
+      if (target.matches('input, textarea, select')) return
+
       if (command && key === 'c') {
         event.preventDefault()
         keyboardActions.current.copySelected()
@@ -1223,6 +1230,11 @@ const App = () => {
   return (
     <div className="app-shell" style={{ '--app-scale': preferences.uiScale } as CSSProperties}>
       <header className="app-header">
+        <div className="quick-access" aria-label="クイックアクセスツールバー">
+          <button type="button" title="保存（Ctrl+S）" aria-label="保存（Ctrl+S）" onClick={saveQuickLayout}>▣</button>
+          <button type="button" title="元に戻す（Ctrl+Z）" aria-label="元に戻す" onClick={history.undo} disabled={!history.canUndo}>↶</button>
+          <button type="button" title="やり直す（Ctrl+Y）" aria-label="やり直す" onClick={history.redo} disabled={!history.canRedo}>↷</button>
+        </div>
         <div className="brand-mark" aria-hidden="true"><span>牌</span></div>
         <div className="brand-copy">
           <span className="eyebrow">MAHJONG CANVAS</span>
