@@ -53,6 +53,7 @@ import {
   makeTile,
   randomHand,
   randomShapeHand,
+  randomContinuousHand,
   snap,
 } from './utils/layout'
 import { readLargeValue, writeLargeValue } from './utils/largeStorage'
@@ -741,9 +742,15 @@ const App = () => {
     notify(selectedTiles.length ? `${selectedTiles.length}枚を等間隔で整列しました` : 'すべての牌を等間隔で整列しました')
   }
 
-  const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet') => {
-    const count = type === '6-triplet' ? 6 : type
-    const tileIds = type === '6-triplet' ? randomShapeHand(6, true) : count === 6 || count === 7 ? randomShapeHand(count) : randomHand(count)
+  const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous') => {
+    const count = type === '6-triplet' ? 6 : type === 'continuous' ? 5 : type
+    const tileIds = type === 'continuous'
+      ? randomContinuousHand()
+      : type === '6-triplet'
+        ? randomShapeHand(6, true)
+        : type === 6 || type === 7
+          ? randomShapeHand(type)
+          : randomHand(type)
     const totalWidth = count * TILE_WIDTH + (count - 1) * TILE_GAP
     const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
     const startX = Math.max(20, (width - totalWidth) / 2)
@@ -763,7 +770,7 @@ const App = () => {
       ],
     })
     setRulerCount(count)
-    notify(`${type === '6-triplet' ? '6枚形暗刻含み' : `${count}枚${count === 6 || count === 7 ? '形' : 'の配牌'}`}を生成し、理牌しました`)
+    notify(`${type === 'continuous' ? '連続形' : type === '6-triplet' ? '6枚形暗刻含み' : `${count}枚${count === 6 || count === 7 ? '形' : 'の配牌'}`}を生成し、理牌しました`)
   }
 
   const shuffleTiles = () => {

@@ -192,6 +192,37 @@ export const randomShapeHand = (count: 6 | 7, onlyTriplet = false) => {
   return tiles.map((rank) => `${suit}${rank + shift}`).sort((a, b) => (TILE_MAP.get(a)?.rank ?? 0) - (TILE_MAP.get(b)?.rank ?? 0))
 }
 
+/** Five-tile connected shapes: one sequence plus a ryanmen or kanchan taatsu.
+ * The ranges must touch or overlap, so the two components never have a gap. */
+export const randomContinuousHand = () => {
+  const candidates: number[][] = []
+  for (let sequenceStart = 1; sequenceStart <= 7; sequenceStart += 1) {
+    const sequence = [sequenceStart, sequenceStart + 1, sequenceStart + 2]
+    for (const taatsu of [
+      ...Array.from({ length: 8 }, (_, index) => [index + 1, index + 2]),
+      ...Array.from({ length: 7 }, (_, index) => [index + 1, index + 3]),
+    ]) {
+      const sequenceMin = sequence[0]
+      const sequenceMax = sequence[2]
+      const taatsuMin = taatsu[0]
+      const taatsuMax = taatsu[1]
+      if (taatsuMax + 1 < sequenceMin || sequenceMax + 1 < taatsuMin) continue
+      candidates.push([...sequence, ...taatsu])
+    }
+  }
+  const base = candidates[Math.floor(Math.random() * candidates.length)]
+  const mirrored = Math.random() < .5
+  const tiles = base.map((rank) => mirrored ? 10 - rank : rank)
+  const min = Math.min(...tiles)
+  const max = Math.max(...tiles)
+  const minimumShift = Math.max(-3, 1 - min)
+  const maximumShift = Math.min(3, 9 - max)
+  const shifts = Array.from({ length: maximumShift - minimumShift + 1 }, (_, index) => minimumShift + index)
+  const shift = shifts[Math.floor(Math.random() * shifts.length)] ?? 0
+  const suit = (['man', 'pin', 'sou'] as const)[Math.floor(Math.random() * 3)]
+  return tiles.map((rank) => `${suit}${rank + shift}`).sort((a, b) => (TILE_MAP.get(a)?.rank ?? 0) - (TILE_MAP.get(b)?.rank ?? 0))
+}
+
 const makeBase = (prefix: string, x: number, y: number, zIndex: number) => ({
   id: createId(prefix),
   x: Math.round(x),
