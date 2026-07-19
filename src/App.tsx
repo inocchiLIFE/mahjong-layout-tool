@@ -323,7 +323,7 @@ const readPreferences = (): AppPreferences => {
 const createSymbolPresets = (): Record<SymbolType, SymbolPreset> => Object.fromEntries(
   (['rectangle', 'triangle', 'cross', 'circle', 'wave'] as SymbolType[]).map((symbolType) => {
     const dimensions = getSymbolBaseDimensions(symbolType)
-    return [symbolType, { color: '#244a40', strokeWidth: 4, width: dimensions.width, height: dimensions.height }]
+    return [symbolType, { color: null, strokeWidth: 4, width: dimensions.width, height: dimensions.height }]
   }),
 ) as Record<SymbolType, SymbolPreset>
 
@@ -399,6 +399,10 @@ const App = () => {
   const [eraserSize, setEraserSize] = useState(24)
   const [symbolPresets, setSymbolPresets] = useState(readSymbolPresets)
   const [symbolPresetTarget, setSymbolPresetTarget] = useState<SymbolType | null>(null)
+  const symbolColors = (Object.keys(symbolPresets) as SymbolType[]).reduce((colors, symbolType) => {
+    colors[symbolType] = symbolPresets[symbolType].color ?? defaultShapeColor
+    return colors
+  }, {} as Record<SymbolType, string>)
   const [placementMode, setPlacementMode] = useState<PlacementMode>('select')
   const [editTextRequest, setEditTextRequest] = useState<{ id: string; token: number } | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -769,7 +773,7 @@ const App = () => {
     const base = getSymbolBaseDimensions(symbolType)
     const item = {
       ...makeSymbol(symbolType, x, y, nextZIndex()),
-      color: preset.color,
+      color: preset.color ?? defaultShapeColor,
       strokeWidth: preset.strokeWidth,
       scaleX: preset.width / base.width,
       scaleY: preset.height / base.height,
@@ -1286,6 +1290,7 @@ const App = () => {
         onHelp={() => setHelpOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenSymbolPreset={setSymbolPresetTarget}
+        symbolColors={symbolColors}
       />
 
       <main className="app-body">
@@ -1295,6 +1300,7 @@ const App = () => {
           trashActive={trashActive}
           onSelectPlacementMode={setPlacementMode}
           onOpenSymbolPreset={setSymbolPresetTarget}
+          symbolColors={symbolColors}
         />
         <section className="workspace-panel">
           <div className="workspace-scroll">
@@ -1313,6 +1319,7 @@ const App = () => {
               snapToGrid={snapToGrid}
               placementMode={placementMode}
               eraserSize={eraserSize}
+              symbolColors={symbolColors}
               editTextRequest={editTextRequest}
               onDropTile={addTile}
               onDropFiles={(files, x, y) => {
@@ -1429,6 +1436,7 @@ const App = () => {
       {symbolPresetTarget && <SymbolPresetDialog
         symbolType={symbolPresetTarget}
         preset={symbolPresets[symbolPresetTarget]}
+        fallbackColor={defaultShapeColor}
         onClose={() => setSymbolPresetTarget(null)}
         onSave={(preset) => {
           const next = { ...symbolPresets, [symbolPresetTarget]: preset }

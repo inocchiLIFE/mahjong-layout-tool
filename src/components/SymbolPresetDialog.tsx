@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import type { SymbolType } from '../types'
 
-export interface SymbolPreset { color: string; strokeWidth: number; width: number; height: number }
+export interface SymbolPreset { color: string | null; strokeWidth: number; width: number; height: number }
 
-export const SymbolPresetDialog = ({ symbolType, preset, onSave, onClose }: { symbolType: SymbolType; preset: SymbolPreset; onSave: (preset: SymbolPreset) => void; onClose: () => void }) => {
-  const [draft, setDraft] = useState(preset)
+export const SymbolPresetDialog = ({ symbolType, preset, fallbackColor, onSave, onClose }: { symbolType: SymbolType; preset: SymbolPreset; fallbackColor: string; onSave: (preset: SymbolPreset) => void; onClose: () => void }) => {
+  const [draft, setDraft] = useState({ ...preset, color: preset.color ?? fallbackColor })
   const submit = (event: FormEvent) => { event.preventDefault(); onSave(draft) }
   return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
     <form className="property-editor" role="dialog" aria-modal="true" onSubmit={submit} onMouseDown={(event) => event.stopPropagation()}>

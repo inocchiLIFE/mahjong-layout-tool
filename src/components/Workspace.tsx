@@ -42,6 +42,7 @@ interface WorkspaceProps {
   snapToGrid: boolean
   placementMode: PlacementMode
   eraserSize: number
+  symbolColors: Record<SymbolType, string>
   editTextRequest: EditTextRequest | null
   onDropTile: (tileId: string, x: number, y: number) => void
   onDropFiles: (files: File[], x: number, y: number) => void
@@ -131,6 +132,7 @@ interface DropPreview {
   width: number
   height: number
   label: string
+  color?: string
 }
 
 const isPalettePoint = (clientX: number, clientY: number) => {
@@ -426,6 +428,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         width: dimensions.width,
         height: dimensions.height,
         label: SYMBOL_LABELS[mode],
+        color: props.symbolColors[mode],
       })
       return
     }
@@ -643,6 +646,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         height: dimensions.height,
         label: SYMBOL_LABELS[symbolType],
         symbolType,
+        color: props.symbolColors[symbolType],
       })
       return
     }
@@ -925,6 +929,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           top: preview.y + camera.y,
           width: preview.width,
           height: preview.height,
+          color: preview.color,
         }}
         aria-hidden="true"
       >

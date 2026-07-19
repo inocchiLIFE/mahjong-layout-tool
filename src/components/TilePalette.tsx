@@ -8,6 +8,7 @@ interface TilePaletteProps {
   trashActive: boolean
   onSelectPlacementMode: (mode: PlacementMode) => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
+  symbolColors: Record<SymbolType, string>
 }
 
 const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void }) => (
@@ -41,7 +42,7 @@ const symbolChoices: Array<{ mode: PlacementMode; icon: string; label: string; h
   { mode: 'text', icon: 'T', label: 'クリック文字', hint: '自由入力' },
 ]
 
-const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: PlacementMode) => {
+const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: PlacementMode, color: string) => {
   if (mode !== 'rectangle' && mode !== 'circle' && mode !== 'triangle' && mode !== 'cross' && mode !== 'wave') return
   const width = mode === 'wave' ? 240 : mode === 'rectangle' ? 148 : mode === 'cross' ? 48 : 98
   const height = mode === 'wave' ? 16 : 66
@@ -52,7 +53,7 @@ const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: Pl
   preview.style.width = `${width}px`
   preview.style.height = `${height}px`
   preview.style.boxSizing = 'border-box'
-  preview.style.color = '#244a40'
+  preview.style.color = color
   preview.style.background = 'rgba(255,255,255,.92)'
   preview.style.opacity = '.92'
   preview.style.pointerEvents = 'none'
@@ -68,16 +69,16 @@ const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: Pl
     preview.style.font = '700 49px/1 "Yu Gothic", sans-serif'
     preview.textContent = '✕'
   } else if (mode === 'wave') {
-    preview.innerHTML = '<svg viewBox="0 0 240 16" width="240" height="16" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="#244a40" stroke-width="2" stroke-linecap="round" /></svg>'
+    preview.innerHTML = '<svg viewBox="0 0 240 16" width="240" height="16" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>'
   } else {
-    preview.innerHTML = '<svg viewBox="0 0 99 66" width="98" height="66" aria-hidden="true"><polygon points="49.5,5 94,61 5,61" fill="none" stroke="#244a40" stroke-width="4" stroke-linejoin="round" /></svg>'
+    preview.innerHTML = '<svg viewBox="0 0 99 66" width="98" height="66" aria-hidden="true"><polygon points="49.5,5 94,61 5,61" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" /></svg>'
   }
   document.body.appendChild(preview)
   event.dataTransfer.setDragImage(preview, width / 2, height / 2)
   window.requestAnimationFrame(() => preview.remove())
 }
 
-export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset }: TilePaletteProps) => (
+export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, symbolColors }: TilePaletteProps) => (
   <aside className={`palette-panel${trashActive ? ' trash-active' : ''}`} aria-label="牌一覧と削除エリア">
     <div className="palette-trash-message" aria-hidden={!trashActive}>
       <strong>ここで離して削除</strong>
@@ -118,13 +119,13 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
                 if (!choice.dragOnly) return
                 event.dataTransfer.setData('application/x-mahjong-symbol', choice.mode)
                 event.dataTransfer.effectAllowed = 'copy'
-                setSymbolDragPreview(event, choice.mode)
+                setSymbolDragPreview(event, choice.mode, symbolColors[choice.mode as SymbolType])
               }}
               onContextMenu={(event) => { if (choice.dragOnly) { event.preventDefault(); onOpenSymbolPreset(choice.mode as SymbolType) } }}
               aria-pressed={!choice.dragOnly && placementMode === choice.mode}
               aria-label={choice.dragOnly ? `${choice.label}をドラッグして配置` : `${choice.label}配置ツール`}
             >
-              <b aria-hidden="true">{choice.icon}</b>
+              <b aria-hidden="true" style={choice.dragOnly ? { color: symbolColors[choice.mode as SymbolType] } : undefined}>{choice.icon}</b>
               <span>{choice.label}<small>{choice.hint}</small></span>
             </button>
           ))}

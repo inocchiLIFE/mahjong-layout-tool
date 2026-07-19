@@ -47,6 +47,7 @@ interface ToolbarProps {
   onHelp: () => void
   onOpenSettings: () => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
+  symbolColors: Record<SymbolType, string>
 }
 
 type RibbonTab = 'home' | 'insert' | 'hand' | 'view' | 'file'
@@ -59,6 +60,7 @@ const ToolButton = ({
   active,
   danger,
   onContextMenu,
+  iconColor,
 }: {
   label: string
   icon: string
@@ -67,6 +69,7 @@ const ToolButton = ({
   active?: boolean
   danger?: boolean
   onContextMenu?: () => void
+  iconColor?: string
 }) => (
   <button
     type="button"
@@ -76,7 +79,7 @@ const ToolButton = ({
     onContextMenu={(event) => { if (onContextMenu) { event.preventDefault(); onContextMenu() } }}
     aria-pressed={active}
   >
-    <span aria-hidden="true">{icon}</span>
+    <span aria-hidden="true" style={iconColor ? { color: iconColor } : undefined}>{icon}</span>
     {label}
   </button>
 )
@@ -252,6 +255,7 @@ export const Toolbar = (props: ToolbarProps) => {
                 icon={icon}
                 onClick={() => props.onSetPlacementMode(props.placementMode === mode ? 'select' : mode)}
                 active={props.placementMode === mode}
+                iconColor={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? props.symbolColors[mode as SymbolType] : undefined}
                 onContextMenu={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? () => props.onOpenSymbolPreset(mode as SymbolType) : undefined}
               />
             ))}
