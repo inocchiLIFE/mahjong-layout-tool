@@ -43,6 +43,7 @@ interface WorkspaceProps {
   placementMode: PlacementMode
   eraserSize: number
   textStyle: { fontFamily: string; fontSize: number; color: string }
+  drawingStyle: { color: string; strokeWidth: number }
   symbolColors: Record<SymbolType, string>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   editTextRequest: EditTextRequest | null
@@ -1004,8 +1005,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           aria-hidden="true"
         >
           <>
-            <polyline points={drawing.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#244a40" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-            {props.placementMode === 'arrow' && <polyline points={arrowHeadPoints(drawing.points)} fill="none" stroke="#244a40" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />}
+            <polyline points={drawing.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+            {props.placementMode === 'arrow' && <polyline points={arrowHeadPoints(drawing.points)} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />}
           </>
         </svg>
       )}
@@ -1013,8 +1014,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       {curveDraft && curvePreview && (
         <svg className="drawing-preview export-hidden" style={{ left: 0, top: 0, right: 'auto', bottom: 'auto', width: props.scene.width, height: props.scene.height, transform: `translate(${camera.x}px, ${camera.y}px)` }} aria-hidden="true">
           <line x1={curveDraft.start.x} y1={curveDraft.start.y} x2={curveDraft.end.x} y2={curveDraft.end.y} stroke="#72988c" strokeWidth="2" strokeDasharray="6 5" />
-          <path d={curvePath([curveDraft.start, curvePreview, curveDraft.end])} fill="none" stroke="#244a40" strokeWidth="4" strokeLinecap="round" />
-          <circle cx={curvePreview.x} cy={curvePreview.y} r="5" fill="#fff" stroke="#244a40" strokeWidth="2" />
+          <path d={curvePath([curveDraft.start, curvePreview, curveDraft.end])} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" />
+          <circle cx={curvePreview.x} cy={curvePreview.y} r="5" fill="#fff" stroke={props.drawingStyle.color} strokeWidth="2" />
         </svg>
       )}
 

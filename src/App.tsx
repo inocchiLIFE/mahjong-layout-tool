@@ -747,12 +747,17 @@ const App = () => {
     const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
     const startX = Math.max(20, (width - totalWidth) / 2)
     const zStart = nextZIndex()
-    const nonTiles = scene.elements.filter((element) => element.kind !== 'tile').map((element) => ({ ...element, selected: false }))
+    // A generated hand remains replaceable until the user moves a tile.  Moved
+    // (or manually added) tiles are kept as a separate hand when generating again.
+    const retained = scene.elements.filter((element) => element.kind !== 'tile'
+      || element.autoX === undefined || element.autoY === undefined
+      || element.x !== element.autoX || element.y !== element.autoY,
+    ).map((element) => ({ ...element, selected: false }))
     history.commit({
       ...scene,
       width,
       elements: [
-        ...nonTiles,
+        ...retained,
         ...tileIds.map((tileId, index) => makeTile(tileId, startX + index * (TILE_WIDTH + TILE_GAP), 76, zStart + index)),
       ],
     })
@@ -1364,6 +1369,11 @@ const App = () => {
               placementMode={placementMode}
               eraserSize={eraserSize}
               textStyle={defaultTextStyle}
+              drawingStyle={(() => {
+                const tool = placementMode === 'draw' ? 'draw' : placementMode === 'line' ? 'line' : placementMode === 'curve' ? 'curve' : placementMode === 'arrow' ? 'arrow' : 'draw'
+                const preset = drawingPresets[tool]
+                return { color: preset.color ?? defaultShapeColor, strokeWidth: preset.strokeWidth }
+              })()}
               symbolColors={symbolColors}
               symbolSizes={symbolSizes}
               editTextRequest={editTextRequest}
