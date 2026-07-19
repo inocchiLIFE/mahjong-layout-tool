@@ -785,7 +785,9 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               if (!element.locked) props.onDeleteDragged([element.id])
               return
             }
-            if (props.placementMode !== 'draw' && props.placementMode !== 'line' && props.placementMode !== 'curve' && props.placementMode !== 'arrow') beginElementDrag(event, element)
+            // Existing items always take priority over the active drawing tool:
+            // drag a tile/shape to select and move it; start a stroke from blank canvas.
+            beginElementDrag(event, element)
           },
           onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => openContextMenu(event, element),
         }
