@@ -4,6 +4,7 @@ export interface AppPreferences {
   showGrid: boolean
   snapToGrid: boolean
   defaultFontFamily: string
+  defaultTextFontSize: number
   defaultTextColor: string
   defaultShapeColor: string
   defaultShapeStrokeWidth: number
@@ -19,6 +20,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   snapToGrid: false,
   defaultFontFamily: 'sans-serif',
+  defaultTextFontSize: 35,
   defaultTextColor: '#172c27',
   defaultShapeColor: '#244a40',
   defaultShapeStrokeWidth: 4,
@@ -66,6 +68,7 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
               <option value="monospace">等幅</option>
             </select>
           </label>
+          <label>文字サイズ <input type="number" min="12" max="72" value={draft.defaultTextFontSize} onChange={(event) => setDraft((current) => ({ ...current, defaultTextFontSize: Math.min(72, Math.max(12, Number(event.target.value) || 12)) }))} /></label>
           <label>文字色 <input type="color" value={draft.defaultTextColor} onChange={(event) => setDraft((current) => ({ ...current, defaultTextColor: event.target.value }))} /></label>
         </fieldset>
 

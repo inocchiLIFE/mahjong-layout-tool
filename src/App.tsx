@@ -62,6 +62,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   snapToGrid: false,
   defaultFontFamily: 'sans-serif',
+  defaultTextFontSize: 35,
   defaultTextColor: '#172c27',
   defaultShapeColor: '#244a40',
   defaultShapeStrokeWidth: 4,
@@ -273,6 +274,7 @@ const readPreferences = (): AppPreferences => {
       showGrid: typeof saved.showGrid === 'boolean' ? saved.showGrid : DEFAULT_PREFERENCES.showGrid,
       snapToGrid: typeof saved.snapToGrid === 'boolean' ? saved.snapToGrid : DEFAULT_PREFERENCES.snapToGrid,
       defaultFontFamily: typeof saved.defaultFontFamily === 'string' ? saved.defaultFontFamily : DEFAULT_PREFERENCES.defaultFontFamily,
+      defaultTextFontSize: typeof saved.defaultTextFontSize === 'number' ? clamp(saved.defaultTextFontSize, 12, 72) : DEFAULT_PREFERENCES.defaultTextFontSize,
       defaultTextColor: typeof saved.defaultTextColor === 'string' ? saved.defaultTextColor : DEFAULT_PREFERENCES.defaultTextColor,
       defaultShapeColor: typeof saved.defaultShapeColor === 'string' ? saved.defaultShapeColor : DEFAULT_PREFERENCES.defaultShapeColor,
       defaultShapeStrokeWidth: typeof saved.defaultShapeStrokeWidth === 'number' ? clamp(saved.defaultShapeStrokeWidth, 1, 12) : DEFAULT_PREFERENCES.defaultShapeStrokeWidth,
@@ -330,7 +332,7 @@ const App = () => {
   const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
   const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? preferences.showGrid)
   const [snapToGrid, setSnapToGrid] = useState(initialLayout?.settings.snapToGrid ?? preferences.snapToGrid)
-  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: 22, color: preferences.defaultTextColor })
+  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, color: preferences.defaultTextColor })
   const [defaultShapeColor, setDefaultShapeColor] = useState(preferences.defaultShapeColor)
   const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(preferences.defaultShapeStrokeWidth)
   const [placementMode, setPlacementMode] = useState<PlacementMode>('select')
@@ -378,7 +380,7 @@ const App = () => {
     setPreferences(next)
     setShowGrid(next.showGrid)
     setSnapToGrid(next.snapToGrid)
-    setDefaultTextStyle((current) => ({ ...current, fontFamily: next.defaultFontFamily, color: next.defaultTextColor }))
+    setDefaultTextStyle((current) => ({ ...current, fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, color: next.defaultTextColor }))
     setDefaultShapeColor(next.defaultShapeColor)
     setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
     localStorage.setItem(PREFERENCES_KEY, JSON.stringify(next))

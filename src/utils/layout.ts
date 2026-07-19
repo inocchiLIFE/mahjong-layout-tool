@@ -185,7 +185,7 @@ export const makeText = (text: string, x: number, y: number, zIndex: number): Te
   kind: 'text',
   text,
   color: '#172c27',
-  fontSize: 22,
+  fontSize: 35,
   fontFamily: 'sans-serif',
 })
 
