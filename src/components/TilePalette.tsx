@@ -41,7 +41,7 @@ const symbolChoices: Array<{ mode: PlacementMode; icon: string; label: string; h
 const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: PlacementMode) => {
   if (mode !== 'rectangle' && mode !== 'circle' && mode !== 'triangle' && mode !== 'cross' && mode !== 'wave') return
   const width = mode === 'wave' ? 240 : mode === 'rectangle' ? 148 : mode === 'cross' ? 48 : 98
-  const height = mode === 'wave' ? 16 : mode === 'circle' ? 98 : 66
+  const height = mode === 'wave' ? 16 : 66
   const preview = document.createElement('div')
   preview.style.position = 'fixed'
   preview.style.left = '-10000px'
