@@ -41,6 +41,7 @@ interface WorkspaceProps {
   showGrid: boolean
   snapToGrid: boolean
   placementMode: PlacementMode
+  eraserSize: number
   editTextRequest: EditTextRequest | null
   onDropTile: (tileId: string, x: number, y: number) => void
   onDropFiles: (files: File[], x: number, y: number) => void
@@ -50,6 +51,7 @@ interface WorkspaceProps {
   onClearSelection: () => void
   onMoveElements: (positions: ElementPosition[]) => void
   onDeleteDragged: (ids: string[]) => void
+  onEraseAt: (point: CanvasPoint, radius: number) => void
   onTrashHover: (active: boolean) => void
   onPlaceSymbol: (symbolType: SymbolType, x: number, y: number) => void
   onCommitDrawing: (points: CanvasPoint[], drawingType?: DrawingType) => void
@@ -92,6 +94,11 @@ interface TextEditorState {
 interface DrawingState {
   pointerId: number
   points: CanvasPoint[]
+}
+
+interface EraserState {
+  pointerId: number
+  lastPoint: CanvasPoint
 }
 
 interface CurveDraftState {
@@ -189,6 +196,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const dragRef = useRef<DragState | null>(null)
   const marqueeRef = useRef<MarqueeState | null>(null)
   const drawingRef = useRef<DrawingState | null>(null)
+  const eraserRef = useRef<EraserState | null>(null)
   const elementResizeRef = useRef<ElementResizeState | null>(null)
   const panRef = useRef<PanState | null>(null)
   const spaceDownRef = useRef(false)
@@ -433,7 +441,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
     if (event.button !== 0) return
     if (props.placementMode === 'eraser') {
+      const point = canvasPoint(event)
+      eraserRef.current = { pointerId: event.pointerId, lastPoint: point }
+      props.onBeginDrag()
+      props.onEraseAt(point, props.eraserSize / 2)
       props.onClearSelection()
+      event.currentTarget.setPointerCapture(event.pointerId)
       return
     }
     if (props.placementMode === 'curve' && curveDraft) {
@@ -491,6 +504,15 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       }
       return
     }
+    const eraser = eraserRef.current
+    if (eraser?.pointerId === event.pointerId) {
+      const point = canvasPoint(event)
+      if (Math.hypot(point.x - eraser.lastPoint.x, point.y - eraser.lastPoint.y) >= 2) {
+        eraser.lastPoint = point
+        props.onEraseAt(point, props.eraserSize / 2)
+      }
+      return
+    }
     if (curveDraft) {
       setCurvePreview(canvasPoint(event))
       return
@@ -538,6 +560,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       if (points.length >= 2 && Math.hypot(points.at(-1)!.x - points[0].x, points.at(-1)!.y - points[0].y) > 3) {
         props.onCommitDrawing(points, props.placementMode === 'line' ? 'line' : props.placementMode === 'curve' ? 'curve' : props.placementMode === 'arrow' ? 'arrow' : 'freehand')
       }
+      return
+    }
+    if (eraserRef.current?.pointerId === event.pointerId) {
+      eraserRef.current = null
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+      props.onEndDrag()
       return
     }
     const state = marqueeRef.current

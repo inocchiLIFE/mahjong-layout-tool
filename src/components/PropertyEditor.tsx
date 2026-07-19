@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import type { DrawingElement, ImageElement, SymbolElement, TextElement } from '../types'
 import { saveCustomColors } from '../utils/colors'
+import { getElementDimensions } from '../utils/layout'
 
 const CUSTOM_COLORS_KEY = 'mahjong-layout-tool:custom-colors-v1'
 
@@ -25,6 +26,8 @@ interface PropertyEditorProps {
     fontSize?: number
     fontFamily?: string
     strokeWidth?: number
+    width?: number
+    height?: number
     opacity?: number
   }) => void
   onClose: () => void
@@ -36,6 +39,9 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
   const [fontSize, setFontSize] = useState(element.kind === 'text' ? element.fontSize : 22)
   const [fontFamily, setFontFamily] = useState(element.kind === 'text' ? element.fontFamily : 'sans-serif')
   const [strokeWidth, setStrokeWidth] = useState(element.kind === 'symbol' || element.kind === 'drawing' ? element.strokeWidth : 4)
+  const dimensions = element.kind === 'symbol' ? getElementDimensions(element) : null
+  const [width, setWidth] = useState(dimensions?.width ?? 0)
+  const [height, setHeight] = useState(dimensions?.height ?? 0)
   const [opacity, setOpacity] = useState(element.kind === 'image' ? element.opacity : 1)
   const [customColors, setCustomColors] = useState(readCustomColors)
 
@@ -69,6 +75,8 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
       fontSize: element.kind === 'text' ? fontSize : undefined,
       fontFamily: element.kind === 'text' ? fontFamily : undefined,
       strokeWidth: element.kind === 'symbol' || element.kind === 'drawing' ? strokeWidth : undefined,
+      width: element.kind === 'symbol' ? width : undefined,
+      height: element.kind === 'symbol' ? height : undefined,
       opacity: element.kind === 'image' ? opacity : undefined,
     })
   }
@@ -110,10 +118,20 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
         )}
 
         {element.kind === 'symbol' && (
-          <label>
-            線の太さ
-            <input type="number" min="1" max="12" value={strokeWidth} onChange={(event) => setStrokeWidth(Number(event.target.value))} />
-          </label>
+          <>
+            <label>
+              線の太さ
+              <input type="number" min="1" max="12" value={strokeWidth} onChange={(event) => setStrokeWidth(Number(event.target.value))} />
+            </label>
+            <label>
+              横幅
+              <input type="number" min="24" max="100000" value={Math.round(width)} onChange={(event) => setWidth(Number(event.target.value))} />
+            </label>
+            <label>
+              縦幅
+              <input type="number" min="24" max="100000" value={Math.round(height)} onChange={(event) => setHeight(Number(event.target.value))} />
+            </label>
+          </>
         )}
 
         {element.kind === 'drawing' && (

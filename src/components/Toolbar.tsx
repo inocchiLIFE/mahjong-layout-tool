@@ -13,6 +13,7 @@ interface ToolbarProps {
   selectedShapeColor: string | null
   shapeColor: string
   shapeStrokeWidth: number
+  eraserSize: number
   canDuplicate: boolean
   canToggleTileFaces: boolean
   canEditProperties: boolean
@@ -31,6 +32,7 @@ interface ToolbarProps {
   onUpdateTextStyle: (style: { fontFamily?: string; fontSize?: number; color?: string }) => void
   onUpdateSelectedShapeColor: (color: string) => void
   onUpdateShapeStrokeWidth: (strokeWidth: number) => void
+  onUpdateEraserSize: (size: number) => void
   onEditProperties: () => void
   onRandomHand: (count: 13 | 14) => void
   onShuffle: () => void
@@ -249,6 +251,13 @@ export const Toolbar = (props: ToolbarProps) => {
               />
             ))}
           </div>
+          {props.placementMode === 'eraser' && <div className="tool-group eraser-size-tools">
+            <span className="tool-group-label">消しゴムの大きさ</span>
+            <label className="shape-stroke-control">大きさ
+              <input type="range" min="8" max="80" value={props.eraserSize} onChange={(event) => props.onUpdateEraserSize(Number(event.target.value))} aria-label="消しゴムの大きさ" />
+              <output>{props.eraserSize}</output>
+            </label>
+          </div>}
           <div className="tool-group text-tool">
             <span className="tool-group-label">クイック文字</span>
             <input value={text} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addText()} placeholder="説明を入力" aria-label="追加する文字" />

@@ -90,6 +90,39 @@ const normalizeTextColor = (value: unknown) => {
   return value
 }
 
+const distanceToSegment = (point: CanvasPoint, start: CanvasPoint, end: CanvasPoint) => {
+  const deltaX = end.x - start.x
+  const deltaY = end.y - start.y
+  const lengthSquared = deltaX * deltaX + deltaY * deltaY
+  if (lengthSquared === 0) return Math.hypot(point.x - start.x, point.y - start.y)
+  const ratio = clamp(((point.x - start.x) * deltaX + (point.y - start.y) * deltaY) / lengthSquared, 0, 1)
+  return Math.hypot(point.x - (start.x + deltaX * ratio), point.y - (start.y + deltaY * ratio))
+}
+
+const splitFreehandDrawing = (drawing: DrawingElement, point: CanvasPoint, radius: number): CanvasPoint[][] => {
+  const localPoint = { x: point.x - drawing.x, y: point.y - drawing.y }
+  const samples = drawing.points.flatMap((start, index) => {
+    if (index === drawing.points.length - 1) return [start]
+    const end = drawing.points[index + 1]
+    const count = Math.max(1, Math.ceil(Math.hypot(end.x - start.x, end.y - start.y) / 2))
+    return Array.from({ length: count }, (_, step) => ({ x: start.x + (end.x - start.x) * step / count, y: start.y + (end.y - start.y) * step / count }))
+  })
+  const chunks: CanvasPoint[][] = []
+  let chunk: CanvasPoint[] = []
+  for (const sample of samples) {
+    if (Math.hypot(sample.x - localPoint.x, sample.y - localPoint.y) > radius + drawing.strokeWidth / 2) {
+      chunk.push(sample)
+    } else if (chunk.length >= 2) {
+      chunks.push(chunk)
+      chunk = []
+    } else {
+      chunk = []
+    }
+  }
+  if (chunk.length >= 2) chunks.push(chunk)
+  return chunks
+}
+
 const parseElement = (value: unknown): CanvasElement | null => {
   if (!value || typeof value !== 'object') return null
   const item = value as Record<string, unknown>
@@ -335,6 +368,7 @@ const App = () => {
   const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, color: preferences.defaultTextColor })
   const [defaultShapeColor, setDefaultShapeColor] = useState(preferences.defaultShapeColor)
   const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(preferences.defaultShapeStrokeWidth)
+  const [eraserSize, setEraserSize] = useState(24)
   const [placementMode, setPlacementMode] = useState<PlacementMode>('select')
   const [editTextRequest, setEditTextRequest] = useState<{ id: string; token: number } | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -548,6 +582,30 @@ const App = () => {
     setRulerCount((count) => Math.max(0, count - removedTiles))
     history.commit({ ...scene, elements })
     notify('牌一覧へドロップした配置物を削除しました')
+  }
+
+  const eraseAt = (point: CanvasPoint, radius: number) => {
+    let changed = false
+    const elements = scene.elements.flatMap((element) => {
+      if (element.kind === 'tile' || element.locked) return [element]
+      if (element.kind === 'drawing' && (!element.drawingType || element.drawingType === 'freehand')) {
+        const touchesStroke = element.points.some((item, index) => index > 0 && distanceToSegment(
+          { x: point.x - element.x, y: point.y - element.y },
+          element.points[index - 1],
+          item,
+        ) <= radius + element.strokeWidth / 2)
+        if (!touchesStroke) return [element]
+        changed = true
+        return splitFreehandDrawing(element, point, radius).map((points, index) => ({ ...element, id: index === 0 ? element.id : createId('drawing'), points, selected: false }))
+      }
+      const dimensions = getElementDimensions(element)
+      const touchesElement = point.x >= element.x - radius && point.x <= element.x + dimensions.width + radius
+        && point.y >= element.y - radius && point.y <= element.y + dimensions.height + radius
+      if (!touchesElement) return [element]
+      changed = true
+      return []
+    })
+    if (changed) history.updateLive({ ...scene, elements })
   }
 
   const deleteSelected = () => {
@@ -826,6 +884,8 @@ const App = () => {
       fontSize?: number
       fontFamily?: string
       strokeWidth?: number
+      width?: number
+      height?: number
       opacity?: number
     },
   ) => {
@@ -843,11 +903,14 @@ const App = () => {
               fontFamily: properties.fontFamily ?? element.fontFamily,
             }
         } else if (element.kind === 'symbol') {
+          const base = getElementDimensions({ ...element, scale: 1, scaleX: 1, scaleY: 1 })
           updated = {
-              ...element,
-              color: properties.color ?? element.color,
-              strokeWidth: clamp(properties.strokeWidth ?? element.strokeWidth, 1, 12),
-            }
+            ...element,
+            color: properties.color ?? element.color,
+            strokeWidth: clamp(properties.strokeWidth ?? element.strokeWidth, 1, 12),
+            scaleX: properties.width === undefined ? element.scaleX : clamp(properties.width / base.width, 0.25, 12),
+            scaleY: properties.height === undefined ? element.scaleY : clamp(properties.height / base.height, 0.25, 12),
+          }
         } else if (element.kind === 'drawing') {
           updated = {
             ...element,
@@ -1140,6 +1203,7 @@ const App = () => {
         selectedShapeColor={selectedColoredElement?.color ?? null}
         shapeColor={selectedColoredElement?.color ?? defaultShapeColor}
         shapeStrokeWidth={selectedColoredElement?.strokeWidth ?? defaultShapeStrokeWidth}
+        eraserSize={eraserSize}
         canDuplicate={selected.length > 0}
         canToggleTileFaces={selected.some((element) => element.kind === 'tile' && !element.locked)}
         canEditProperties={Boolean(selectedEditable)}
@@ -1175,6 +1239,7 @@ const App = () => {
         }}
         onUpdateSelectedShapeColor={(color) => selectedColoredElement ? updateElementColor(selectedColoredElement.id, color) : setDefaultShapeColor(color)}
         onUpdateShapeStrokeWidth={(strokeWidth) => selectedColoredElement ? updateElementStrokeWidth(selectedColoredElement.id, strokeWidth) : setDefaultShapeStrokeWidth(clamp(strokeWidth, 1, 20))}
+        onUpdateEraserSize={(size) => setEraserSize(clamp(size, 8, 80))}
         onEditProperties={() => selectedEditable && setPropertyElementId(selectedEditable.id)}
         onRandomHand={generateHand}
         onShuffle={shuffleTiles}
@@ -1213,6 +1278,7 @@ const App = () => {
               showGrid={showGrid}
               snapToGrid={snapToGrid}
               placementMode={placementMode}
+              eraserSize={eraserSize}
               editTextRequest={editTextRequest}
               onDropTile={addTile}
               onDropFiles={(files, x, y) => {
@@ -1226,6 +1292,7 @@ const App = () => {
               onClearSelection={clearSelection}
               onMoveElements={moveElements}
               onDeleteDragged={deleteElements}
+              onEraseAt={eraseAt}
               onTrashHover={setTrashActive}
               onPlaceSymbol={placeSymbol}
               onCommitDrawing={commitDrawing}

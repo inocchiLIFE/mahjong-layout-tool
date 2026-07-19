@@ -311,6 +311,7 @@
 .drawing-visual { overflow: visible; }
 .workspace-canvas.drawing-mode, .workspace-canvas.drawing-mode .placed-item { cursor: crosshair; }
 .workspace-canvas.eraser-mode, .workspace-canvas.eraser-mode .placed-item { cursor: cell; }
+.workspace-canvas.eraser-mode .placed-item { pointer-events: none; }
 .drawing-preview { position: absolute; inset: 0; z-index: 9997; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .placed-text.editing { opacity: .28; }
 .text-visual, .symbol-visual { position: absolute; left: 50%; top: 50%; display: grid; place-items: center; transform-origin: center; pointer-events: none; }

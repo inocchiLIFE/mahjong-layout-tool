@@ -117,7 +117,7 @@ export const ContextMenu = (props: ContextMenuProps) => {
           )}
           <MenuButton label={locked ? 'ロック解除' : 'ロック'} onClick={() => run(props.onToggleLock)} />
           {props.element.kind !== 'tile' && (
-            <MenuButton label="プロパティ編集" onClick={() => run(props.onEditProperties)} disabled={locked} />
+            <MenuButton label={props.element.kind === 'symbol' ? '図形のサイズ・色を設定' : 'プロパティ編集'} onClick={() => run(props.onEditProperties)} disabled={locked} />
           )}
           <MenuButton label="最前面へ" onClick={() => run(props.onBringFront)} disabled={locked} />
           <MenuButton label="最背面へ" onClick={() => run(props.onSendBack)} disabled={locked} />
