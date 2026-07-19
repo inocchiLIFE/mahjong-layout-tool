@@ -77,6 +77,7 @@ interface DragState {
   moved: boolean
   inTrash: boolean
   toggleOnClick: boolean
+  clearOnClick?: boolean
 }
 
 interface MarqueeState {
@@ -290,6 +291,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       moved: false,
       inTrash: false,
       toggleOnClick: false,
+      clearOnClick: true,
     }
     props.onBeginDrag()
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -353,6 +355,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const droppedInTrash = drag.moved && (drag.inTrash || isPalettePoint(clientX, clientY))
     if (droppedInTrash) currentProps.onMoveElements(drag.starts)
     if (!drag.moved && drag.toggleOnClick) currentProps.onSelectElement(drag.primaryId, false)
+    if (!drag.moved && drag.clearOnClick) currentProps.onClearSelection()
     dragRef.current = null
     setDraggingIds(new Set())
     currentProps.onTrashHover(false)
