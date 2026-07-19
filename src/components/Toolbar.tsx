@@ -90,11 +90,23 @@ export const Toolbar = (props: ToolbarProps) => {
   const [customColors, setCustomColors] = useState(readCustomColors)
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false)
   const [pickerColor, setPickerColor] = useState('#172c27')
+  const [ribbonCollapsed, setRibbonCollapsed] = useState(false)
 
   useEffect(() => {
     const refreshCustomColors = () => setCustomColors(readCustomColors())
     window.addEventListener('mahjong-custom-colors-changed', refreshCustomColors)
     return () => window.removeEventListener('mahjong-custom-colors-changed', refreshCustomColors)
+  }, [])
+
+  useEffect(() => {
+    const toggleRibbon = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.key === 'F1') {
+        event.preventDefault()
+        setRibbonCollapsed((value) => !value)
+      }
+    }
+    window.addEventListener('keydown', toggleRibbon)
+    return () => window.removeEventListener('keydown', toggleRibbon)
   }, [])
 
   const addText = () => {
@@ -138,7 +150,7 @@ export const Toolbar = (props: ToolbarProps) => {
   }
 
   return (
-    <section className="toolbar" aria-label="編集ツール">
+    <section className={`toolbar${ribbonCollapsed ? ' collapsed' : ''}`} aria-label="編集ツール">
       <div className="ribbon-tabs" role="tablist" aria-label="リボンタブ">
         <div className="quick-access" aria-label="クイックアクセスツールバー">
           <button type="button" title="保存（Ctrl+S）" aria-label="保存（Ctrl+S）" onClick={props.onSaveLocal}>▣</button>
@@ -152,7 +164,7 @@ export const Toolbar = (props: ToolbarProps) => {
           ['file', '保存・出力'],
           ['view', '設定'],
         ] as Array<[RibbonTab, string]>).map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}>{label}</button>
+          <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => { setActiveTab(id); if (ribbonCollapsed) setRibbonCollapsed(false) }} onDoubleClick={() => setRibbonCollapsed((value) => !value)} title="ダブルクリックでリボンを折りたたむ">{label}</button>
         ))}
       </div>
 

@@ -83,6 +83,7 @@
 .ribbon-tabs button:hover { background: rgba(255, 255, 255, .65); }
 .ribbon-tabs button.active { position: relative; top: 1px; color: #174f40; background: rgba(251, 250, 244, .96); border-color: #d3dfd8; }
 .ribbon-content { display: flex; align-items: stretch; min-height: 72px; padding: 4px 12px 6px; overflow-x: auto; scrollbar-width: thin; }
+.toolbar.collapsed .ribbon-content { display: none; }
 
 .tool-group {
   flex: 0 0 auto;
