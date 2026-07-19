@@ -43,6 +43,7 @@ interface ToolbarProps {
   onAddImage: () => void
   onAddText: (text: string) => void
   onHelp: () => void
+  onOpenSettings: () => void
 }
 
 type RibbonTab = 'home' | 'insert' | 'hand' | 'view' | 'file'
@@ -270,6 +271,7 @@ export const Toolbar = (props: ToolbarProps) => {
           <span className="tool-group-label">表示</span>
           <ToolButton label="グリッド" icon="▦" onClick={props.onToggleGrid} active={props.showGrid} />
           <ToolButton label="吸着" icon="⌗" onClick={props.onToggleSnap} active={props.snapToGrid} />
+          <ToolButton label="設定" icon="⚙" onClick={props.onOpenSettings} />
           <ToolButton label="操作ガイド" icon="?" onClick={props.onHelp} />
         </div>}
 

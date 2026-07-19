@@ -1,0 +1,85 @@
+import { useEffect, useState, type FormEvent } from 'react'
+
+export interface AppPreferences {
+  showGrid: boolean
+  snapToGrid: boolean
+  defaultFontFamily: string
+  defaultTextColor: string
+  defaultShapeColor: string
+  defaultShapeStrokeWidth: number
+}
+
+interface SettingsDialogProps {
+  preferences: AppPreferences
+  onSave: (preferences: AppPreferences) => void
+  onClose: () => void
+}
+
+const DEFAULT_PREFERENCES: AppPreferences = {
+  showGrid: true,
+  snapToGrid: false,
+  defaultFontFamily: 'sans-serif',
+  defaultTextColor: '#172c27',
+  defaultShapeColor: '#244a40',
+  defaultShapeStrokeWidth: 4,
+}
+
+export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogProps) => {
+  const [draft, setDraft] = useState(preferences)
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    onSave(draft)
+  }
+
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <form className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title" onSubmit={submit} onMouseDown={(event) => event.stopPropagation()}>
+        <button className="modal-close" type="button" onClick={onClose} aria-label="設定を閉じる">×</button>
+        <span className="eyebrow">SETTINGS</span>
+        <h2 id="settings-title">アプリの設定</h2>
+        <p>ここで選んだ内容は、この端末のブラウザに保存されます。</p>
+
+        <fieldset>
+          <legend>表示と配置</legend>
+          <label><input type="checkbox" checked={draft.showGrid} onChange={(event) => setDraft((current) => ({ ...current, showGrid: event.target.checked }))} /> 新しい作業画面でグリッドを表示する</label>
+          <label><input type="checkbox" checked={draft.snapToGrid} onChange={(event) => setDraft((current) => ({ ...current, snapToGrid: event.target.checked }))} /> 新しい作業画面でグリッドに吸着する</label>
+        </fieldset>
+
+        <fieldset>
+          <legend>文字の初期値</legend>
+          <label>フォント
+            <select value={draft.defaultFontFamily} onChange={(event) => setDraft((current) => ({ ...current, defaultFontFamily: event.target.value }))}>
+              <option value="sans-serif">ゴシック体</option>
+              <option value="serif">明朝体</option>
+              <option value="'Yu Gothic UI', sans-serif">游ゴシック</option>
+              <option value="'Yu Mincho', serif">游明朝</option>
+              <option value="cursive">手書き風</option>
+              <option value="monospace">等幅</option>
+            </select>
+          </label>
+          <label>文字色 <input type="color" value={draft.defaultTextColor} onChange={(event) => setDraft((current) => ({ ...current, defaultTextColor: event.target.value }))} /></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>図形・線の初期値</legend>
+          <label>色 <input type="color" value={draft.defaultShapeColor} onChange={(event) => setDraft((current) => ({ ...current, defaultShapeColor: event.target.value }))} /></label>
+          <label>線の太さ <input type="range" min="1" max="12" value={draft.defaultShapeStrokeWidth} onChange={(event) => setDraft((current) => ({ ...current, defaultShapeStrokeWidth: Number(event.target.value) }))} /><output>{draft.defaultShapeStrokeWidth}</output></label>
+        </fieldset>
+
+        <div className="settings-actions">
+          <button type="button" onClick={() => setDraft(DEFAULT_PREFERENCES)}>初期値に戻す</button>
+          <button className="primary-button" type="submit">設定を保存</button>
+        </div>
+      </form>
+    </div>
+  )
+}

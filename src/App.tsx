@@ -4,6 +4,7 @@ import { ContextMenu } from './components/ContextMenu'
 import { HelpModal } from './components/HelpModal'
 import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
+import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
@@ -56,6 +57,15 @@ const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const TAB_AUTO_SAVE_SESSION_KEY = 'mahjong-layout-tool:auto-save-tab-id-v1'
 const SAVED_LAYOUTS_KEY = 'mahjong-layout-tool:saved-pages-v1'
 const HELP_KEY = 'mahjong-layout-tool:help-seen'
+const PREFERENCES_KEY = 'mahjong-layout-tool:preferences-v1'
+const DEFAULT_PREFERENCES: AppPreferences = {
+  showGrid: true,
+  snapToGrid: false,
+  defaultFontFamily: 'sans-serif',
+  defaultTextColor: '#172c27',
+  defaultShapeColor: '#244a40',
+  defaultShapeStrokeWidth: 4,
+}
 const SYNC_CHANNEL = 'mahjong-layout-tool:tab-sync-v1'
 const EMPTY_SCENE: Scene = {
   elements: [],
@@ -256,6 +266,22 @@ const readSharedLayout = (): SavedLayout | null => {
   }
 }
 
+const readPreferences = (): AppPreferences => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}') as Partial<AppPreferences>
+    return {
+      showGrid: typeof saved.showGrid === 'boolean' ? saved.showGrid : DEFAULT_PREFERENCES.showGrid,
+      snapToGrid: typeof saved.snapToGrid === 'boolean' ? saved.snapToGrid : DEFAULT_PREFERENCES.snapToGrid,
+      defaultFontFamily: typeof saved.defaultFontFamily === 'string' ? saved.defaultFontFamily : DEFAULT_PREFERENCES.defaultFontFamily,
+      defaultTextColor: typeof saved.defaultTextColor === 'string' ? saved.defaultTextColor : DEFAULT_PREFERENCES.defaultTextColor,
+      defaultShapeColor: typeof saved.defaultShapeColor === 'string' ? saved.defaultShapeColor : DEFAULT_PREFERENCES.defaultShapeColor,
+      defaultShapeStrokeWidth: typeof saved.defaultShapeStrokeWidth === 'number' ? clamp(saved.defaultShapeStrokeWidth, 1, 12) : DEFAULT_PREFERENCES.defaultShapeStrokeWidth,
+    }
+  } catch {
+    return DEFAULT_PREFERENCES
+  }
+}
+
 const loadImageFile = (file: File) => new Promise<{ src: string; width: number; height: number }>((resolve, reject) => {
   if (!file.type.startsWith('image/')) {
     reject(new Error('not-image'))
@@ -288,6 +314,7 @@ const loadImageFile = (file: File) => new Promise<{ src: string; width: number; 
 })
 
 const App = () => {
+  const [preferences, setPreferences] = useState(readPreferences)
   const [sharedLayout] = useState(readSharedLayout)
   const [tabAutoSaveKey] = useState(() => {
     let tabId = sessionStorage.getItem(TAB_AUTO_SAVE_SESSION_KEY)
@@ -301,11 +328,11 @@ const App = () => {
   const history = useSceneHistory(initialLayout?.scene ?? EMPTY_SCENE)
   const scene = history.scene
   const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
-  const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? true)
-  const [snapToGrid, setSnapToGrid] = useState(initialLayout?.settings.snapToGrid ?? false)
-  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: 'sans-serif', fontSize: 22, color: '#172c27' })
-  const [defaultShapeColor, setDefaultShapeColor] = useState('#244a40')
-  const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(4)
+  const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? preferences.showGrid)
+  const [snapToGrid, setSnapToGrid] = useState(initialLayout?.settings.snapToGrid ?? preferences.snapToGrid)
+  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: 22, color: preferences.defaultTextColor })
+  const [defaultShapeColor, setDefaultShapeColor] = useState(preferences.defaultShapeColor)
+  const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(preferences.defaultShapeStrokeWidth)
   const [placementMode, setPlacementMode] = useState<PlacementMode>('select')
   const [editTextRequest, setEditTextRequest] = useState<{ id: string; token: number } | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -316,6 +343,7 @@ const App = () => {
   const [storageReady, setStorageReady] = useState(false)
   const [savedLayoutsOpen, setSavedLayoutsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
   const workspaceRef = useRef<HTMLDivElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -344,6 +372,18 @@ const App = () => {
 
   const notifySavedLayoutsChanged = () => {
     syncChannelRef.current?.postMessage({ type: 'layouts', sender: tabIdRef.current })
+  }
+
+  const savePreferences = (next: AppPreferences) => {
+    setPreferences(next)
+    setShowGrid(next.showGrid)
+    setSnapToGrid(next.snapToGrid)
+    setDefaultTextStyle((current) => ({ ...current, fontFamily: next.defaultFontFamily, color: next.defaultTextColor }))
+    setDefaultShapeColor(next.defaultShapeColor)
+    setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
+    localStorage.setItem(PREFERENCES_KEY, JSON.stringify(next))
+    setSettingsOpen(false)
+    notify('設定を保存しました')
   }
 
   useEffect(() => {
@@ -1145,6 +1185,7 @@ const App = () => {
         onAddImage={() => requestImage()}
         onAddText={(text) => commitText(text)}
         onHelp={() => setHelpOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <main className="app-body">
@@ -1281,6 +1322,7 @@ const App = () => {
 
       {toast && <div className="toast" role="status">✓ {toast}</div>}
       {helpOpen && <HelpModal onClose={() => { localStorage.setItem(HELP_KEY, '1'); setHelpOpen(false) }} />}
+      {settingsOpen && <SettingsDialog preferences={preferences} onSave={savePreferences} onClose={() => setSettingsOpen(false)} />}
     </div>
   )
 }
