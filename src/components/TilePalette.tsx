@@ -11,6 +11,7 @@ interface TilePaletteProps {
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   onOpenDrawingPreset: (tool: DrawingTool) => void
   symbolColors: Record<SymbolType, string>
+  drawingColors: Record<Exclude<DrawingTool, 'eraser'>, string>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
 }
 
@@ -85,7 +86,7 @@ const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: Pl
   window.requestAnimationFrame(() => preview.remove())
 }
 
-export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, onOpenDrawingPreset, symbolColors, symbolSizes }: TilePaletteProps) => (
+export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, onOpenDrawingPreset, symbolColors, drawingColors, symbolSizes }: TilePaletteProps) => (
   <aside className={`palette-panel${trashActive ? ' trash-active' : ''}`} aria-label="牌一覧と削除エリア">
     <div className="palette-trash-message" aria-hidden={!trashActive}>
       <strong>ここで離して削除</strong>
@@ -132,7 +133,7 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
               aria-pressed={!choice.dragOnly && placementMode === choice.mode}
               aria-label={choice.dragOnly ? `${choice.label}をドラッグして配置` : `${choice.label}配置ツール`}
             >
-              <b aria-hidden="true" style={choice.dragOnly ? { color: symbolColors[choice.mode as SymbolType] } : undefined}>{choice.icon}</b>
+              <b aria-hidden="true" style={choice.dragOnly ? { color: symbolColors[choice.mode as SymbolType] } : ['draw', 'line', 'curve', 'arrow'].includes(choice.mode) ? { color: drawingColors[choice.mode as Exclude<DrawingTool, 'eraser'>] } : undefined}>{choice.icon}</b>
               <span>{choice.label}<small>{choice.hint}</small></span>
             </button>
           ))}

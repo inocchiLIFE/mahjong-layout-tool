@@ -50,6 +50,7 @@ interface ToolbarProps {
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   onOpenDrawingPreset: (tool: DrawingTool) => void
   symbolColors: Record<SymbolType, string>
+  drawingColors: Record<Exclude<DrawingTool, 'eraser'>, string>
 }
 
 type RibbonTab = 'home' | 'insert' | 'hand' | 'view' | 'file'
@@ -281,7 +282,7 @@ export const Toolbar = (props: ToolbarProps) => {
                 icon={icon}
                 onClick={() => props.onSetPlacementMode(props.placementMode === mode ? 'select' : mode)}
                 active={props.placementMode === mode}
-                iconColor={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? props.symbolColors[mode as SymbolType] : undefined}
+                iconColor={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? props.symbolColors[mode as SymbolType] : ['draw', 'line', 'curve', 'arrow'].includes(mode) ? props.drawingColors[mode as Exclude<DrawingTool, 'eraser'>] : undefined}
                 onContextMenu={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? () => props.onOpenSymbolPreset(mode as SymbolType) : ['draw', 'line', 'curve', 'arrow', 'eraser'].includes(mode) ? () => props.onOpenDrawingPreset(mode as DrawingTool) : undefined}
               />
             ))}

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 
 export type DrawingTool = 'draw' | 'line' | 'curve' | 'arrow' | 'eraser'
 export interface DrawingPreset { color: string; strokeWidth: number; eraserSize: number }
+export const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: '#244a40', strokeWidth: 4, eraserSize: 24 }
 
 const LABELS: Record<DrawingTool, string> = { draw: 'ペン', line: '直線', curve: '曲線', arrow: '矢印', eraser: '消しゴム' }
 
@@ -18,7 +19,7 @@ export const DrawingPresetDialog = ({ tool, preset, onSave, onClose }: { tool: D
         <label>色 <span className="color-field"><input type="color" value={draft.color} onChange={(event) => setDraft({ ...draft, color: event.target.value })} /><code>{draft.color}</code></span></label>
         <label>線の太さ<input type="number" min="1" max="20" value={draft.strokeWidth} onChange={(event) => setDraft({ ...draft, strokeWidth: Math.max(1, Math.min(20, Number(event.target.value) || 1)) })} /></label>
       </>}
-      <div className="property-actions"><button type="button" onClick={onClose}>キャンセル</button><button className="primary-button" type="submit">既定設定に保存</button></div>
+      <div className="property-actions"><button type="button" onClick={() => setDraft(DEFAULT_DRAWING_PRESET)}>初期値に戻す</button><button type="button" onClick={onClose}>キャンセル</button><button className="primary-button" type="submit">既定設定に保存</button></div>
     </form>
   </div>
 }

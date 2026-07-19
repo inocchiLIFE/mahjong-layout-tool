@@ -6,7 +6,7 @@ import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
 import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
 import { SymbolPresetDialog, type SymbolPreset } from './components/SymbolPresetDialog'
-import { DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
+import { DEFAULT_DRAWING_PRESET, DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
@@ -350,9 +350,9 @@ const readSymbolPresets = () => {
   } catch { return defaults }
 }
 
-const createDrawingPresets = (): Record<DrawingTool, DrawingPreset> => ({
-  draw: { color: '#244a40', strokeWidth: 4, eraserSize: 24 }, line: { color: '#244a40', strokeWidth: 4, eraserSize: 24 }, curve: { color: '#244a40', strokeWidth: 4, eraserSize: 24 }, arrow: { color: '#244a40', strokeWidth: 4, eraserSize: 24 }, eraser: { color: '#244a40', strokeWidth: 4, eraserSize: 24 },
-})
+const createDrawingPresets = (): Record<DrawingTool, DrawingPreset> => Object.fromEntries(
+  (['draw', 'line', 'curve', 'arrow', 'eraser'] as DrawingTool[]).map((tool) => [tool, { ...DEFAULT_DRAWING_PRESET }]),
+) as Record<DrawingTool, DrawingPreset>
 const readDrawingPresets = (): Record<DrawingTool, DrawingPreset> => {
   const defaults = createDrawingPresets()
   try {
@@ -1327,6 +1327,7 @@ const App = () => {
         onOpenSymbolPreset={setSymbolPresetTarget}
         onOpenDrawingPreset={setDrawingPresetTarget}
         symbolColors={symbolColors}
+        drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />
 
       <main className="app-body">
@@ -1338,6 +1339,7 @@ const App = () => {
           onOpenSymbolPreset={setSymbolPresetTarget}
           onOpenDrawingPreset={setDrawingPresetTarget}
           symbolColors={symbolColors}
+          drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
           symbolSizes={symbolSizes}
         />
         <section className="workspace-panel">
