@@ -1273,7 +1273,10 @@ const App = () => {
             color: style.color ?? current.color,
           }))
         }}
-        onUpdateSelectedShapeColor={(color) => selectedColoredElement ? updateElementColor(selectedColoredElement.id, color) : setDefaultShapeColor(color)}
+        onUpdateSelectedShapeColor={(color) => {
+          setDefaultShapeColor(color)
+          if (selectedColoredElement) updateElementColor(selectedColoredElement.id, color)
+        }}
         onUpdateShapeStrokeWidth={(strokeWidth) => selectedColoredElement ? updateElementStrokeWidth(selectedColoredElement.id, strokeWidth) : setDefaultShapeStrokeWidth(clamp(strokeWidth, 1, 20))}
         onUpdateEraserSize={(size) => setEraserSize(clamp(size, 8, 80))}
         onEditProperties={() => selectedEditable && setPropertyElementId(selectedEditable.id)}
