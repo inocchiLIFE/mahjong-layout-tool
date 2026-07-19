@@ -4,14 +4,14 @@
    physical app filling the viewport while preserving more working room. */
 @media (min-width: 651px) {
   .app-shell { width: 125vw; height: 125dvh; zoom: .8; }
-  .ribbon-tabs { min-height: 36px; padding-inline: 15px; }
-  .ribbon-tabs button { height: 34px; padding-inline: 14px; font-size: 12.5px; }
-  .ribbon-content { min-height: 90px; padding: 5px 15px 8px; }
-  .tool-group { min-height: 61px; padding: 14px 11px 0; gap: 6px; }
-  .tool-group-label { top: 0; left: 11px; font-size: 10px; }
-  .ribbon-content .tool-group:first-child .tool-group-label { left: 0; }
-  .tool-button, .text-add-button { min-height: 43px; padding: 6px 10px; gap: 6px; font-size: 13.5px; }
-  .tool-button > span { min-width: 21px; font-size: 19px; }
+  .app-shell .ribbon-tabs { min-height: 36px; padding-inline: 15px; }
+  .app-shell .ribbon-tabs button { height: 34px; padding-inline: 14px; font-size: 12.5px; }
+  .app-shell .ribbon-content { min-height: 90px; padding: 5px 15px 8px; }
+  .app-shell .tool-group { min-height: 61px; padding: 14px 11px 0; gap: 6px; }
+  .app-shell .tool-group-label { top: 0; left: 11px; font-size: 10px; }
+  .app-shell .ribbon-content .tool-group:first-child .tool-group-label { left: 0; }
+  .app-shell .tool-button, .app-shell .text-add-button { min-height: 43px; padding: 6px 10px; gap: 6px; font-size: 13.5px; }
+  .app-shell .tool-button > span { min-width: 21px; font-size: 19px; }
 }
 
 .app-header {
