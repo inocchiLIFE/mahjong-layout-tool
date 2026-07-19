@@ -196,11 +196,15 @@ export const randomShapeHand = (count: 6 | 7, onlyTriplet = false) => {
  * The ranges must touch or overlap, so the two components never have a gap. */
 export const randomContinuousHand = () => {
   const candidates: number[][] = []
+  const ryanmenTaatsu = Array.from({ length: 6 }, (_, index) => [index + 2, index + 3]) // 23–78
+  const kanchanTaatsu = Array.from({ length: 7 }, (_, index) => [index + 1, index + 3]) // 13–79
+  const penchanTaatsu = [[1, 2], [8, 9]]
   for (let sequenceStart = 1; sequenceStart <= 7; sequenceStart += 1) {
     const sequence = [sequenceStart, sequenceStart + 1, sequenceStart + 2]
     for (const taatsu of [
-      ...Array.from({ length: 8 }, (_, index) => [index + 1, index + 2]),
-      ...Array.from({ length: 7 }, (_, index) => [index + 1, index + 3]),
+      ...ryanmenTaatsu,
+      ...kanchanTaatsu,
+      ...penchanTaatsu,
     ]) {
       const sequenceMin = sequence[0]
       const sequenceMax = sequence[2]
