@@ -136,6 +136,13 @@ const isPalettePoint = (clientX: number, clientY: number) => {
     && clientY <= bounds.bottom
 }
 
+// Matches the desktop density setting in App.css. Pointer positions are reported
+// in screen pixels, so convert them back to the workspace's logical pixels.
+const getDisplayScale = () => window.matchMedia('(min-width: 651px)').matches ? 0.8 : 1
+const toLogicalDelta = (value: number) => value / getDisplayScale()
+const toCanvasCoordinate = (client: number, edge: number, cameraOffset: number) =>
+  toLogicalDelta(client - edge) - cameraOffset
+
 const intersectionIds = (
   elements: CanvasElement[],
   left: number,
@@ -276,8 +283,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
     const primary = drag.starts.find((item) => item.id === drag.primaryId)
     if (!primary) return
-    const rawX = primary.x + clientX - drag.startClientX
-    const rawY = primary.y + clientY - drag.startClientY
+    const rawX = primary.x + toLogicalDelta(clientX - drag.startClientX)
+    const rawY = primary.y + toLogicalDelta(clientY - drag.startClientY)
     let targetX = snap(rawX, currentProps.snapToGrid)
     let targetY = snap(rawY, currentProps.snapToGrid)
     const primaryElement = currentProps.scene.elements.find((element) => element.id === drag.primaryId)
@@ -358,8 +365,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const moveElementResize = (event: PointerEvent) => {
       const resize = elementResizeRef.current
       if (!resize || resize.pointerId !== event.pointerId) return
-      const deltaX = event.clientX - resize.startClientX
-      const deltaY = event.clientY - resize.startClientY
+      const deltaX = toLogicalDelta(event.clientX - resize.startClientX)
+      const deltaY = toLogicalDelta(event.clientY - resize.startClientY)
       let width = Math.max(resize.startWidth + deltaX, 24)
       let height = Math.max(resize.startHeight + deltaY, 24)
       if (event.shiftKey) {
@@ -390,8 +397,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const canvasPoint = (event: ReactPointerEvent<HTMLDivElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect()
     return {
-      x: event.clientX - bounds.left - camera.x,
-      y: event.clientY - bounds.top - camera.y,
+      x: toCanvasCoordinate(event.clientX, bounds.left, camera.x),
+      y: toCanvasCoordinate(event.clientY, bounds.top, camera.y),
     }
   }
 
@@ -459,7 +466,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const moveCanvasPointer = (event: ReactPointerEvent<HTMLDivElement>) => {
     const pan = panRef.current
     if (pan?.pointerId === event.pointerId) {
-      setCamera({ x: pan.startX + event.clientX - pan.startClientX, y: pan.startY + event.clientY - pan.startClientY })
+      setCamera({ x: pan.startX + toLogicalDelta(event.clientX - pan.startClientX), y: pan.startY + toLogicalDelta(event.clientY - pan.startClientY) })
       return
     }
     const activeDrawing = drawingRef.current
@@ -570,10 +577,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (!canvas) return
     props.onOpenContextMenu({
       elementId: element.id,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      canvasX: event.clientX - canvas.left - camera.x,
-      canvasY: event.clientY - canvas.top - camera.y,
+      clientX: toLogicalDelta(event.clientX),
+      clientY: toLogicalDelta(event.clientY),
+      canvasX: toCanvasCoordinate(event.clientX, canvas.left, camera.x),
+      canvasY: toCanvasCoordinate(event.clientY, canvas.top, camera.y),
     })
   }
 
@@ -582,17 +589,17 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const canvas = event.currentTarget.getBoundingClientRect()
     props.onOpenContextMenu({
       elementId: null,
-      clientX: event.clientX,
-      clientY: event.clientY,
-      canvasX: event.clientX - canvas.left - camera.x,
-      canvasY: event.clientY - canvas.top - camera.y,
+      clientX: toLogicalDelta(event.clientX),
+      clientY: toLogicalDelta(event.clientY),
+      canvasX: toCanvasCoordinate(event.clientX, canvas.left, camera.x),
+      canvasY: toCanvasCoordinate(event.clientY, canvas.top, camera.y),
     })
   }
 
   const updateDropPreview = (event: ReactDragEvent<HTMLDivElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect()
-    const x = event.clientX - bounds.left - camera.x
-    const y = event.clientY - bounds.top - camera.y
+    const x = toCanvasCoordinate(event.clientX, bounds.left, camera.x)
+    const y = toCanvasCoordinate(event.clientY, bounds.top, camera.y)
     const symbolType = event.dataTransfer.getData('application/x-mahjong-symbol')
     if (symbolType === 'rectangle' || symbolType === 'circle' || symbolType === 'triangle' || symbolType === 'cross' || symbolType === 'wave') {
       const dimensions = getSymbolBaseDimensions(symbolType)
@@ -654,8 +661,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         setDropPreview(null)
         const tileId = event.dataTransfer.getData('application/x-mahjong-tile')
         const bounds = event.currentTarget.getBoundingClientRect()
-        const x = event.clientX - bounds.left - camera.x
-        const y = event.clientY - bounds.top - camera.y
+        const x = toCanvasCoordinate(event.clientX, bounds.left, camera.x)
+        const y = toCanvasCoordinate(event.clientY, bounds.top, camera.y)
         if (TILE_MAP.has(tileId)) {
           props.onDropTile(tileId, x - TILE_WIDTH / 2, y - TILE_HEIGHT / 2)
           return
