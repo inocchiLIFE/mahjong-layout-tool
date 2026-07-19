@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { PlacementMode } from '../types'
+import type { PlacementMode, SymbolType } from '../types'
 import { TEXT_COLOR_PALETTE, readCustomColors, saveCustomColors } from '../utils/colors'
 
 interface ToolbarProps {
@@ -46,6 +46,7 @@ interface ToolbarProps {
   onAddText: (text: string) => void
   onHelp: () => void
   onOpenSettings: () => void
+  onOpenSymbolPreset: (symbolType: SymbolType) => void
 }
 
 type RibbonTab = 'home' | 'insert' | 'hand' | 'view' | 'file'
@@ -57,6 +58,7 @@ const ToolButton = ({
   disabled,
   active,
   danger,
+  onContextMenu,
 }: {
   label: string
   icon: string
@@ -64,12 +66,14 @@ const ToolButton = ({
   disabled?: boolean
   active?: boolean
   danger?: boolean
+  onContextMenu?: () => void
 }) => (
   <button
     type="button"
     className={`tool-button${active ? ' active' : ''}${danger ? ' danger' : ''}`}
     onClick={onClick}
     disabled={disabled}
+    onContextMenu={(event) => { if (onContextMenu) { event.preventDefault(); onContextMenu() } }}
     aria-pressed={active}
   >
     <span aria-hidden="true">{icon}</span>
@@ -248,6 +252,7 @@ export const Toolbar = (props: ToolbarProps) => {
                 icon={icon}
                 onClick={() => props.onSetPlacementMode(props.placementMode === mode ? 'select' : mode)}
                 active={props.placementMode === mode}
+                onContextMenu={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? () => props.onOpenSymbolPreset(mode as SymbolType) : undefined}
               />
             ))}
           </div>

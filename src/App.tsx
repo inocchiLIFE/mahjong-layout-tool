@@ -5,6 +5,7 @@ import { HelpModal } from './components/HelpModal'
 import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
 import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
+import { SymbolPresetDialog, type SymbolPreset } from './components/SymbolPresetDialog'
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
@@ -41,6 +42,7 @@ import {
   clamp,
   createId,
   getElementDimensions,
+  getSymbolBaseDimensions,
   getDrawingVisualBounds,
   getSceneContentBounds,
   makeSymbol,
@@ -58,6 +60,7 @@ const TAB_AUTO_SAVE_SESSION_KEY = 'mahjong-layout-tool:auto-save-tab-id-v1'
 const SAVED_LAYOUTS_KEY = 'mahjong-layout-tool:saved-pages-v1'
 const HELP_KEY = 'mahjong-layout-tool:help-seen'
 const PREFERENCES_KEY = 'mahjong-layout-tool:preferences-v1'
+const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   snapToGrid: false,
@@ -317,6 +320,31 @@ const readPreferences = (): AppPreferences => {
   }
 }
 
+const createSymbolPresets = (): Record<SymbolType, SymbolPreset> => Object.fromEntries(
+  (['rectangle', 'triangle', 'cross', 'circle', 'wave'] as SymbolType[]).map((symbolType) => {
+    const dimensions = getSymbolBaseDimensions(symbolType)
+    return [symbolType, { color: '#244a40', strokeWidth: 4, width: dimensions.width, height: dimensions.height }]
+  }),
+) as Record<SymbolType, SymbolPreset>
+
+const readSymbolPresets = () => {
+  const defaults = createSymbolPresets()
+  try {
+    const saved = JSON.parse(localStorage.getItem(SYMBOL_PRESETS_KEY) ?? '{}') as Partial<Record<SymbolType, Partial<SymbolPreset>>>
+    return (Object.keys(defaults) as SymbolType[]).reduce((presets, symbolType) => {
+      const value = saved[symbolType]
+      if (!value) return presets
+      presets[symbolType] = {
+        color: typeof value.color === 'string' ? value.color : presets[symbolType].color,
+        strokeWidth: typeof value.strokeWidth === 'number' ? clamp(value.strokeWidth, 1, 12) : presets[symbolType].strokeWidth,
+        width: typeof value.width === 'number' ? clamp(value.width, 24, MAX_WORKSPACE_WIDTH) : presets[symbolType].width,
+        height: typeof value.height === 'number' ? clamp(value.height, 16, MAX_WORKSPACE_HEIGHT) : presets[symbolType].height,
+      }
+      return presets
+    }, defaults)
+  } catch { return defaults }
+}
+
 const loadImageFile = (file: File) => new Promise<{ src: string; width: number; height: number }>((resolve, reject) => {
   if (!file.type.startsWith('image/')) {
     reject(new Error('not-image'))
@@ -369,6 +397,8 @@ const App = () => {
   const [defaultShapeColor, setDefaultShapeColor] = useState(preferences.defaultShapeColor)
   const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(preferences.defaultShapeStrokeWidth)
   const [eraserSize, setEraserSize] = useState(24)
+  const [symbolPresets, setSymbolPresets] = useState(readSymbolPresets)
+  const [symbolPresetTarget, setSymbolPresetTarget] = useState<SymbolType | null>(null)
   const [placementMode, setPlacementMode] = useState<PlacementMode>('select')
   const [editTextRequest, setEditTextRequest] = useState<{ id: string; token: number } | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -735,8 +765,15 @@ const App = () => {
   }
 
   const placeSymbol = (symbolType: SymbolType, x: number, y: number) => {
-    // 新規文字と同じ既定色を、これから追加する図形にも使用する。
-    const item = { ...makeSymbol(symbolType, x, y, nextZIndex()), color: defaultShapeColor, strokeWidth: defaultShapeStrokeWidth }
+    const preset = symbolPresets[symbolType]
+    const base = getSymbolBaseDimensions(symbolType)
+    const item = {
+      ...makeSymbol(symbolType, x, y, nextZIndex()),
+      color: preset.color,
+      strokeWidth: preset.strokeWidth,
+      scaleX: preset.width / base.width,
+      scaleY: preset.height / base.height,
+    }
     const dimensions = getElementDimensions(item)
     item.x = snap(x - dimensions.width / 2, snapToGrid)
     item.y = snap(y - dimensions.height / 2, snapToGrid)
@@ -884,8 +921,6 @@ const App = () => {
       fontSize?: number
       fontFamily?: string
       strokeWidth?: number
-      width?: number
-      height?: number
       opacity?: number
     },
   ) => {
@@ -903,13 +938,10 @@ const App = () => {
               fontFamily: properties.fontFamily ?? element.fontFamily,
             }
         } else if (element.kind === 'symbol') {
-          const base = getElementDimensions({ ...element, scale: 1, scaleX: 1, scaleY: 1 })
           updated = {
             ...element,
             color: properties.color ?? element.color,
             strokeWidth: clamp(properties.strokeWidth ?? element.strokeWidth, 1, 12),
-            scaleX: properties.width === undefined ? element.scaleX : clamp(properties.width / base.width, 0.25, 12),
-            scaleY: properties.height === undefined ? element.scaleY : clamp(properties.height / base.height, 0.25, 12),
           }
         } else if (element.kind === 'drawing') {
           updated = {
@@ -1253,6 +1285,7 @@ const App = () => {
         onAddText={(text) => commitText(text)}
         onHelp={() => setHelpOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
+        onOpenSymbolPreset={setSymbolPresetTarget}
       />
 
       <main className="app-body">
@@ -1261,6 +1294,7 @@ const App = () => {
           placementMode={placementMode}
           trashActive={trashActive}
           onSelectPlacementMode={setPlacementMode}
+          onOpenSymbolPreset={setSymbolPresetTarget}
         />
         <section className="workspace-panel">
           <div className="workspace-scroll">
@@ -1392,6 +1426,18 @@ const App = () => {
       {toast && <div className="toast" role="status">✓ {toast}</div>}
       {helpOpen && <HelpModal onClose={() => { localStorage.setItem(HELP_KEY, '1'); setHelpOpen(false) }} />}
       {settingsOpen && <SettingsDialog preferences={preferences} onSave={savePreferences} onClose={() => setSettingsOpen(false)} />}
+      {symbolPresetTarget && <SymbolPresetDialog
+        symbolType={symbolPresetTarget}
+        preset={symbolPresets[symbolPresetTarget]}
+        onClose={() => setSymbolPresetTarget(null)}
+        onSave={(preset) => {
+          const next = { ...symbolPresets, [symbolPresetTarget]: preset }
+          setSymbolPresets(next)
+          localStorage.setItem(SYMBOL_PRESETS_KEY, JSON.stringify(next))
+          setSymbolPresetTarget(null)
+          notify('これから配置する図形の設定を保存しました')
+        }}
+      />}
     </div>
   )
 }
