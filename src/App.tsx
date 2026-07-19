@@ -54,6 +54,7 @@ import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const SAVED_LAYOUTS_KEY = 'mahjong-layout-tool:saved-pages-v1'
+const SAVED_LAYOUTS_SIGNAL_KEY = 'mahjong-layout-tool:saved-pages-signal-v1'
 const HELP_KEY = 'mahjong-layout-tool:help-seen'
 const EMPTY_SCENE: Scene = {
   elements: [],
@@ -244,6 +245,14 @@ const readNamedSavedLayouts = (): NamedSavedLayout[] => {
   }
 }
 
+const signalSavedLayoutsChanged = () => {
+  try {
+    localStorage.setItem(SAVED_LAYOUTS_SIGNAL_KEY, `${Date.now()}:${Math.random()}`)
+  } catch {
+    // IndexedDB remains the source of truth; the signal is only for other tabs.
+  }
+}
+
 const readSharedLayout = (): SavedLayout | null => {
   try {
     const encoded = new URLSearchParams(window.location.hash.slice(1)).get('layout')
@@ -366,6 +375,27 @@ const App = () => {
     void restoreLargeStorage()
     return () => { cancelled = true }
   }, [])
+
+  useEffect(() => {
+    if (!storageReady) return
+    let cancelled = false
+    const reloadSavedLayouts = async () => {
+      try {
+        const storedLayouts = await readLargeValue<unknown>(SAVED_LAYOUTS_KEY)
+        if (!cancelled) setSavedLayouts(parseNamedSavedLayouts(storedLayouts))
+      } catch {
+        if (!cancelled) notify('保存ページを同期できませんでした')
+      }
+    }
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === SAVED_LAYOUTS_SIGNAL_KEY) void reloadSavedLayouts()
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => {
+      cancelled = true
+      window.removeEventListener('storage', handleStorage)
+    }
+  }, [storageReady])
 
   useEffect(() => {
     if (!storageReady) return
@@ -872,6 +902,7 @@ const App = () => {
     try {
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
+      signalSavedLayoutsChanged()
       notify(`「${name}」を保存しました`)
     } catch {
       notify('保存できませんでした。ブラウザの保存設定を確認してください')
@@ -892,6 +923,7 @@ const App = () => {
     try {
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
+      signalSavedLayoutsChanged()
       notify(`「${saved.name}」を削除しました`)
     } catch {
       notify('保存ページを更新できませんでした')
@@ -903,6 +935,7 @@ const App = () => {
     try {
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
+      signalSavedLayoutsChanged()
       notify('保存ページのタイトルを更新しました')
     } catch {
       notify('保存ページのタイトルを更新できませんでした')
@@ -920,6 +953,7 @@ const App = () => {
       const next = [saved, ...savedLayouts]
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
+      signalSavedLayoutsChanged()
       loadLayout(layout, `「${name}」を読み込みました`)
     } catch {
       notify('共有ファイルを読み込めませんでした')

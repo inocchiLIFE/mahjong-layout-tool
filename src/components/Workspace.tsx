@@ -380,6 +380,18 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
   }
 
+  const drawingPoint = (point: CanvasPoint, start?: CanvasPoint) => {
+    const snapped = props.snapToGrid && props.placementMode === 'line'
+      ? { x: snap(point.x, true), y: snap(point.y, true) }
+      : point
+    if (props.placementMode !== 'line' || !start) return snapped
+    const deltaX = Math.abs(snapped.x - start.x)
+    const deltaY = Math.abs(snapped.y - start.y)
+    return deltaX >= deltaY
+      ? { x: snapped.x, y: start.y }
+      : { x: start.x, y: snapped.y }
+  }
+
   const updatePlacementPreview = (point: CanvasPoint) => {
     const mode = props.placementMode
     if (mode === 'text') {
@@ -418,7 +430,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       return
     }
     if (props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow') {
-      const point = canvasPoint(event)
+      const point = drawingPoint(canvasPoint(event))
       const state = { pointerId: event.pointerId, points: [point] }
       drawingRef.current = state
       setDrawing(state)
@@ -449,7 +461,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
     const activeDrawing = drawingRef.current
     if (activeDrawing?.pointerId === event.pointerId) {
-      const point = canvasPoint(event)
+      const point = drawingPoint(canvasPoint(event), activeDrawing.points[0])
       const previous = activeDrawing.points.at(-1)
       if (!previous || Math.hypot(point.x - previous.x, point.y - previous.y) >= 2) {
         const next = { ...activeDrawing, points: props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? [activeDrawing.points[0], point] : [...activeDrawing.points, point] }
@@ -486,7 +498,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
     const activeDrawing = drawingRef.current
     if (activeDrawing?.pointerId === event.pointerId) {
-      const point = canvasPoint(event)
+      const point = drawingPoint(canvasPoint(event), activeDrawing.points[0])
       const points = props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? [activeDrawing.points[0], point] : [...activeDrawing.points, point]
       drawingRef.current = null
       setDrawing(null)
