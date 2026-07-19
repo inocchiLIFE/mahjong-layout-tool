@@ -166,8 +166,9 @@ const arrowHeadPoints = (points: CanvasPoint[]) => {
 const constrainStraightLine = (start: CanvasPoint, end: CanvasPoint): CanvasPoint[] => {
   const deltaX = end.x - start.x
   const deltaY = end.y - start.y
-  const horizontal = Math.abs(deltaY) <= Math.abs(deltaX) * 0.25
-  const vertical = Math.abs(deltaX) <= Math.abs(deltaY) * 0.25
+  const axisThreshold = Math.tan(5 * Math.PI / 180)
+  const horizontal = Math.abs(deltaY) <= Math.abs(deltaX) * axisThreshold
+  const vertical = Math.abs(deltaX) <= Math.abs(deltaY) * axisThreshold
   if (!horizontal && !vertical) return [start, end]
 
   const snappedStart = { x: snap(start.x, true), y: snap(start.y, true) }
