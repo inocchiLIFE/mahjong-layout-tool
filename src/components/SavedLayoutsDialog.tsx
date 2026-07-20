@@ -20,6 +20,7 @@ interface SavedLayoutsDialogProps {
   onSave: (name: string, categoryId: string) => void
   onCreateCategory: (name: string) => void
   onMove: (id: string, categoryId: string) => void
+  onReorder: (draggedId: string, targetId: string) => void
   onOverwrite: (id: string) => void
   onLoad: (id: string) => void
   onDelete: (id: string) => void
@@ -153,6 +154,12 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
     if (id) props.onMove(id, categoryId)
   }
 
+  const reorderLayout = (event: DragEvent<HTMLElement>, targetId: string) => {
+    event.preventDefault()
+    const draggedId = event.dataTransfer.getData('application/x-mahjong-saved-layout')
+    if (draggedId && draggedId !== targetId) props.onReorder(draggedId, targetId)
+  }
+
   const visibleLayouts = activeCategoryId === 'default' ? props.layouts : props.layouts.filter((saved) => saved.categoryId === activeCategoryId)
 
   return (
@@ -187,7 +194,7 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
           ) : visibleLayouts.map((saved) => {
             const count = saved.layout.scene.elements.length
             return (
-              <article className="saved-layout-card" key={saved.id} draggable onDragStart={(event) => beginLayoutDrag(event, saved.id)}>
+              <article className="saved-layout-card" key={saved.id} draggable onDragStart={(event) => beginLayoutDrag(event, saved.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => reorderLayout(event, saved.id)}>
                 <LayoutPreview saved={saved} />
                 <div className="saved-layout-card-copy">
                   {editingId === saved.id ? <input className="saved-layout-name-edit" aria-label="保存ページのタイトル" value={editingName} onChange={(event) => setEditingName(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && commitRename()} autoFocus /> : <strong>{saved.name}</strong>}

@@ -1278,6 +1278,18 @@ const App = () => {
     notifySavedLayoutsChanged()
   }
 
+  const reorderNamedLayouts = async (draggedId: string, targetId: string) => {
+    const dragged = savedLayouts.find((item) => item.id === draggedId)
+    const target = savedLayouts.find((item) => item.id === targetId)
+    if (!dragged || !target || (dragged.categoryId ?? 'default') !== (target.categoryId ?? 'default')) return
+    const remaining = savedLayouts.filter((item) => item.id !== draggedId)
+    const index = remaining.findIndex((item) => item.id === targetId)
+    const next = [...remaining.slice(0, index), dragged, ...remaining.slice(index)]
+    await writeLargeValue(SAVED_LAYOUTS_KEY, next)
+    setSavedLayouts(next)
+    notifySavedLayoutsChanged()
+  }
+
   const createSavedLayoutCategory = (name: string) => {
     const category = { id: createId('saved-category'), name }
     const next = [...savedLayoutCategories, category]
@@ -1675,6 +1687,7 @@ const App = () => {
           onSave={saveNamedLayout}
           onCreateCategory={createSavedLayoutCategory}
           onMove={moveNamedLayout}
+          onReorder={reorderNamedLayouts}
           onOverwrite={overwriteNamedLayout}
           onLoad={loadNamedLayout}
           onDelete={deleteNamedLayout}
