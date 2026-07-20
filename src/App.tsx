@@ -629,7 +629,7 @@ const App = () => {
     const next = pagesRef.current.map((page, pageIndex) => pageIndex === activePageIndex ? { ...page, scene } : page)
     setPages(next)
     setActivePageIndex(index)
-    history.load(next[index].scene)
+    history.reset(next[index].scene)
   }
 
   const addPage = () => {
@@ -637,7 +637,7 @@ const App = () => {
     const next = [...pagesRef.current.map((page, index) => index === activePageIndex ? { ...page, scene } : page), { id: createId('page'), scene: blank }]
     setPages(next)
     setActivePageIndex(next.length - 1)
-    history.load(blank)
+    history.reset(blank)
   }
 
   const deletePage = (index: number) => {
@@ -645,14 +645,23 @@ const App = () => {
     if (current.length === 1) {
       const blank = { ...EMPTY_SCENE, width: scene.width, height: scene.height }
       setPages([{ ...current[0], scene: blank }])
-      history.load(blank)
+      history.reset(blank)
       return
     }
     const next = current.filter((_, pageIndex) => pageIndex !== index)
     const nextIndex = Math.min(index, next.length - 1)
     setPages(next)
     setActivePageIndex(nextIndex)
-    history.load(next[nextIndex].scene)
+    history.reset(next[nextIndex].scene)
+  }
+
+  const reorderPages = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0) return
+    const next = [...pagesRef.current]
+    const [page] = next.splice(from, 1)
+    next.splice(to, 0, page)
+    setPages(next)
+    setActivePageIndex(next.findIndex((item) => item.id === pagesRef.current[activePageIndex].id))
   }
 
   useEffect(() => {
@@ -1290,7 +1299,7 @@ const App = () => {
       const nextPages = saved.pages.map((layout) => ({ id: createId('page'), scene: layout.scene }))
       setPages(nextPages)
       setActivePageIndex(0)
-      history.load(nextPages[0].scene)
+      history.reset(nextPages[0].scene)
       notify(`「${saved.name}」の全ページを読み込みました`)
       setSavedLayoutsOpen(false)
       return
@@ -1615,6 +1624,7 @@ const App = () => {
         onSwitchPage={switchPage}
         onAddPage={addPage}
         onDeletePage={deletePage}
+        onReorderPages={reorderPages}
         symbolColors={symbolColors}
         drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />

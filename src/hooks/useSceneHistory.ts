@@ -18,6 +18,7 @@ type Action =
   | { type: 'undo' }
   | { type: 'redo' }
   | { type: 'load'; scene: Scene }
+  | { type: 'reset'; scene: Scene }
 
 const LIMIT = 80
 
@@ -76,6 +77,8 @@ const reducer = (state: HistoryState, action: Action): HistoryState => {
     }
     case 'load':
       return { past: [state.present], present: action.scene, future: [], transactionStart: null }
+    case 'reset':
+      return { past: [], present: action.scene, future: [], transactionStart: null }
   }
 }
 
@@ -99,5 +102,6 @@ export const useSceneHistory = (initialScene: Scene) => {
     undo: () => dispatch({ type: 'undo' }),
     redo: () => dispatch({ type: 'redo' }),
     load: (scene: Scene) => dispatch({ type: 'load', scene }),
+    reset: (scene: Scene) => dispatch({ type: 'reset', scene }),
   }
 }
