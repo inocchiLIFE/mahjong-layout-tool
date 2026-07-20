@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './ContextMenu'
 
 export interface AppPreferences {
   showGrid: boolean
@@ -10,6 +11,7 @@ export interface AppPreferences {
   defaultShapeStrokeWidth: number
   uiScale: number
   popupFontScale: number
+  contextMenuItems: ContextMenuItemId[]
 }
 
 interface SettingsDialogProps {
@@ -28,6 +30,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   defaultShapeStrokeWidth: 4,
   uiScale: 1.1,
   popupFontScale: 1.2,
+  contextMenuItems: DEFAULT_CONTEXT_MENU_ITEMS,
 }
 
 export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogProps) => {
@@ -82,6 +85,14 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
           <legend>図形・線の初期値</legend>
           <label>色 <input type="color" value={draft.defaultShapeColor} onChange={(event) => setDraft((current) => ({ ...current, defaultShapeColor: event.target.value }))} /></label>
           <label>線の太さ <input type="range" min="1" max="12" value={draft.defaultShapeStrokeWidth} onChange={(event) => setDraft((current) => ({ ...current, defaultShapeStrokeWidth: Number(event.target.value) }))} /><output>{draft.defaultShapeStrokeWidth}</output></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>右クリックメニュー</legend>
+          <p>表示する項目を選べます。後から再度追加することもできます。</p>
+          <div className="context-menu-settings">
+            {CONTEXT_MENU_ITEMS.map(([id, label]) => <label key={id}><input type="checkbox" checked={draft.contextMenuItems.includes(id)} onChange={(event) => setDraft((current) => ({ ...current, contextMenuItems: event.target.checked ? [...current.contextMenuItems, id] : current.contextMenuItems.filter((item) => item !== id) }))} /> {label}</label>)}
+          </div>
         </fieldset>
 
         <div className="settings-actions">

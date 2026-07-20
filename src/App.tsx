@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
-import { ContextMenu } from './components/ContextMenu'
+import { ContextMenu, CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './components/ContextMenu'
 import { HelpModal } from './components/HelpModal'
 import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
@@ -83,6 +83,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   defaultShapeStrokeWidth: 4,
   uiScale: 1.1,
   popupFontScale: 1.2,
+  contextMenuItems: DEFAULT_CONTEXT_MENU_ITEMS,
 }
 const SYNC_CHANNEL = 'mahjong-layout-tool:tab-sync-v1'
 const EMPTY_SCENE: Scene = {
@@ -349,6 +350,7 @@ const readPreferences = (): AppPreferences => {
       defaultShapeStrokeWidth: typeof saved.defaultShapeStrokeWidth === 'number' ? clamp(saved.defaultShapeStrokeWidth, 1, 12) : DEFAULT_PREFERENCES.defaultShapeStrokeWidth,
       uiScale: typeof saved.uiScale === 'number' ? clamp(saved.uiScale, 0.9, 1.3) : DEFAULT_PREFERENCES.uiScale,
       popupFontScale: typeof saved.popupFontScale === 'number' ? clamp(saved.popupFontScale, 1, 1.5) : DEFAULT_PREFERENCES.popupFontScale,
+      contextMenuItems: Array.isArray(saved.contextMenuItems) ? saved.contextMenuItems.filter((item): item is ContextMenuItemId => typeof item === 'string' && CONTEXT_MENU_ITEMS.some(([id]) => id === item)) : DEFAULT_PREFERENCES.contextMenuItems,
     }
   } catch {
     return DEFAULT_PREFERENCES
@@ -876,6 +878,10 @@ const App = () => {
     })
   }
 
+  const rotateTile = (id: string) => {
+    history.commit({ ...scene, elements: scene.elements.map((element) => element.id === id && element.kind === 'tile' && !element.locked ? { ...element, rotation: ((element.rotation + 90) % 360) as Rotation } : element) })
+  }
+
   const alignTiles = () => {
     const tiles = scene.elements.filter((element) => element.kind === 'tile' && !element.locked)
     if (!tiles.length) return
@@ -1143,6 +1149,17 @@ const App = () => {
       elements: [...scene.elements.map((element) => ({ ...element, selected: false })), ...copies],
     })
     return true
+  }
+
+  const pasteFromClipboard = async (anchor: { x: number; y: number }) => {
+    if (pasteClipboard(anchor)) return
+    try {
+      const text = (await navigator.clipboard.readText()).trim()
+      if (!text) return
+      if (!pasteTileNotation(text, anchor)) commitText(text, anchor.x, anchor.y)
+    } catch {
+      notify('クリップボードを読み取れませんでした。Ctrl+Vでも貼り付けできます')
+    }
   }
 
   const moveSelectedBy = (requestedX: number, requestedY: number) => {
@@ -1773,14 +1790,16 @@ const App = () => {
           element={contextElement}
           hasSelection={selected.length > 0}
           canModifySelection={selected.some((element) => !element.locked)}
-          canPaste={clipboard.length > 0}
+          canPaste={clipboard.length > 0 || Boolean(navigator.clipboard)}
+          visibleItems={preferences.contextMenuItems}
           canUndo={history.canUndo}
           canRedo={history.canRedo}
           onClose={() => setContextMenu(null)}
           onDuplicate={duplicateSelected}
           onDelete={deleteSelected}
           onCopy={copySelected}
-          onPaste={() => pasteClipboard({ x: contextMenu.canvasX, y: contextMenu.canvasY })}
+          onPaste={() => { void pasteFromClipboard({ x: contextMenu.canvasX, y: contextMenu.canvasY }) }}
+          onRotate={() => contextElement?.kind === 'tile' && rotateTile(contextElement.id)}
           onAddRectangle={() => placeSymbol('rectangle', contextMenu.canvasX, contextMenu.canvasY)}
           onAddTriangle={() => placeSymbol('triangle', contextMenu.canvasX, contextMenu.canvasY)}
           onAddCircle={() => placeSymbol('circle', contextMenu.canvasX, contextMenu.canvasY)}
@@ -1797,6 +1816,10 @@ const App = () => {
           onEditProperties={() => contextElement && setPropertyElementId(contextElement.id)}
           onBringFront={() => moveSelectedLayers('front')}
           onSendBack={() => moveSelectedLayers('back')}
+          onAlign={alignTiles}
+          onToggleGrid={() => setShowGrid((value) => !value)}
+          onToggleSnap={() => setSnapToGrid((value) => !value)}
+          onClear={() => { history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height }); setRulerCount(0) }}
           onUndo={history.undo}
           onRedo={history.redo}
         />
