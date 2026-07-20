@@ -160,6 +160,12 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
     if (draggedId && draggedId !== targetId) props.onReorder(draggedId, targetId)
   }
 
+  const moveBy = (id: string, direction: -1 | 1) => {
+    const index = visibleLayouts.findIndex((item) => item.id === id)
+    const target = visibleLayouts[index + direction]
+    if (target) props.onReorder(direction < 0 ? id : target.id, direction < 0 ? target.id : id)
+  }
+
   const visibleLayouts = activeCategoryId === 'default' ? props.layouts : props.layouts.filter((saved) => saved.categoryId === activeCategoryId)
 
   return (
@@ -202,6 +208,8 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
                   <small>{count}個の配置物 ・ {saved.layout.scene.width} × {saved.layout.scene.height}px</small>
                 </div>
                 <div className="saved-layout-card-actions">
+                  <button type="button" onClick={() => moveBy(saved.id, -1)} disabled={visibleLayouts[0]?.id === saved.id}>↑ 上へ</button>
+                  <button type="button" onClick={() => moveBy(saved.id, 1)} disabled={visibleLayouts.at(-1)?.id === saved.id}>↓ 下へ</button>
                   <select value={saved.categoryId ?? 'default'} onChange={(event) => props.onMove(saved.id, event.target.value)} aria-label="分類を変更">
                     {props.categories.map((category) => <option key={category.id} value={category.id}>{category.name}へ移動</option>)}
                   </select>
