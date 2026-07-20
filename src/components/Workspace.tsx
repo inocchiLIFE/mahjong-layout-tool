@@ -199,6 +199,12 @@ const constrainStraightLine = (start: CanvasPoint, end: CanvasPoint): CanvasPoin
   return [snappedStart, { x: snappedStart.x, y: snap(end.y, true) }]
 }
 
+/** The curve handle intentionally moves only vertically from the chord's midpoint. */
+const constrainCurveApex = (start: CanvasPoint, end: CanvasPoint, point: CanvasPoint): CanvasPoint => ({
+  x: (start.x + end.x) / 2,
+  y: point.y,
+})
+
 export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref) => {
   const propsRef = useRef(props)
   propsRef.current = props
@@ -483,7 +489,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       return
     }
     if (props.placementMode === 'curve' && curveDraft) {
-      const apex = canvasPoint(event)
+      const apex = constrainCurveApex(curveDraft.start, curveDraft.end, canvasPoint(event))
       props.onCommitDrawing([curveDraft.start, apex, curveDraft.end], 'curve')
       setCurveDraft(null)
       setCurvePreview(null)
@@ -528,9 +534,9 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       if (!previous || Math.hypot(point.x - previous.x, point.y - previous.y) >= 2) {
         const next = {
           ...activeDrawing,
-          points: props.placementMode === 'line'
+          points: props.placementMode === 'line' || props.placementMode === 'curve'
             ? constrainStraightLine(activeDrawing.points[0], point)
-            : props.placementMode === 'curve' || props.placementMode === 'arrow'
+            : props.placementMode === 'arrow'
               ? [activeDrawing.points[0], point]
               : [...activeDrawing.points, point],
         }
@@ -549,7 +555,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       return
     }
     if (curveDraft) {
-      setCurvePreview(canvasPoint(event))
+      setCurvePreview(constrainCurveApex(curveDraft.start, curveDraft.end, canvasPoint(event)))
       return
     }
     const state = marqueeRef.current
@@ -577,9 +583,9 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const activeDrawing = drawingRef.current
     if (activeDrawing?.pointerId === event.pointerId) {
       const point = canvasPoint(event)
-      const points = props.placementMode === 'line'
+      const points = props.placementMode === 'line' || props.placementMode === 'curve'
         ? constrainStraightLine(activeDrawing.points[0], point)
-        : props.placementMode === 'curve' || props.placementMode === 'arrow'
+        : props.placementMode === 'arrow'
           ? [activeDrawing.points[0], point]
           : [...activeDrawing.points, point]
       drawingRef.current = null
