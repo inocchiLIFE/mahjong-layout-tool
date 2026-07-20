@@ -60,6 +60,7 @@ import {
 import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
+const PAGE_DECK_KEY = 'mahjong-layout-tool:page-deck-v1'
 const TAB_AUTO_SAVE_SESSION_KEY = 'mahjong-layout-tool:auto-save-tab-id-v1'
 const SAVED_LAYOUTS_KEY = 'mahjong-layout-tool:saved-pages-v1'
 const SAVED_LAYOUT_CATEGORIES_KEY = 'mahjong-layout-tool:saved-page-categories-v1'
@@ -471,7 +472,13 @@ const App = () => {
   const [savedLayoutCategories, setSavedLayoutCategories] = useState<SavedLayoutCategory[]>(readSavedLayoutCategories)
   const [storageReady, setStorageReady] = useState(false)
   const [savedLayoutsOpen, setSavedLayoutsOpen] = useState(false)
-  const [pages, setPages] = useState(() => [{ id: createId('page'), name: '1', scene: initialLayout?.scene ?? EMPTY_SCENE }])
+  const [pages, setPages] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(PAGE_DECK_KEY) ?? '[]') as Array<{ id?: string; name?: string; scene?: Scene }>
+      if (saved.length && saved.every((page) => page.scene)) return saved.map((page, index) => ({ id: page.id ?? createId('page'), name: page.name?.slice(0, 40) || String(index + 1), scene: page.scene! }))
+    } catch { /* use a new deck */ }
+    return [{ id: createId('page'), name: '1', scene: initialLayout?.scene ?? EMPTY_SCENE }]
+  })
   const [activePageIndex, setActivePageIndex] = useState(0)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -623,6 +630,10 @@ const App = () => {
   useEffect(() => {
     setPages((current) => current.map((page, index) => index === activePageIndex ? { ...page, scene } : page))
   }, [scene, activePageIndex])
+
+  useEffect(() => {
+    try { localStorage.setItem(PAGE_DECK_KEY, JSON.stringify(pages)) } catch { /* browser storage may be full */ }
+  }, [pages])
 
   const switchPage = (index: number) => {
     if (index === activePageIndex || !pagesRef.current[index]) return
