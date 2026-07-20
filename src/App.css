@@ -435,8 +435,8 @@
 .saved-layout-card-copy strong { overflow: hidden; color: #214a3f; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
 .saved-layout-card-copy span { color: #6e817a; font-size: 10px; }
 .saved-layout-card-copy small { color: #8b9a95; font-size: 10px; }
-.saved-layout-card-actions { display: grid; gap: 6px; }
-.saved-layout-card-actions button, .saved-layout-card-actions a { min-width: 86px; height: 34px; box-sizing: border-box; display: grid; place-items: center; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 700; text-decoration: none; }
+.saved-layout-card-actions { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; overflow-x: auto; padding-top: 2px; }
+.saved-layout-card-actions button, .saved-layout-card-actions a { flex: 0 0 auto; min-width: 72px; height: 34px; box-sizing: border-box; display: grid; place-items: center; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 700; text-decoration: none; }
 .saved-layout-load { border: 0; background: #174e41; color: #fff; }
 .saved-layout-overwrite { border: 0; background: #3b836f; color: #fff; }
 .saved-layout-rename { border: 1px solid #b7cbc1; background: #f6faf7; color: #285f50; }
@@ -540,7 +540,7 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
   .saved-layout-list { padding: 12px 18px 20px; }
   .saved-layout-card { grid-template-columns: 112px minmax(0, 1fr); gap: 10px; }
   .saved-layout-preview { width: 112px; height: 72px; }
-  .saved-layout-card-actions { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; }
+  .saved-layout-card-actions { grid-column: 1 / -1; }
   .help-modal h2 { font-size: 20px; }
   .help-grid, .help-feature-list { grid-template-columns: 1fr; }
   .shortcut-list { display: grid; }
