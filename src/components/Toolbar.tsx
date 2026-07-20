@@ -18,6 +18,7 @@ interface ToolbarProps {
   canDuplicate: boolean
   canToggleTileFaces: boolean
   canEditProperties: boolean
+  canChangeLayer: boolean
   showGrid: boolean
   snapToGrid: boolean
   placementMode: PlacementMode
@@ -35,6 +36,8 @@ interface ToolbarProps {
   onUpdateShapeStrokeWidth: (strokeWidth: number) => void
   onUpdateEraserSize: (size: number) => void
   onEditProperties: () => void
+  onBringFront: () => void
+  onSendBack: () => void
   onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous') => void
   handSuits: Array<'man' | 'pin' | 'sou'>
   onToggleHandSuit: (suit: 'man' | 'pin' | 'sou') => void
@@ -182,6 +185,8 @@ export const Toolbar = (props: ToolbarProps) => {
 
       <div className="ribbon-content" role="tabpanel">
         {activeTab === 'home' && <div className="tool-group">
+          <ToolButton label="前面へ" icon="↑" onClick={props.onBringFront} disabled={!props.canChangeLayer} />
+          <ToolButton label="背面へ" icon="↓" onClick={props.onSendBack} disabled={!props.canChangeLayer} />
           <span className="tool-group-label">編集</span>
           <ToolButton label="元に戻す" icon="↶" onClick={props.onUndo} disabled={!props.canUndo} />
           <ToolButton label="やり直す" icon="↷" onClick={props.onRedo} disabled={!props.canRedo} />

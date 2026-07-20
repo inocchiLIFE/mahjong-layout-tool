@@ -899,7 +899,7 @@ const App = () => {
         const centerY = anchor?.y ?? latestScene.height / 2
         const x = centerX - width / 2
         const y = centerY - height / 2
-        const zIndex = Math.max(0, ...latestScene.elements.map((element) => element.zIndex)) + 1
+        const zIndex = Math.min(0, ...latestScene.elements.map((element) => element.zIndex)) - 1
         const item = makeImage(loaded.src, file.name || '貼り付け画像', width, height, x, y, zIndex)
         return {
           ...latestScene,
@@ -1055,15 +1055,19 @@ const App = () => {
     })
   }
 
-  const moveLayer = (id: string, direction: 'front' | 'back') => {
-    const target = scene.elements.find((element) => element.id === id)
-    if (!target || target.locked) return
-    const zIndex = direction === 'front'
-      ? Math.max(0, ...scene.elements.map((element) => element.zIndex)) + 1
-      : Math.min(0, ...scene.elements.map((element) => element.zIndex)) - 1
+  const moveSelectedLayers = (direction: 'front' | 'back') => {
+    const targets = scene.elements.filter((element) => element.selected && !element.locked && element.kind !== 'image')
+    if (!targets.length) return
+    const targetIds = new Set(targets.map((element) => element.id))
+    const nonImageElements = scene.elements.filter((element) => element.kind !== 'image')
+    const orderedTargets = [...targets].sort((a, b) => a.zIndex - b.zIndex)
+    const boundary = direction === 'front'
+      ? Math.max(0, ...nonImageElements.map((element) => element.zIndex)) + 1
+      : Math.min(0, ...nonImageElements.map((element) => element.zIndex)) - orderedTargets.length
+    const zIndexes = new Map(orderedTargets.map((element, index) => [element.id, boundary + index]))
     history.commit({
       ...scene,
-      elements: scene.elements.map((element) => element.id === id ? { ...element, zIndex } : element),
+      elements: scene.elements.map((element) => targetIds.has(element.id) ? { ...element, zIndex: zIndexes.get(element.id)! } : element),
     })
   }
 
@@ -1404,6 +1408,7 @@ const App = () => {
         canDuplicate={selected.length > 0}
         canToggleTileFaces={selected.some((element) => element.kind === 'tile' && !element.locked)}
         canEditProperties={Boolean(selectedEditable)}
+        canChangeLayer={selected.some((element) => !element.locked && element.kind !== 'image')}
         showGrid={showGrid}
         snapToGrid={snapToGrid}
         placementMode={placementMode}
@@ -1448,6 +1453,8 @@ const App = () => {
           localStorage.setItem(DRAWING_PRESETS_KEY, JSON.stringify(next))
         }}
         onEditProperties={() => selectedEditable && setPropertyElementId(selectedEditable.id)}
+        onBringFront={() => moveSelectedLayers('front')}
+        onSendBack={() => moveSelectedLayers('back')}
         onRandomHand={generateHand}
         handSuits={handSuits}
         onToggleHandSuit={(suit) => setHandSuits((current) => {
@@ -1595,8 +1602,8 @@ const App = () => {
           onToggleFace={() => contextElement && toggleTileFace(contextElement.id)}
           onToggleLock={() => contextElement && toggleLock(contextElement.id)}
           onEditProperties={() => contextElement && setPropertyElementId(contextElement.id)}
-          onBringFront={() => contextElement && moveLayer(contextElement.id, 'front')}
-          onSendBack={() => contextElement && moveLayer(contextElement.id, 'back')}
+          onBringFront={() => moveSelectedLayers('front')}
+          onSendBack={() => moveSelectedLayers('back')}
           onUndo={history.undo}
           onRedo={history.redo}
         />
