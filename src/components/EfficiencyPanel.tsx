@@ -7,6 +7,8 @@ const Tile = ({ tileId }: { tileId: string }) => {
   return tile ? <img className="efficiency-tile" src={tile.asset} alt={tile.label} title={tile.label} /> : null
 }
 
+const formatShanten = (shanten: number) => shanten === -1 ? '和了' : shanten === 0 ? '聴牌' : `${shanten}シャンテン`
+
 export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: string[]; onClose: () => void; onResize: (width: number) => void }) => {
   const panelRef = useRef<HTMLElement>(null)
   const [discardSort, setDiscardSort] = useState<'efficiency' | 'tile'>('efficiency')
@@ -38,8 +40,8 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
   return (
     <aside ref={panelRef} className="efficiency-panel" aria-live="polite">
       {resizeHandle}{heading}
-      {!isDiscardAnalysis && <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{result.shanten === -1 ? '和了' : `${result.shanten}シャンテン`}</b><span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>}
-      {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong><label>並び順<select value={discardSort} onChange={(event) => setDiscardSort(event.target.value as 'efficiency' | 'tile')}><option value="efficiency">受け入れ枚数順</option><option value="tile">牌の並び順</option></select></label></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{discardResult.shanten === -1 ? '和了' : `${discardResult.shanten}シャンテン`}</b><em>{discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>)}</div>}
+      {!isDiscardAnalysis && <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b><span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>}
+      {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong><label>並び順<select value={discardSort} onChange={(event) => setDiscardSort(event.target.value as 'efficiency' | 'tile')}><option value="efficiency">受け入れ枚数順</option><option value="tile">牌の並び順</option></select></label></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>)}</div>}
       <small>通常形・七対子・国士無双を含む。残り枚数は選択中の手牌だけを既知牌として計算します。</small>
     </aside>
   )
