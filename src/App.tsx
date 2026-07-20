@@ -298,6 +298,7 @@ const parseNamedSavedLayouts = (data: unknown): NamedSavedLayout[] => {
           const parsed = parseSavedLayout(JSON.stringify(page))
           return parsed ? [parsed] : []
         }) : undefined,
+        pageNames: Array.isArray(item.pageNames) ? item.pageNames.filter((name): name is string => typeof name === 'string') : undefined,
         layout,
       }]
   })
@@ -1282,6 +1283,7 @@ const App = () => {
       id: createId('saved-layout'),
       name,
       categoryId,
+      pageNames: [pagesRef.current[activePageIndex]?.name ?? '1'],
       savedAt: layout.savedAt,
       layout: {
         ...layout,
@@ -1311,7 +1313,7 @@ const App = () => {
   }
 
   const loadNamedLayout = (id: string) => {
-    const saved = savedLayouts.find((item) => item.id === id)
+    const saved = savedLayouts.find((item) => item.id === id)!
     if (!saved) return
     if (saved.pages?.length) {
       const nextPages = saved.pages.map((layout, index) => ({ id: createId('page'), name: saved.pageNames?.[index] ?? String(index + 1), scene: layout.scene }))
@@ -1322,6 +1324,13 @@ const App = () => {
       setSavedLayoutsOpen(false)
       return
     }
+    const singlePage = { id: createId('page'), name: saved.pageNames?.[0] ?? saved.name, scene: saved.layout.scene }
+    setPages([singlePage])
+    setActivePageIndex(0)
+    history.reset(singlePage.scene)
+    notify(`「${saved.name}」を読み込みました`)
+    setSavedLayoutsOpen(false)
+    return
     loadLayout(saved.layout, `「${saved.name}」を呼び出しました`)
     setSavedLayoutsOpen(false)
   }
