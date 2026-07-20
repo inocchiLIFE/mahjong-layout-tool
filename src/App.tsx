@@ -10,6 +10,7 @@ import { DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './com
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
+import { EfficiencyPanel } from './components/EfficiencyPanel'
 import { TILE_MAP } from './data/tiles'
 import { useSceneHistory } from './hooks/useSceneHistory'
 import type {
@@ -486,6 +487,7 @@ const App = () => {
   const [toast, setToast] = useState('')
   const workspaceRef = useRef<HTMLDivElement>(null)
   const pagesRef = useRef(pages)
+  const switchPageRef = useRef<(index: number) => void>(() => {})
   pagesRef.current = pages
   const imageInputRef = useRef<HTMLInputElement>(null)
   const shareInputRef = useRef<HTMLInputElement>(null)
@@ -643,6 +645,7 @@ const App = () => {
     setActivePageIndex(index)
     history.reset(next[index].scene)
   }
+  switchPageRef.current = switchPage
 
   const addPage = () => {
     const blank = { ...EMPTY_SCENE, width: scene.width, height: scene.height }
@@ -686,12 +689,12 @@ const App = () => {
   useEffect(() => {
     const changePage = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
-      if (event.key === 'ArrowLeft' && activePageIndex > 0) { event.preventDefault(); switchPage(activePageIndex - 1) }
-      if (event.key === 'ArrowRight' && activePageIndex < pagesRef.current.length - 1) { event.preventDefault(); switchPage(activePageIndex + 1) }
+      if (event.key === 'ArrowLeft' && activePageIndex > 0) { event.preventDefault(); switchPageRef.current(activePageIndex - 1) }
+      if (event.key === 'ArrowRight' && activePageIndex < pagesRef.current.length - 1) { event.preventDefault(); switchPageRef.current(activePageIndex + 1) }
     }
     window.addEventListener('keydown', changePage)
     return () => window.removeEventListener('keydown', changePage)
-  }, [activePageIndex, scene])
+  }, [activePageIndex])
 
   const addTile = (tileId: string, dropX?: number, dropY?: number) => {
     const isDropped = dropX !== undefined || dropY !== undefined
@@ -1330,9 +1333,6 @@ const App = () => {
     history.reset(singlePage.scene)
     notify(`「${saved.name}」を読み込みました`)
     setSavedLayoutsOpen(false)
-    return
-    loadLayout(saved.layout, `「${saved.name}」を呼び出しました`)
-    setSavedLayoutsOpen(false)
   }
 
   const overwriteNamedLayout = async (id: string) => {
@@ -1544,6 +1544,9 @@ const App = () => {
   const selectedText = selected.length === 1 && selected[0].kind === 'text' && !selected[0].locked ? selected[0] : null
   const selectedColoredElement = selected.length === 1 && (selected[0].kind === 'symbol' || selected[0].kind === 'drawing') && !selected[0].locked ? selected[0] : null
   const selectedEditable = selected.length === 1 && selected[0].kind !== 'tile' && !selected[0].locked ? selected[0] : null
+  const selectedHandTileIds = selected
+    .filter((element): element is TileElement => element.kind === 'tile' && !element.faceDown)
+    .map((element) => TILE_MAP.get(element.tileId)?.baseId ?? element.tileId)
   const tileCount = scene.elements.filter((element) => element.kind === 'tile').length
   const contextElement = contextMenu ? scene.elements.find((element) => element.id === contextMenu.elementId) ?? null : null
   const propertyElement = propertyElementId
@@ -1724,6 +1727,7 @@ const App = () => {
             />
           </div>
         </section>
+        <EfficiencyPanel tileIds={selectedHandTileIds} />
       </main>
 
       <input
