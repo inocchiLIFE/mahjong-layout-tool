@@ -142,6 +142,17 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
     setCategoryName('')
   }
 
+  const beginLayoutDrag = (event: DragEvent<HTMLElement>, id: string) => {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('application/x-mahjong-saved-layout', id)
+  }
+
+  const dropIntoCategory = (event: DragEvent<HTMLElement>, categoryId: string) => {
+    event.preventDefault()
+    const id = event.dataTransfer.getData('application/x-mahjong-saved-layout')
+    if (id) props.onMove(id, categoryId)
+  }
+
   const visibleLayouts = activeCategoryId === 'default' ? props.layouts : props.layouts.filter((saved) => saved.categoryId === activeCategoryId)
 
   return (
@@ -165,7 +176,7 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
         </div>
 
         <div className="saved-layout-tabs" role="tablist" aria-label="保存ページの分類">
-          {props.categories.map((category) => <button key={category.id} type="button" role="tab" aria-selected={activeCategoryId === category.id} className={activeCategoryId === category.id ? 'active' : ''} onClick={() => setActiveCategoryId(category.id)}>{category.name}</button>)}
+          {props.categories.map((category) => <button key={category.id} type="button" role="tab" aria-selected={activeCategoryId === category.id} className={activeCategoryId === category.id ? 'active' : ''} onClick={() => setActiveCategoryId(category.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => dropIntoCategory(event, category.id)}>{category.name}</button>)}
           <input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && createCategory()} placeholder="分類名" aria-label="新しい分類名" />
           <button type="button" onClick={createCategory} disabled={!categoryName.trim()}>＋タブ作成</button>
         </div>
@@ -176,7 +187,7 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
           ) : visibleLayouts.map((saved) => {
             const count = saved.layout.scene.elements.length
             return (
-              <article className="saved-layout-card" key={saved.id}>
+              <article className="saved-layout-card" key={saved.id} draggable onDragStart={(event) => beginLayoutDrag(event, saved.id)}>
                 <LayoutPreview saved={saved} />
                 <div className="saved-layout-card-copy">
                   {editingId === saved.id ? <input className="saved-layout-name-edit" aria-label="保存ページのタイトル" value={editingName} onChange={(event) => setEditingName(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && commitRename()} autoFocus /> : <strong>{saved.name}</strong>}
