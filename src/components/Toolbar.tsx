@@ -58,6 +58,7 @@ interface ToolbarProps {
   activePageIndex: number
   onSwitchPage: (index: number) => void
   onAddPage: () => void
+  onDeletePage: (index: number) => void
   symbolColors: Record<SymbolType, string>
   drawingColors: Record<Exclude<DrawingTool, 'eraser'>, string>
 }
@@ -179,7 +180,7 @@ export const Toolbar = (props: ToolbarProps) => {
           <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => { setActiveTab(id); if (ribbonCollapsed) setRibbonCollapsed(false) }} onDoubleClick={() => setRibbonCollapsed((value) => !value)} title="ダブルクリックでリボンを折りたたむ">{label}</button>
         ))}
         <div className="page-tabs" aria-label="ページ">
-          {props.pages.map((page, index) => <button key={page.id} type="button" className={index === props.activePageIndex ? 'active' : ''} onClick={() => props.onSwitchPage(index)} title={`ページ ${index + 1}`}>{['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣'][index] ?? `${index + 1}`}</button>)}
+          {props.pages.map((page, index) => <div key={page.id} className={`page-tab${index === props.activePageIndex ? ' active' : ''}`}><button type="button" onClick={() => props.onSwitchPage(index)} title={`ページ ${index + 1}`}>{index + 1}</button>{index === props.activePageIndex && <button type="button" className="page-close-tab" onClick={(event) => { event.stopPropagation(); props.onDeletePage(index) }} title="ページを削除">×</button>}</div>)}
           <button type="button" className="page-add-tab" onClick={props.onAddPage} title="新規ページ">＋</button>
         </div>
         <button

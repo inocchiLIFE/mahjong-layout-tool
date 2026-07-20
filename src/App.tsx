@@ -636,6 +636,21 @@ const App = () => {
     history.load(blank)
   }
 
+  const deletePage = (index: number) => {
+    const current = pagesRef.current
+    if (current.length === 1) {
+      const blank = { ...EMPTY_SCENE, width: scene.width, height: scene.height }
+      setPages([{ ...current[0], scene: blank }])
+      history.load(blank)
+      return
+    }
+    const next = current.filter((_, pageIndex) => pageIndex !== index)
+    const nextIndex = Math.min(index, next.length - 1)
+    setPages(next)
+    setActivePageIndex(nextIndex)
+    history.load(next[nextIndex].scene)
+  }
+
   useEffect(() => {
     const changePage = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
@@ -1585,6 +1600,7 @@ const App = () => {
         activePageIndex={activePageIndex}
         onSwitchPage={switchPage}
         onAddPage={addPage}
+        onDeletePage={deletePage}
         symbolColors={symbolColors}
         drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />
