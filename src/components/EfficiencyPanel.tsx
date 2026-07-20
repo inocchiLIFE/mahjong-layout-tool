@@ -26,7 +26,9 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
     .sort((left, right) => {
       const tileOrder = (tileId: string) => TILE_MAP.get(tileId)?.order ?? Number.MAX_SAFE_INTEGER
       if (discardSort === 'tile') return tileOrder(left.discardTileId) - tileOrder(right.discardTileId)
-      return right.result.effectiveTileCount - left.result.effectiveTileCount || tileOrder(left.discardTileId) - tileOrder(right.discardTileId)
+      return left.result.shanten - right.result.shanten
+        || right.result.effectiveTileCount - left.result.effectiveTileCount
+        || tileOrder(left.discardTileId) - tileOrder(right.discardTileId)
     })
   const isDiscardAnalysis = discards.length > 0
   const heading = <div className="efficiency-heading"><strong>牌理・受け入れ</strong><button type="button" onClick={onClose} aria-label="牌理・受け入れを隠す" title="隠す">×</button></div>
