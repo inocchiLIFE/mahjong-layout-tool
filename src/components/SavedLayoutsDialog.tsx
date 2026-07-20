@@ -18,6 +18,7 @@ interface SavedLayoutsDialogProps {
   layouts: NamedSavedLayout[]
   categories: Array<{ id: string; name: string }>
   onSave: (name: string, categoryId: string) => void
+  onSaveAllPages: () => void
   onCreateCategory: (name: string) => void
   onMove: (id: string, categoryId: string) => void
   onReorder: (draggedId: string, targetId: string) => void
@@ -187,6 +188,7 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
             <button type="button" className="primary-button" onClick={save} disabled={!name.trim()}>保存</button>
           </div>
         </div>
+        <button type="button" className="saved-layout-save-all" onClick={props.onSaveAllPages}>全ページを保存</button>
 
         <div className="saved-layout-tabs" role="tablist" aria-label="保存ページの分類">
           {props.categories.map((category) => <button key={category.id} type="button" role="tab" aria-selected={activeCategoryId === category.id} className={activeCategoryId === category.id ? 'active' : ''} onClick={() => setActiveCategoryId(category.id)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => dropIntoCategory(event, category.id)}>{category.name}</button>)}

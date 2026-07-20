@@ -467,10 +467,14 @@ const App = () => {
   const [savedLayoutCategories, setSavedLayoutCategories] = useState<SavedLayoutCategory[]>(readSavedLayoutCategories)
   const [storageReady, setStorageReady] = useState(false)
   const [savedLayoutsOpen, setSavedLayoutsOpen] = useState(false)
+  const [pages, setPages] = useState(() => [{ id: createId('page'), scene: initialLayout?.scene ?? EMPTY_SCENE }])
+  const [activePageIndex, setActivePageIndex] = useState(0)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
   const workspaceRef = useRef<HTMLDivElement>(null)
+  const pagesRef = useRef(pages)
+  pagesRef.current = pages
   const imageInputRef = useRef<HTMLInputElement>(null)
   const shareInputRef = useRef<HTMLInputElement>(null)
   const imageAnchorRef = useRef<{ x: number; y: number } | null>(null)
@@ -611,6 +615,26 @@ const App = () => {
   }, [])
 
   const nextZIndex = () => Math.max(0, ...scene.elements.map((element) => element.zIndex)) + 1
+
+  useEffect(() => {
+    setPages((current) => current.map((page, index) => index === activePageIndex ? { ...page, scene } : page))
+  }, [scene, activePageIndex])
+
+  const switchPage = (index: number) => {
+    if (index === activePageIndex || !pagesRef.current[index]) return
+    const next = pagesRef.current.map((page, pageIndex) => pageIndex === activePageIndex ? { ...page, scene } : page)
+    setPages(next)
+    setActivePageIndex(index)
+    history.load(next[index].scene)
+  }
+
+  const addPage = () => {
+    const blank = { ...EMPTY_SCENE, width: scene.width, height: scene.height }
+    const next = [...pagesRef.current.map((page, index) => index === activePageIndex ? { ...page, scene } : page), { id: createId('page'), scene: blank }]
+    setPages(next)
+    setActivePageIndex(next.length - 1)
+    history.load(blank)
+  }
 
   const addTile = (tileId: string, dropX?: number, dropY?: number) => {
     const isDropped = dropX !== undefined || dropY !== undefined
@@ -1219,6 +1243,16 @@ const App = () => {
     }
   }
 
+  const saveAllPages = async () => {
+    const source = pagesRef.current.map((page, index) => index === activePageIndex ? { ...page, scene } : page)
+    const additions = source.map((page, index) => ({ id: createId('saved-layout'), name: `全ページ保存 ${index + 1}`, categoryId: 'default', savedAt: new Date().toISOString(), layout: { ...makeSavedLayout(), scene: page.scene } }))
+    const next = [...additions, ...savedLayouts]
+    await writeLargeValue(SAVED_LAYOUTS_KEY, next)
+    setSavedLayouts(next)
+    notifySavedLayoutsChanged()
+    notify('全ページを保存しました')
+  }
+
   const loadNamedLayout = (id: string) => {
     const saved = savedLayouts.find((item) => item.id === id)
     if (!saved) return
@@ -1609,6 +1643,10 @@ const App = () => {
           </div>
         </section>
       </main>
+      <nav className="page-strip" aria-label="ページ一覧">
+        {pages.map((page, index) => <button key={page.id} type="button" className={index === activePageIndex ? 'active' : ''} onClick={() => switchPage(index)}>ページ {index + 1}</button>)}
+        <button type="button" className="page-add" onClick={addPage}>＋ 新規ページ</button>
+      </nav>
 
       <input
         ref={imageInputRef}
@@ -1685,6 +1723,7 @@ const App = () => {
           layouts={savedLayouts}
           categories={savedLayoutCategories}
           onSave={saveNamedLayout}
+          onSaveAllPages={saveAllPages}
           onCreateCategory={createSavedLayoutCategory}
           onMove={moveNamedLayout}
           onReorder={reorderNamedLayouts}
