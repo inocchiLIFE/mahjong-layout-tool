@@ -293,6 +293,10 @@ const parseNamedSavedLayouts = (data: unknown): NamedSavedLayout[] => {
         name: item.name,
         savedAt: typeof item.savedAt === 'string' ? item.savedAt : layout.savedAt,
         categoryId: typeof item.categoryId === 'string' ? item.categoryId : 'default',
+        pages: Array.isArray(item.pages) ? item.pages.flatMap((page) => {
+          const parsed = parseSavedLayout(JSON.stringify(page))
+          return parsed ? [parsed] : []
+        }) : undefined,
         layout,
       }]
   })
@@ -1270,8 +1274,9 @@ const App = () => {
 
   const saveAllPages = async () => {
     const source = pagesRef.current.map((page, index) => index === activePageIndex ? { ...page, scene } : page)
-    const additions = source.map((page, index) => ({ id: createId('saved-layout'), name: `全ページ保存 ${index + 1}`, categoryId: 'default', savedAt: new Date().toISOString(), layout: { ...makeSavedLayout(), scene: page.scene } }))
-    const next = [...additions, ...savedLayouts]
+    const layouts = source.map((page) => ({ ...makeSavedLayout(), scene: page.scene }))
+    const saved: NamedSavedLayout = { id: createId('saved-layout'), name: `全ページ保存 ${new Date().toLocaleString('ja-JP')}`, categoryId: 'default', savedAt: new Date().toISOString(), layout: layouts[0], pages: layouts }
+    const next = [saved, ...savedLayouts]
     await writeLargeValue(SAVED_LAYOUTS_KEY, next)
     setSavedLayouts(next)
     notifySavedLayoutsChanged()
@@ -1281,6 +1286,15 @@ const App = () => {
   const loadNamedLayout = (id: string) => {
     const saved = savedLayouts.find((item) => item.id === id)
     if (!saved) return
+    if (saved.pages?.length) {
+      const nextPages = saved.pages.map((layout) => ({ id: createId('page'), scene: layout.scene }))
+      setPages(nextPages)
+      setActivePageIndex(0)
+      history.load(nextPages[0].scene)
+      notify(`「${saved.name}」の全ページを読み込みました`)
+      setSavedLayoutsOpen(false)
+      return
+    }
     loadLayout(saved.layout, `「${saved.name}」を呼び出しました`)
     setSavedLayoutsOpen(false)
   }
