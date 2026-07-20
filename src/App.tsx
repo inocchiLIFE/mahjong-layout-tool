@@ -627,6 +627,7 @@ const App = () => {
       elements: [...scene.elements.map((element) => ({ ...element, selected: false })), tile],
     })
     setRulerCount((count) => Math.min(13, count + 1))
+    setPlacementMode('select')
   }
 
   const selectElement = (id: string, additive: boolean) => {
@@ -815,6 +816,7 @@ const App = () => {
       ],
     })
     setRulerCount(count)
+    setPlacementMode('select')
     notify(`${type === 'continuous' ? '連続形' : type === '6-triplet' ? '6枚形暗刻含み' : `${count}枚${count === 6 || count === 7 ? '形' : 'の配牌'}`}を生成し、理牌しました`)
   }
 

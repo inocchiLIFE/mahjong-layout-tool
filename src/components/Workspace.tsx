@@ -281,7 +281,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
   const beginSelectedAreaDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     const selected = props.scene.elements.filter((element) => element.selected && !element.locked)
-    if (!selected.length || props.placementMode !== 'select') return false
+    if (!selected.length || selected.every((element) => element.kind === 'tile') || props.placementMode !== 'select') return false
     setDraggingIds(new Set(selected.map((element) => element.id)))
     dragRef.current = {
       pointerId: event.pointerId,
