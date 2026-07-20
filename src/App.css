@@ -448,6 +448,7 @@
 .saved-layout-empty span { color: #84958f; font-size: 11px; }
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 2147483647; display: grid; place-items: center; padding: 20px; background: rgba(3, 25, 21, .7); backdrop-filter: blur(5px); animation: fade-in .2s ease-out; }
+.modal-backdrop > * { zoom: var(--popup-scale, 1.2); }
 .help-modal { width: min(820px, 100%); max-height: min(790px, calc(100vh - 32px)); position: relative; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: #fbfaf4; box-shadow: 0 25px 80px rgba(0, 0, 0, .38); }
 .help-modal::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px; border-radius: 16px 0 0 16px; background: linear-gradient(#d6a64f, #b87a37); }
 .help-header { flex: 0 0 auto; padding: 28px 44px 16px; border-bottom: 1px solid #dce6df; background: linear-gradient(120deg, #f7f5ec, #fffdf7); }

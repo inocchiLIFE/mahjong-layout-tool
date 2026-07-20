@@ -78,6 +78,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   defaultShapeColor: '#244a40',
   defaultShapeStrokeWidth: 4,
   uiScale: 1.1,
+  popupFontScale: 1.2,
 }
 const SYNC_CHANNEL = 'mahjong-layout-tool:tab-sync-v1'
 const EMPTY_SCENE: Scene = {
@@ -338,6 +339,7 @@ const readPreferences = (): AppPreferences => {
       defaultShapeColor: typeof saved.defaultShapeColor === 'string' ? saved.defaultShapeColor : DEFAULT_PREFERENCES.defaultShapeColor,
       defaultShapeStrokeWidth: typeof saved.defaultShapeStrokeWidth === 'number' ? clamp(saved.defaultShapeStrokeWidth, 1, 12) : DEFAULT_PREFERENCES.defaultShapeStrokeWidth,
       uiScale: typeof saved.uiScale === 'number' ? clamp(saved.uiScale, 0.9, 1.3) : DEFAULT_PREFERENCES.uiScale,
+      popupFontScale: typeof saved.popupFontScale === 'number' ? clamp(saved.popupFontScale, 1, 1.5) : DEFAULT_PREFERENCES.popupFontScale,
     }
   } catch {
     return DEFAULT_PREFERENCES
@@ -1428,7 +1430,7 @@ const App = () => {
     : null
 
   return (
-    <div className="app-shell" style={{ '--app-scale': preferences.uiScale } as CSSProperties}>
+    <div className="app-shell" style={{ '--app-scale': preferences.uiScale, '--popup-scale': preferences.popupFontScale } as CSSProperties}>
       <header className="app-header">
         <div className="brand-mark" aria-hidden="true"><span>牌</span></div>
         <div className="brand-copy">
