@@ -1513,7 +1513,9 @@ const App = () => {
                 if (sharedLayout) void importSharedLayout(sharedLayout)
                 files.filter((file) => file.type.startsWith('image/')).forEach((file, index) => void addImageFile(file, { x: x + index * 20, y: y + index * 20 }))
               }}
-              onDropText={(text, x, y) => commitText(text, x, y)}
+              onDropText={(text, x, y) => {
+                if (!pasteTileNotation(text, { x, y })) commitText(text, x, y)
+              }}
               onCursorCanvasPoint={(point) => { pasteAnchorRef.current = point }}
               onSelectElement={selectElement}
               onSelectRange={selectRange}
