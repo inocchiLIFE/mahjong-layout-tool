@@ -70,6 +70,7 @@ export interface DrawingElement extends CanvasElementBase {
   color: string
   strokeWidth: number
   drawingType?: DrawingType
+  arrowHeadSize?: number
 }
 
 export interface ImageElement extends CanvasElementBase {

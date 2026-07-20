@@ -67,7 +67,7 @@ const PREFERENCES_KEY = 'mahjong-layout-tool:preferences-v1'
 const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
 const DRAWING_PRESETS_KEY = 'mahjong-layout-tool:drawing-presets-v1'
 const HAND_SUITS_KEY = 'mahjong-layout-tool:hand-suits-v1'
-const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, eraserSize: 24 }
+const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, eraserSize: 24, arrowHeadSize: 30 }
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   snapToGrid: false,
@@ -191,7 +191,8 @@ const parseElement = (value: unknown): CanvasElement | null => {
     if (points.length < 2) return null
     const strokeWidth = clamp(typeof item.strokeWidth === 'number' ? item.strokeWidth : 4, 1, 20)
     const drawingType = isDrawingType(item.drawingType) ? item.drawingType : 'freehand'
-    const visualBounds = getDrawingVisualBounds(points, drawingType, strokeWidth)
+    const arrowHeadSize = clamp(typeof item.arrowHeadSize === 'number' ? item.arrowHeadSize : 30, 12, 64)
+    const visualBounds = getDrawingVisualBounds(points, drawingType, strokeWidth, arrowHeadSize)
     const x = Math.floor(base.x + visualBounds.minX)
     const y = Math.floor(base.y + visualBounds.minY)
     return {
@@ -205,6 +206,7 @@ const parseElement = (value: unknown): CanvasElement | null => {
       color: typeof item.color === 'string' ? item.color : '#244a40',
       strokeWidth,
       drawingType,
+      arrowHeadSize,
     }
   }
   if (item.kind === 'image' && typeof item.src === 'string') {
@@ -363,7 +365,7 @@ const readDrawingPresets = (): Record<DrawingTool, DrawingPreset> => {
     const saved = JSON.parse(localStorage.getItem(DRAWING_PRESETS_KEY) ?? '{}') as Partial<Record<DrawingTool, Partial<DrawingPreset>>>
     return (Object.keys(defaults) as DrawingTool[]).reduce((result, tool) => ({
       ...result,
-      [tool]: { ...defaults[tool], ...saved[tool], color: saved[tool]?.color === '#244a40' ? null : saved[tool]?.color ?? null },
+      [tool]: { ...defaults[tool], ...saved[tool], color: saved[tool]?.color === '#244a40' ? null : saved[tool]?.color ?? null, arrowHeadSize: typeof saved[tool]?.arrowHeadSize === 'number' ? clamp(saved[tool]!.arrowHeadSize!, 12, 64) : defaults[tool].arrowHeadSize },
     }), {} as Record<DrawingTool, DrawingPreset>)
   } catch { return defaults }
 }
@@ -875,14 +877,15 @@ const App = () => {
     const tool: DrawingTool = drawingType === 'freehand' ? 'draw' : drawingType
     const preset = drawingPresets[tool]
     const strokeWidth = preset.strokeWidth
-    const bounds = getDrawingVisualBounds(points, drawingType, strokeWidth)
+    const arrowHeadSize = drawingType === 'arrow' ? preset.arrowHeadSize ?? 30 : undefined
+    const bounds = getDrawingVisualBounds(points, drawingType, strokeWidth, arrowHeadSize)
     const x = Math.floor(bounds.minX)
     const y = Math.floor(bounds.minY)
     const width = Math.max(8, Math.ceil(bounds.maxX - x))
     const height = Math.max(8, Math.ceil(bounds.maxY - y))
     const relative = points.map((point) => ({ x: point.x - x, y: point.y - y }))
     const item = makeDrawing(relative, x, y, width, height, nextZIndex(), drawingType)
-    history.commit({ ...scene, elements: [...scene.elements, { ...item, color: preset.color ?? defaultShapeColor, strokeWidth }] })
+    history.commit({ ...scene, elements: [...scene.elements, { ...item, color: preset.color ?? defaultShapeColor, strokeWidth, arrowHeadSize }] })
   }
 
   const addImageFile = async (file: File, anchor?: { x: number; y: number } | null) => {
@@ -1502,7 +1505,7 @@ const App = () => {
               drawingStyle={(() => {
                 const tool = placementMode === 'draw' ? 'draw' : placementMode === 'line' ? 'line' : placementMode === 'curve' ? 'curve' : placementMode === 'arrow' ? 'arrow' : 'draw'
                 const preset = drawingPresets[tool]
-                return { color: preset.color ?? defaultShapeColor, strokeWidth: preset.strokeWidth }
+                return { color: preset.color ?? defaultShapeColor, strokeWidth: preset.strokeWidth, arrowHeadSize: preset.arrowHeadSize ?? 30 }
               })()}
               symbolColors={symbolColors}
               symbolSizes={symbolSizes}

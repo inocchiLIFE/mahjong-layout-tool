@@ -10,8 +10,8 @@ const curvePath = (points: { x: number; y: number }[]) => {
   return `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`
 }
 
-const arrowHeadPoints = (points: { x: number; y: number }[]) => {
-  return getArrowHeadPoints(points).map((point) => `${point.x},${point.y}`).join(' ')
+const arrowHeadPoints = (points: { x: number; y: number }[], size?: number) => {
+  return getArrowHeadPoints(points, size).map((point) => `${point.x},${point.y}`).join(' ')
 }
 
 interface SavedLayoutsDialogProps {
@@ -82,7 +82,7 @@ const LayoutPreview = ({ saved }: { saved: NamedSavedLayout }) => {
             <svg key={element.id} className="saved-preview-item" viewBox={`0 0 ${element.width} ${element.height}`} style={style}>
               {element.drawingType === 'curve' ? <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" /> : <>
                 <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-                {element.drawingType === 'arrow' && <polyline points={arrowHeadPoints(element.points)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />}
+                {element.drawingType === 'arrow' && <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />}
               </>}
             </svg>
           )

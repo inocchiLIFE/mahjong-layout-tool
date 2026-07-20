@@ -43,7 +43,7 @@ interface WorkspaceProps {
   placementMode: PlacementMode
   eraserSize: number
   textStyle: { fontFamily: string; fontSize: number; color: string }
-  drawingStyle: { color: string; strokeWidth: number }
+  drawingStyle: { color: string; strokeWidth: number; arrowHeadSize: number }
   symbolColors: Record<SymbolType, string>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   editTextRequest: EditTextRequest | null
@@ -180,8 +180,8 @@ const curvePath = (points: CanvasPoint[]) => {
   return `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`
 }
 
-const arrowHeadPoints = (points: CanvasPoint[]) => {
-  return getArrowHeadPoints(points).map((point) => `${point.x},${point.y}`).join(' ')
+const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
+  return getArrowHeadPoints(points, size).map((point) => `${point.x},${point.y}`).join(' ')
 }
 
 /** Near-horizontal and near-vertical lines snap their endpoints to the grid,
@@ -887,8 +887,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   {element.selected && <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" strokeLinejoin="round" opacity=".7" />}
                   <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
                   {element.drawingType === 'arrow' && <>
-                    {element.selected && <polyline points={arrowHeadPoints(element.points)} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" strokeLinejoin="round" opacity=".7" />}
-                    <polyline points={arrowHeadPoints(element.points)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+                    {element.selected && <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" strokeLinejoin="round" opacity=".7" />}
+                    <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
                   </>}
                 </>}
               </svg>
@@ -1013,7 +1013,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         >
           <>
             <polyline points={drawing.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-            {props.placementMode === 'arrow' && <polyline points={arrowHeadPoints(drawing.points)} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />}
+            {props.placementMode === 'arrow' && <polyline points={arrowHeadPoints(drawing.points, props.drawingStyle.arrowHeadSize)} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />}
           </>
         </svg>
       )}

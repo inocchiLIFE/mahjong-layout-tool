@@ -66,7 +66,7 @@ export const getCurveControlPoint = (points: CanvasPoint[]) => {
   }
 }
 
-export const getArrowHeadPoints = (points: CanvasPoint[], size = 18): CanvasPoint[] => {
+export const getArrowHeadPoints = (points: CanvasPoint[], size = 30): CanvasPoint[] => {
   const start = points[0]
   const end = points.at(-1) ?? start
   const angle = Math.atan2(end.y - start.y, end.x - start.x)
@@ -84,7 +84,7 @@ const quadraticPoint = (start: CanvasPoint, control: CanvasPoint, end: CanvasPoi
 
 /** Returns the visible SVG bounds, including stroke and arrow head, so the
  * selectable element never has a large invisible rectangular hit area. */
-export const getDrawingVisualBounds = (points: CanvasPoint[], drawingType: DrawingType, strokeWidth: number) => {
+export const getDrawingVisualBounds = (points: CanvasPoint[], drawingType: DrawingType, strokeWidth: number, arrowHeadSize = 30) => {
   let visiblePoints = [...points]
   if (drawingType === 'curve') {
     const start = points[0]
@@ -97,7 +97,7 @@ export const getDrawingVisualBounds = (points: CanvasPoint[], drawingType: Drawi
       if (t > 0 && t < 1) visiblePoints.push(quadraticPoint(start, control, end, t))
     })
   } else if (drawingType === 'arrow') {
-    visiblePoints = [...visiblePoints, ...getArrowHeadPoints(points)]
+    visiblePoints = [...visiblePoints, ...getArrowHeadPoints(points, arrowHeadSize)]
   }
   const strokeInset = Math.max(1, strokeWidth / 2 + 1)
   return {
