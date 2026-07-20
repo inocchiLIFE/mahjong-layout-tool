@@ -107,6 +107,7 @@ export interface NamedSavedLayout {
   categoryId?: string
   layout: SavedLayout
   pages?: SavedLayout[]
+  pageNames?: string[]
 }
 
 export interface ElementPosition {

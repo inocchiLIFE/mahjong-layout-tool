@@ -471,7 +471,7 @@ const App = () => {
   const [savedLayoutCategories, setSavedLayoutCategories] = useState<SavedLayoutCategory[]>(readSavedLayoutCategories)
   const [storageReady, setStorageReady] = useState(false)
   const [savedLayoutsOpen, setSavedLayoutsOpen] = useState(false)
-  const [pages, setPages] = useState(() => [{ id: createId('page'), scene: initialLayout?.scene ?? EMPTY_SCENE }])
+  const [pages, setPages] = useState(() => [{ id: createId('page'), name: '1', scene: initialLayout?.scene ?? EMPTY_SCENE }])
   const [activePageIndex, setActivePageIndex] = useState(0)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -634,7 +634,7 @@ const App = () => {
 
   const addPage = () => {
     const blank = { ...EMPTY_SCENE, width: scene.width, height: scene.height }
-    const next = [...pagesRef.current.map((page, index) => index === activePageIndex ? { ...page, scene } : page), { id: createId('page'), scene: blank }]
+    const next = [...pagesRef.current.map((page, index) => index === activePageIndex ? { ...page, scene } : page), { id: createId('page'), name: String(pagesRef.current.length + 1), scene: blank }]
     setPages(next)
     setActivePageIndex(next.length - 1)
     history.reset(blank)
@@ -662,6 +662,13 @@ const App = () => {
     next.splice(to, 0, page)
     setPages(next)
     setActivePageIndex(next.findIndex((item) => item.id === pagesRef.current[activePageIndex].id))
+  }
+
+  const renamePage = (index: number) => {
+    const page = pagesRef.current[index]
+    const name = window.prompt('ページ名を入力してください', page?.name)
+    if (!page || !name?.trim()) return
+    setPages((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, name: name.trim() } : item))
   }
 
   useEffect(() => {
@@ -1284,7 +1291,7 @@ const App = () => {
   const saveAllPages = async () => {
     const source = pagesRef.current.map((page, index) => index === activePageIndex ? { ...page, scene } : page)
     const layouts = source.map((page) => ({ ...makeSavedLayout(), scene: page.scene }))
-    const saved: NamedSavedLayout = { id: createId('saved-layout'), name: `全ページ保存 ${new Date().toLocaleString('ja-JP')}`, categoryId: 'default', savedAt: new Date().toISOString(), layout: layouts[0], pages: layouts }
+    const saved: NamedSavedLayout = { id: createId('saved-layout'), name: `全ページ保存 ${new Date().toLocaleString('ja-JP')}`, categoryId: 'default', savedAt: new Date().toISOString(), layout: layouts[0], pages: layouts, pageNames: source.map((page) => page.name) }
     const next = [saved, ...savedLayouts]
     await writeLargeValue(SAVED_LAYOUTS_KEY, next)
     setSavedLayouts(next)
@@ -1296,7 +1303,7 @@ const App = () => {
     const saved = savedLayouts.find((item) => item.id === id)
     if (!saved) return
     if (saved.pages?.length) {
-      const nextPages = saved.pages.map((layout) => ({ id: createId('page'), scene: layout.scene }))
+      const nextPages = saved.pages.map((layout, index) => ({ id: createId('page'), name: saved.pageNames?.[index] ?? String(index + 1), scene: layout.scene }))
       setPages(nextPages)
       setActivePageIndex(0)
       history.reset(nextPages[0].scene)
@@ -1625,6 +1632,7 @@ const App = () => {
         onAddPage={addPage}
         onDeletePage={deletePage}
         onReorderPages={reorderPages}
+        onRenamePage={renamePage}
         symbolColors={symbolColors}
         drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />

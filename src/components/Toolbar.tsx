@@ -54,12 +54,13 @@ interface ToolbarProps {
   onOpenSettings: () => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   onOpenDrawingPreset: (tool: DrawingTool) => void
-  pages: Array<{ id: string }>
+  pages: Array<{ id: string; name: string }>
   activePageIndex: number
   onSwitchPage: (index: number) => void
   onAddPage: () => void
   onDeletePage: (index: number) => void
   onReorderPages: (from: number, to: number) => void
+  onRenamePage: (index: number) => void
   symbolColors: Record<SymbolType, string>
   drawingColors: Record<Exclude<DrawingTool, 'eraser'>, string>
 }
@@ -181,7 +182,7 @@ export const Toolbar = (props: ToolbarProps) => {
           <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => { setActiveTab(id); if (ribbonCollapsed) setRibbonCollapsed(false) }} onDoubleClick={() => setRibbonCollapsed((value) => !value)} title="ダブルクリックでリボンを折りたたむ">{label}</button>
         ))}
         <div className="page-tabs" aria-label="ページ">
-          {props.pages.map((page, index) => <div key={page.id} draggable onDragStart={(event) => event.dataTransfer.setData('application/x-mahjong-page', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const from = Number(event.dataTransfer.getData('application/x-mahjong-page')); if (Number.isInteger(from)) props.onReorderPages(from, index) }} className={`page-tab${index === props.activePageIndex ? ' active' : ''}`}><button type="button" onClick={() => props.onSwitchPage(index)} title={`ページ ${index + 1}`}>{index + 1}</button>{index === props.activePageIndex && <button type="button" className="page-close-tab" onClick={(event) => { event.stopPropagation(); props.onDeletePage(index) }} title="ページを削除">×</button>}</div>)}
+          {props.pages.map((page, index) => <div key={page.id} draggable onDragStart={(event) => event.dataTransfer.setData('application/x-mahjong-page', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const from = Number(event.dataTransfer.getData('application/x-mahjong-page')); if (Number.isInteger(from)) props.onReorderPages(from, index) }} className={`page-tab${index === props.activePageIndex ? ' active' : ''}`}><button type="button" onClick={() => props.onSwitchPage(index)} onDoubleClick={() => props.onRenamePage(index)} title={`${page.name}（ダブルクリックで名前変更）`}>{page.name}</button>{index === props.activePageIndex && <button type="button" className="page-close-tab" onClick={(event) => { event.stopPropagation(); props.onDeletePage(index) }} title="ページを削除">×</button>}</div>)}
           <button type="button" className="page-add-tab" onClick={props.onAddPage} title="新規ページ">＋</button>
         </div>
         <button
