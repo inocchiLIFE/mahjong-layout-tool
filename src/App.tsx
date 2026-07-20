@@ -636,6 +636,16 @@ const App = () => {
     history.load(blank)
   }
 
+  useEffect(() => {
+    const changePage = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+      if (event.key === 'ArrowLeft' && activePageIndex > 0) { event.preventDefault(); switchPage(activePageIndex - 1) }
+      if (event.key === 'ArrowRight' && activePageIndex < pagesRef.current.length - 1) { event.preventDefault(); switchPage(activePageIndex + 1) }
+    }
+    window.addEventListener('keydown', changePage)
+    return () => window.removeEventListener('keydown', changePage)
+  }, [activePageIndex, scene])
+
   const addTile = (tileId: string, dropX?: number, dropY?: number) => {
     const isDropped = dropX !== undefined || dropY !== undefined
     // 牌一覧からのクリック追加は、常に左上の初期位置から開始する。
@@ -1571,6 +1581,10 @@ const App = () => {
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenSymbolPreset={setSymbolPresetTarget}
         onOpenDrawingPreset={setDrawingPresetTarget}
+        pages={pages}
+        activePageIndex={activePageIndex}
+        onSwitchPage={switchPage}
+        onAddPage={addPage}
         symbolColors={symbolColors}
         drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />
@@ -1643,10 +1657,6 @@ const App = () => {
           </div>
         </section>
       </main>
-      <nav className="page-strip" aria-label="ページ一覧">
-        {pages.map((page, index) => <button key={page.id} type="button" className={index === activePageIndex ? 'active' : ''} onClick={() => switchPage(index)}>ページ {index + 1}</button>)}
-        <button type="button" className="page-add" onClick={addPage}>＋ 新規ページ</button>
-      </nav>
 
       <input
         ref={imageInputRef}

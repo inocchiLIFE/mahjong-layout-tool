@@ -54,6 +54,10 @@ interface ToolbarProps {
   onOpenSettings: () => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   onOpenDrawingPreset: (tool: DrawingTool) => void
+  pages: Array<{ id: string }>
+  activePageIndex: number
+  onSwitchPage: (index: number) => void
+  onAddPage: () => void
   symbolColors: Record<SymbolType, string>
   drawingColors: Record<Exclude<DrawingTool, 'eraser'>, string>
 }
@@ -174,6 +178,10 @@ export const Toolbar = (props: ToolbarProps) => {
         ] as Array<[RibbonTab, string]>).map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => { setActiveTab(id); if (ribbonCollapsed) setRibbonCollapsed(false) }} onDoubleClick={() => setRibbonCollapsed((value) => !value)} title="ダブルクリックでリボンを折りたたむ">{label}</button>
         ))}
+        <div className="page-tabs" aria-label="ページ">
+          {props.pages.map((page, index) => <button key={page.id} type="button" className={index === props.activePageIndex ? 'active' : ''} onClick={() => props.onSwitchPage(index)} title={`ページ ${index + 1}`}>{['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣'][index] ?? `${index + 1}`}</button>)}
+          <button type="button" className="page-add-tab" onClick={props.onAddPage} title="新規ページ">＋</button>
+        </div>
         <button
           className="ribbon-collapse-button"
           type="button"
