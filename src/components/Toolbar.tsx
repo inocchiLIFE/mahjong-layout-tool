@@ -49,7 +49,6 @@ interface ToolbarProps {
   onAddText: (text: string) => void
   onHelp: () => void
   onOpenSettings: () => void
-  onOpenWebSearch: () => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   onOpenDrawingPreset: (tool: DrawingTool) => void
   symbolColors: Record<SymbolType, string>
@@ -331,7 +330,6 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="グリッド" icon="▦" onClick={props.onToggleGrid} active={props.showGrid} />
           <ToolButton label="吸着" icon="⌗" onClick={props.onToggleSnap} active={props.snapToGrid} />
           <ToolButton label="設定" icon="⚙" onClick={props.onOpenSettings} />
-          <ToolButton label="Web検索" icon="⌕" onClick={props.onOpenWebSearch} />
           <ToolButton label="操作ガイド" icon="?" onClick={props.onHelp} />
         </div>}
 

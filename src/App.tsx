@@ -9,7 +9,6 @@ import { SymbolPresetDialog, type SymbolPreset } from './components/SymbolPreset
 import { DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
-import { WebSearchPanel } from './components/WebSearchPanel'
 import { Workspace } from './components/Workspace'
 import { TILE_MAP } from './data/tiles'
 import { useSceneHistory } from './hooks/useSceneHistory'
@@ -452,7 +451,6 @@ const App = () => {
   const [savedLayoutsOpen, setSavedLayoutsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [webSearchOpen, setWebSearchOpen] = useState(false)
   const [toast, setToast] = useState('')
   const workspaceRef = useRef<HTMLDivElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
@@ -1465,7 +1463,6 @@ const App = () => {
         onAddText={(text) => commitText(text)}
         onHelp={() => setHelpOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
-        onOpenWebSearch={() => setWebSearchOpen(true)}
         onOpenSymbolPreset={setSymbolPresetTarget}
         onOpenDrawingPreset={setDrawingPresetTarget}
         symbolColors={symbolColors}
@@ -1625,7 +1622,6 @@ const App = () => {
       {toast && <div className="toast" role="status">✓ {toast}</div>}
       {helpOpen && <HelpModal onClose={() => { localStorage.setItem(HELP_KEY, '1'); setHelpOpen(false) }} />}
       {settingsOpen && <SettingsDialog preferences={preferences} onSave={savePreferences} onClose={() => setSettingsOpen(false)} />}
-      {webSearchOpen && <WebSearchPanel onClose={() => setWebSearchOpen(false)} />}
       {symbolPresetTarget && <SymbolPresetDialog
         symbolType={symbolPresetTarget}
         preset={symbolPresets[symbolPresetTarget]}
