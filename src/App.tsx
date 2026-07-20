@@ -899,7 +899,7 @@ const App = () => {
         const centerY = anchor?.y ?? latestScene.height / 2
         const x = centerX - width / 2
         const y = centerY - height / 2
-        const zIndex = Math.min(0, ...latestScene.elements.map((element) => element.zIndex)) - 1
+        const zIndex = 1
         const item = makeImage(loaded.src, file.name || '貼り付け画像', width, height, x, y, zIndex)
         return {
           ...latestScene,

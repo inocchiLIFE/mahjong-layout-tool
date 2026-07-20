@@ -778,7 +778,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           style: {
             left: element.x + camera.x,
             top: element.y + camera.y,
-            zIndex: element.kind === 'image' ? -100000 + element.zIndex : element.zIndex,
+            zIndex: element.kind === 'image' ? Math.max(1, element.zIndex) : 100000 + element.zIndex,
             width: dimensions.width,
             height: dimensions.height,
           },

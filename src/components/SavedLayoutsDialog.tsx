@@ -63,7 +63,7 @@ const LayoutPreview = ({ saved }: { saved: NamedSavedLayout }) => {
           top: `${element.y / scene.height * 100}%`,
           width: `${dimensions.width / scene.width * 100}%`,
           height: `${dimensions.height / scene.height * 100}%`,
-          zIndex: element.kind === 'image' ? -100000 + element.zIndex : element.zIndex,
+          zIndex: element.kind === 'image' ? Math.max(1, element.zIndex) : 100000 + element.zIndex,
         }
         if (element.kind === 'tile') {
           const tile = TILE_MAP.get(element.tileId)
