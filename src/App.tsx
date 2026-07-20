@@ -1209,6 +1209,25 @@ const App = () => {
     setSavedLayoutsOpen(false)
   }
 
+  const overwriteNamedLayout = async (id: string) => {
+    const saved = savedLayouts.find((item) => item.id === id)
+    if (!saved) return
+    const layout = makeSavedLayout()
+    const next = savedLayouts.map((item) => item.id === id ? {
+      ...item,
+      savedAt: layout.savedAt,
+      layout: { ...layout, scene: { ...layout.scene, elements: layout.scene.elements.map((element) => ({ ...element })) } },
+    } : item)
+    try {
+      await writeLargeValue(SAVED_LAYOUTS_KEY, next)
+      setSavedLayouts(next)
+      notifySavedLayoutsChanged()
+      notify(`「${saved.name}」を上書き保存しました`)
+    } catch {
+      notify('保存済みページを上書きできませんでした')
+    }
+  }
+
   const deleteNamedLayout = async (id: string) => {
     const saved = savedLayouts.find((item) => item.id === id)
     if (!saved) return
@@ -1622,6 +1641,7 @@ const App = () => {
         <SavedLayoutsDialog
           layouts={savedLayouts}
           onSave={saveNamedLayout}
+          onOverwrite={overwriteNamedLayout}
           onLoad={loadNamedLayout}
           onDelete={deleteNamedLayout}
           onRename={renameNamedLayout}

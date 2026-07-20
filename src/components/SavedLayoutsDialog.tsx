@@ -17,6 +17,7 @@ const arrowHeadPoints = (points: { x: number; y: number }[], size?: number) => {
 interface SavedLayoutsDialogProps {
   layouts: NamedSavedLayout[]
   onSave: (name: string) => void
+  onOverwrite: (id: string) => void
   onLoad: (id: string) => void
   onDelete: (id: string) => void
   onRename: (id: string, name: string) => void
@@ -163,6 +164,7 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
                   <small>{count}個の配置物 ・ {saved.layout.scene.width} × {saved.layout.scene.height}px</small>
                 </div>
                 <div className="saved-layout-card-actions">
+                  <button type="button" className="saved-layout-overwrite" onClick={() => props.onOverwrite(saved.id)}>上書き保存</button>
                   <button type="button" className="saved-layout-load" onClick={() => props.onLoad(saved.id)}>呼び出す</button>
                   {editingId === saved.id ? <button type="button" className="saved-layout-rename" onClick={commitRename}>タイトル保存</button> : <button type="button" className="saved-layout-rename" onClick={() => beginRename(saved)}>タイトル編集</button>}
                   <a className="saved-layout-share" href="#" download={downloadFileName(saved.name)} draggable onClick={(event) => prepareShareDownload(event, saved)} onDragStart={(event) => prepareShareDrag(event, saved)} title="クリックで保存、またはフォルダへドラッグして出力">共有ファイル保存</a>
