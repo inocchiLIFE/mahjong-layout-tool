@@ -66,7 +66,7 @@ export const getCurveControlPoint = (points: CanvasPoint[]) => {
   }
 }
 
-export const getArrowHeadPoints = (points: CanvasPoint[], size = 11): CanvasPoint[] => {
+export const getArrowHeadPoints = (points: CanvasPoint[], size = 18): CanvasPoint[] => {
   const start = points[0]
   const end = points.at(-1) ?? start
   const angle = Math.atan2(end.y - start.y, end.x - start.x)
