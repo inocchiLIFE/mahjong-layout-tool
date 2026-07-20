@@ -104,6 +104,7 @@ export interface NamedSavedLayout {
   id: string
   name: string
   savedAt: string
+  categoryId?: string
   layout: SavedLayout
 }
 

@@ -544,6 +544,12 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
   .toast { left: 14px; right: 14px; bottom: 14px; text-align: center; }
 }
 
+.saved-layout-tabs { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 0 22px 12px; border-bottom: 1px solid #dbe4df; }
+.saved-layout-tabs button { height: 30px; border: 1px solid #b7cbc1; border-radius: 6px; background: #f6faf7; color: #285f50; cursor: pointer; font: inherit; font-size: 12px; }
+.saved-layout-tabs button.active { border-color: #174e41; background: #174e41; color: #fff; }
+.saved-layout-tabs input { width: 90px; height: 30px; box-sizing: border-box; border: 1px solid #b7cbc1; border-radius: 6px; padding: 0 7px; font: inherit; font-size: 12px; }
+.saved-layout-card-actions select { min-width: 86px; height: 34px; border: 1px solid #b7cbc1; border-radius: 6px; background: #fff; color: #285f50; font: inherit; font-size: 11px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation-duration: .01ms !important; }
 }

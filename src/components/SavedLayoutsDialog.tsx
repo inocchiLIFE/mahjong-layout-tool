@@ -16,7 +16,10 @@ const arrowHeadPoints = (points: { x: number; y: number }[], size?: number) => {
 
 interface SavedLayoutsDialogProps {
   layouts: NamedSavedLayout[]
-  onSave: (name: string) => void
+  categories: Array<{ id: string; name: string }>
+  onSave: (name: string, categoryId: string) => void
+  onCreateCategory: (name: string) => void
+  onMove: (id: string, categoryId: string) => void
   onOverwrite: (id: string) => void
   onLoad: (id: string) => void
   onDelete: (id: string) => void
@@ -102,6 +105,8 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
   const [name, setName] = useState(`保存ページ ${props.layouts.length + 1}`)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingName, setEditingName] = useState('')
+  const [activeCategoryId, setActiveCategoryId] = useState('default')
+  const [categoryName, setCategoryName] = useState('')
   const { onClose } = props
 
   useEffect(() => {
@@ -115,7 +120,7 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
   const save = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    props.onSave(trimmed)
+    props.onSave(trimmed, activeCategoryId)
     setName(`保存ページ ${props.layouts.length + 2}`)
   }
 
@@ -129,6 +134,15 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
     props.onRename(editingId, editingName.trim())
     setEditingId(null)
   }
+
+  const createCategory = () => {
+    const trimmed = categoryName.trim()
+    if (!trimmed) return
+    props.onCreateCategory(trimmed)
+    setCategoryName('')
+  }
+
+  const visibleLayouts = activeCategoryId === 'default' ? props.layouts : props.layouts.filter((saved) => saved.categoryId === activeCategoryId)
 
   return (
     <div className="modal-backdrop saved-layouts-backdrop" role="presentation" onPointerDown={props.onClose}>
@@ -150,10 +164,16 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
           </div>
         </div>
 
+        <div className="saved-layout-tabs" role="tablist" aria-label="保存ページの分類">
+          {props.categories.map((category) => <button key={category.id} type="button" role="tab" aria-selected={activeCategoryId === category.id} className={activeCategoryId === category.id ? 'active' : ''} onClick={() => setActiveCategoryId(category.id)}>{category.name}</button>)}
+          <input value={categoryName} onChange={(event) => setCategoryName(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && createCategory()} placeholder="分類名" aria-label="新しい分類名" />
+          <button type="button" onClick={createCategory} disabled={!categoryName.trim()}>＋タブ作成</button>
+        </div>
+
         <div className="saved-layout-list">
-          {props.layouts.length === 0 ? (
+          {visibleLayouts.length === 0 ? (
             <div className="saved-layout-empty"><strong>保存ページはまだありません</strong><span>名前を付けて現在の画面を保存できます。</span></div>
-          ) : props.layouts.map((saved) => {
+          ) : visibleLayouts.map((saved) => {
             const count = saved.layout.scene.elements.length
             return (
               <article className="saved-layout-card" key={saved.id}>
@@ -164,6 +184,9 @@ export const SavedLayoutsDialog = (props: SavedLayoutsDialogProps) => {
                   <small>{count}個の配置物 ・ {saved.layout.scene.width} × {saved.layout.scene.height}px</small>
                 </div>
                 <div className="saved-layout-card-actions">
+                  <select value={saved.categoryId ?? 'default'} onChange={(event) => props.onMove(saved.id, event.target.value)} aria-label="分類を変更">
+                    {props.categories.map((category) => <option key={category.id} value={category.id}>{category.name}へ移動</option>)}
+                  </select>
                   <button type="button" className="saved-layout-overwrite" onClick={() => props.onOverwrite(saved.id)}>上書き保存</button>
                   <button type="button" className="saved-layout-load" onClick={() => props.onLoad(saved.id)}>呼び出す</button>
                   {editingId === saved.id ? <button type="button" className="saved-layout-rename" onClick={commitRename}>タイトル保存</button> : <button type="button" className="saved-layout-rename" onClick={() => beginRename(saved)}>タイトル編集</button>}

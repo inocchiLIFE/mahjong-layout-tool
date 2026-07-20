@@ -62,6 +62,7 @@ import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const TAB_AUTO_SAVE_SESSION_KEY = 'mahjong-layout-tool:auto-save-tab-id-v1'
 const SAVED_LAYOUTS_KEY = 'mahjong-layout-tool:saved-pages-v1'
+const SAVED_LAYOUT_CATEGORIES_KEY = 'mahjong-layout-tool:saved-page-categories-v1'
 const HELP_KEY = 'mahjong-layout-tool:help-seen'
 const PREFERENCES_KEY = 'mahjong-layout-tool:preferences-v1'
 const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
@@ -290,6 +291,7 @@ const parseNamedSavedLayouts = (data: unknown): NamedSavedLayout[] => {
         id: item.id,
         name: item.name,
         savedAt: typeof item.savedAt === 'string' ? item.savedAt : layout.savedAt,
+        categoryId: typeof item.categoryId === 'string' ? item.categoryId : 'default',
         layout,
       }]
   })
@@ -301,6 +303,17 @@ const readNamedSavedLayouts = (): NamedSavedLayout[] => {
   } catch {
     return []
   }
+}
+
+type SavedLayoutCategory = { id: string; name: string }
+const DEFAULT_SAVED_LAYOUT_CATEGORIES: SavedLayoutCategory[] = [{ id: 'default', name: 'すべて' }]
+const readSavedLayoutCategories = (): SavedLayoutCategory[] => {
+  try {
+    const value = JSON.parse(localStorage.getItem(SAVED_LAYOUT_CATEGORIES_KEY) ?? '[]') as unknown
+    if (!Array.isArray(value)) return DEFAULT_SAVED_LAYOUT_CATEGORIES
+    const categories = value.flatMap((item) => item && typeof item === 'object' && typeof (item as Record<string, unknown>).id === 'string' && typeof (item as Record<string, unknown>).name === 'string' ? [{ id: (item as Record<string, string>).id, name: (item as Record<string, string>).name }] : [])
+    return categories.some((item) => item.id === 'default') ? categories : DEFAULT_SAVED_LAYOUT_CATEGORIES
+  } catch { return DEFAULT_SAVED_LAYOUT_CATEGORIES }
 }
 
 const readSharedLayout = (): SavedLayout | null => {
@@ -449,6 +462,7 @@ const App = () => {
   const [clipboard, setClipboard] = useState<CanvasElement[]>([])
   const [trashActive, setTrashActive] = useState(false)
   const [savedLayouts, setSavedLayouts] = useState<NamedSavedLayout[]>(readNamedSavedLayouts)
+  const [savedLayoutCategories, setSavedLayoutCategories] = useState<SavedLayoutCategory[]>(readSavedLayoutCategories)
   const [storageReady, setStorageReady] = useState(false)
   const [savedLayoutsOpen, setSavedLayoutsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
@@ -1180,11 +1194,12 @@ const App = () => {
     notify(message)
   }
 
-  const saveNamedLayout = async (name: string) => {
+  const saveNamedLayout = async (name: string, categoryId = 'default') => {
     const layout = makeSavedLayout()
     const saved: NamedSavedLayout = {
       id: createId('saved-layout'),
       name,
+      categoryId,
       savedAt: layout.savedAt,
       layout: {
         ...layout,
@@ -1252,6 +1267,20 @@ const App = () => {
     } catch {
       notify('保存ページのタイトルを更新できませんでした')
     }
+  }
+
+  const moveNamedLayout = async (id: string, categoryId: string) => {
+    const next = savedLayouts.map((item) => item.id === id ? { ...item, categoryId } : item)
+    await writeLargeValue(SAVED_LAYOUTS_KEY, next)
+    setSavedLayouts(next)
+    notifySavedLayoutsChanged()
+  }
+
+  const createSavedLayoutCategory = (name: string) => {
+    const category = { id: createId('saved-category'), name }
+    const next = [...savedLayoutCategories, category]
+    setSavedLayoutCategories(next)
+    localStorage.setItem(SAVED_LAYOUT_CATEGORIES_KEY, JSON.stringify(next))
   }
 
   const importSharedLayout = async (file: File) => {
@@ -1640,7 +1669,10 @@ const App = () => {
       {savedLayoutsOpen && (
         <SavedLayoutsDialog
           layouts={savedLayouts}
+          categories={savedLayoutCategories}
           onSave={saveNamedLayout}
+          onCreateCategory={createSavedLayoutCategory}
+          onMove={moveNamedLayout}
           onOverwrite={overwriteNamedLayout}
           onLoad={loadNamedLayout}
           onDelete={deleteNamedLayout}
