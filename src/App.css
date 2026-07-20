@@ -553,7 +553,7 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
 .saved-layout-tabs input { width: 90px; height: 30px; box-sizing: border-box; border: 1px solid #b7cbc1; border-radius: 6px; padding: 0 7px; font: inherit; font-size: 12px; }
 .saved-layout-card-actions select { min-width: 86px; height: 34px; border: 1px solid #b7cbc1; border-radius: 6px; background: #fff; color: #285f50; font: inherit; font-size: 11px; }
 
-.page-strip { position: fixed; right: 14px; bottom: 12px; left: 14px; z-index: 20; display: flex; gap: 5px; align-items: end; overflow-x: auto; pointer-events: none; }
+.page-strip { position: fixed; right: 14px; bottom: 12px; left: auto; z-index: 20; display: flex; max-width: calc(100vw - 28px); gap: 5px; align-items: end; overflow-x: auto; pointer-events: none; }
 .page-strip button { pointer-events: auto; min-width: 84px; height: 31px; border: 1px solid #aebfb8; border-radius: 6px 6px 0 0; background: #edf3ef; color: #31594d; cursor: pointer; font: inherit; font-size: 12px; }
 .page-strip button.active { height: 37px; border-color: #174e41; background: #fff; color: #174e41; font-weight: 700; }
 .page-strip .page-add { min-width: 104px; border-radius: 6px; }
