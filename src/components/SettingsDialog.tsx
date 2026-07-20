@@ -22,7 +22,7 @@ interface SettingsDialogProps {
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
-  snapToGrid: false,
+  snapToGrid: true,
   defaultFontFamily: 'sans-serif',
   defaultTextFontSize: 35,
   defaultTextColor: '#172c27',

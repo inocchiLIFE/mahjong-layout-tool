@@ -75,7 +75,7 @@ const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visib
 const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
-  snapToGrid: false,
+  snapToGrid: true,
   defaultFontFamily: 'sans-serif',
   defaultTextFontSize: 35,
   defaultTextColor: '#172c27',
