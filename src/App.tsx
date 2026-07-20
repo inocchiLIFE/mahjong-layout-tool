@@ -71,6 +71,8 @@ const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
 const DRAWING_PRESETS_KEY = 'mahjong-layout-tool:drawing-presets-v1'
 const HAND_SUITS_KEY = 'mahjong-layout-tool:hand-suits-v1'
 const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, eraserSize: 24, arrowHeadSize: 30 }
+const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visible-v1'
+const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   snapToGrid: false,
@@ -456,6 +458,11 @@ const App = () => {
   const [drawingPresets, setDrawingPresets] = useState(readDrawingPresets)
   const [drawingPresetTarget, setDrawingPresetTarget] = useState<DrawingTool | null>(null)
   const [handSuits, setHandSuits] = useState(readHandSuits)
+  const [efficiencyPanelVisible, setEfficiencyPanelVisible] = useState(() => localStorage.getItem(EFFICIENCY_PANEL_VISIBLE_KEY) !== 'false')
+  const [efficiencyPanelWidth, setEfficiencyPanelWidth] = useState(() => {
+    const value = Number(localStorage.getItem(EFFICIENCY_PANEL_WIDTH_KEY))
+    return Number.isFinite(value) ? clamp(value, 190, 460) : 260
+  })
   const symbolColors = (Object.keys(symbolPresets) as SymbolType[]).reduce((colors, symbolType) => {
     colors[symbolType] = symbolPresets[symbolType].color ?? defaultShapeColor
     return colors
@@ -637,6 +644,9 @@ const App = () => {
   useEffect(() => {
     try { localStorage.setItem(PAGE_DECK_KEY, JSON.stringify(pages)) } catch { /* browser storage may be full */ }
   }, [pages])
+
+  useEffect(() => { localStorage.setItem(EFFICIENCY_PANEL_VISIBLE_KEY, String(efficiencyPanelVisible)) }, [efficiencyPanelVisible])
+  useEffect(() => { localStorage.setItem(EFFICIENCY_PANEL_WIDTH_KEY, String(efficiencyPanelWidth)) }, [efficiencyPanelWidth])
 
   const switchPage = (index: number) => {
     if (index === activePageIndex || !pagesRef.current[index]) return
@@ -1660,7 +1670,7 @@ const App = () => {
         drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />
 
-      <main className="app-body">
+      <main className={`app-body${efficiencyPanelVisible ? '' : ' efficiency-panel-hidden'}`} style={{ '--efficiency-panel-space': efficiencyPanelVisible ? `${efficiencyPanelWidth}px` : '0px' } as CSSProperties}>
         <TilePalette
           onAddTile={addTile}
           placementMode={placementMode}
@@ -1727,7 +1737,8 @@ const App = () => {
             />
           </div>
         </section>
-        <EfficiencyPanel tileIds={selectedHandTileIds} />
+        <EfficiencyPanel tileIds={selectedHandTileIds} onClose={() => setEfficiencyPanelVisible(false)} onResize={(width) => setEfficiencyPanelWidth(clamp(width, 190, 460))} />
+        <button type="button" className="efficiency-toggle" onClick={() => setEfficiencyPanelVisible((visible) => !visible)} aria-pressed={efficiencyPanelVisible}>{efficiencyPanelVisible ? '牌理を隠す' : '牌理・受け入れ'}</button>
       </main>
 
       <input
