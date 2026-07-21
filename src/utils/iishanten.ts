@@ -2,6 +2,7 @@ import { sortTileIds } from './layout'
 import { getEfficiency } from './mahjongEfficiency'
 
 export type IishantenType = 'surplus' | 'complete' | 'headless1' | 'headless2' | 'kuttsuki'
+export type CompleteFollowType = 'vertical' | 'kanchan'
 export const IISHANTEN_LABELS: Record<IishantenType, string> = { surplus: '余剰牌型', complete: '完全形', headless1: 'ヘッドレス1型', headless2: 'ヘッドレス2型', kuttsuki: 'くっつき' }
 const suits = ['man', 'pin', 'sou'] as const
 const honor = ['ton', 'nan', 'sha', 'pei', 'haku', 'hatsu', 'chun']
@@ -10,6 +11,22 @@ const seq = () => { const suit = pick(suits); const start = 1 + Math.floor(Math.
 const triplet = () => { const id = Math.random() < .22 ? pick(honor) : `${pick(suits)}${1 + Math.floor(Math.random() * 9)}`; return [id, id, id] }
 const taatsu = () => { const suit = pick(suits); const start = 1 + Math.floor(Math.random() * 7); return Math.random() < .6 ? [`${suit}${start}`, `${suit}${start + 1}`] : [`${suit}${start}`, `${suit}${start + 2}`] }
 const isolated = () => `${pick(suits)}${1 + Math.floor(Math.random() * 9)}`
+
+/** Creates the three tiles that make the extra acceptance in a complete iishanten shape.
+ * Vertical: an existing taatsu tile is duplicated. Kanchan: one of the four
+ * supporting tiles is added to a kanchan taatsu, e.g. 35 + 1/3/5/7. */
+export const createCompleteFollow = (type: CompleteFollowType = Math.random() < .5 ? 'vertical' : 'kanchan') => {
+  if (type === 'vertical') {
+    const base = taatsu()
+    return [...base, pick(base)]
+  }
+  const suit = pick(suits)
+  // The base kanchan is start / start+2. Its support is outside or vertical:
+  // 35 accepts 1, 3, 5, 7 to make 135, 335, 355, or 357.
+  const start = 1 + Math.floor(Math.random() * 7)
+  const support = [start - 2, start, start + 2, start + 4].filter((rank) => rank >= 1 && rank <= 9)
+  return [`${suit}${start}`, `${suit}${start + 2}`, `${suit}${pick(support)}`]
+}
 export const hasLegalTileCounts = (tiles: string[]) => tiles.length === 13 && tiles.every((tile) => tiles.filter((value) => value === tile).length <= 4)
 
 export interface IishantenDecomposition { melds: number; pairs: number; taatsu: number; isolated: number }
@@ -77,7 +94,7 @@ export const verifyIishantenCandidate = (type: IishantenType, tiles: string[]) =
 export const createIishantenCandidate = (type: IishantenType) => {
   const melds = (count: number) => Array.from({ length: count }, () => Math.random() < .5 ? seq() : triplet()).flat()
   if (type === 'surplus') { const head = isolated(); return [...melds(2), ...taatsu(), ...taatsu(), head, head, isolated()] }
-  if (type === 'complete') { const t = taatsu(); const head = isolated(); return [...melds(2), ...t, ...taatsu(), head, head, t[0]] }
+  if (type === 'complete') { const head = isolated(); return [...melds(2), ...createCompleteFollow(), ...taatsu(), head, head] }
   if (type === 'headless1') return [...melds(3), ...taatsu(), isolated(), isolated()]
   if (type === 'headless2') return [...melds(3), ...taatsu(), ...taatsu()]
   const pair = [isolated(), isolated()]; return [...melds(3), ...pair, isolated(), isolated()].slice(0, 13)

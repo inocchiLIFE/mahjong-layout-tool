@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { generateIishanten, hasLegalTileCounts, verifyIishantenCandidate } from '../.tmp-iishanten-test/iishanten.js'
+import { createCompleteFollow, generateIishanten, hasLegalTileCounts, verifyIishantenCandidate } from '../.tmp-iishanten-test/iishanten.js'
 
 for (const type of ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki']) {
   for (let index = 0; index < 10; index += 1) {
@@ -13,4 +13,17 @@ assert.equal(hasLegalTileCounts(['man1', 'man1', 'man1', 'man1', 'man1']), false
 assert.equal(verifyIishantenCandidate('headless2', ['man1', 'man1', 'man1', 'man2', 'man2', 'man2', 'man3', 'man3', 'man3', 'pin1', 'pin2', 'pin3', 'ton']), false, 'headless2 must have two taatsu')
 assert.equal(verifyIishantenCandidate('surplus', ['man2', 'man3', 'man4', 'man5', 'man6', 'man7', 'man7', 'pin3', 'pin5', 'pin5', 'pin5', 'pin7', 'pin8']), false, 'surplus must reject a hand with three melds')
 assert.equal(verifyIishantenCandidate('surplus', ['man1', 'man1', 'man6', 'man6', 'man6', 'man7', 'man7', 'man8', 'pin3', 'pin5', 'sou5', 'sou6', 'sou7']), false, 'surplus must reject a vertically supported taatsu')
+
+for (let index = 0; index < 20; index += 1) {
+  const vertical = createCompleteFollow('vertical')
+  assert.equal(vertical.length, 3, 'vertical follow has three tiles')
+  assert.ok(new Set(vertical).size < 3, 'vertical follow duplicates a taatsu tile')
+
+  const kanchan = createCompleteFollow('kanchan').map((tile) => Number(tile.at(-1))).sort((a, b) => a - b)
+  assert.equal(kanchan.length, 3, 'kanchan follow has three tiles')
+  assert.ok(
+    (kanchan[2] - kanchan[0] === 4) || new Set(kanchan).size < 3,
+    'kanchan follow is either an outside ryan-kan or a vertical support',
+  )
+}
 console.log('iishanten generation tests passed')
