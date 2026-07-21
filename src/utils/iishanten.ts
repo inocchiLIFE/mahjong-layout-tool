@@ -60,11 +60,13 @@ export const verifyIishantenCandidate = (type: IishantenType, tiles: string[]) =
   const matches = (melds: number, pairs: number, taatsu: number, isolated: number) => maxMelds === melds && decompositions.some((item) => item.melds === melds && item.pairs === pairs && item.taatsu === taatsu && item.isolated === isolated)
   if (type === 'surplus' || type === 'complete') {
     if (!matches(2, 1, 2, 1)) return false
-    const changes = [...new Set(tiles)].map((tile) => {
-      const index = tiles.indexOf(tile); const without = getEfficiency([...tiles.slice(0, index), ...tiles.slice(index + 1)])
-      return without ? efficiency.effectiveTileIds.length > without.effectiveTileIds.length || efficiency.effectiveTileCount > without.effectiveTileCount : false
+    const isolateComparisons = [...new Set(tiles)].flatMap((tile) => {
+      const index = tiles.indexOf(tile); const hand = [...tiles.slice(0, index), ...tiles.slice(index + 1)]
+      const remainsBaseShape = findMeldFirstDecompositions(hand).some((item) => item.melds === 2 && item.pairs === 1 && item.taatsu === 2 && item.isolated === 0)
+      const without = getEfficiency(hand)
+      return remainsBaseShape && without ? [efficiency.effectiveTileIds.length > without.effectiveTileIds.length || efficiency.effectiveTileCount > without.effectiveTileCount] : []
     })
-    return type === 'complete' ? changes.some(Boolean) : changes.some((value) => !value)
+    return type === 'complete' ? isolateComparisons.some(Boolean) : isolateComparisons.some((value) => !value)
   }
   if (type === 'headless1') return matches(3, 0, 1, 2)
   if (type === 'headless2') return matches(3, 0, 2, 0)
