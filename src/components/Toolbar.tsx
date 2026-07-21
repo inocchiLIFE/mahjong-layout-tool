@@ -77,6 +77,7 @@ const ToolButton = ({
   danger,
   onContextMenu,
   iconColor,
+  className,
 }: {
   label: string
   icon: string
@@ -86,10 +87,11 @@ const ToolButton = ({
   danger?: boolean
   onContextMenu?: () => void
   iconColor?: string
+  className?: string
 }) => (
   <button
     type="button"
-    className={`tool-button${active ? ' active' : ''}${danger ? ' danger' : ''}`}
+    className={`tool-button${active ? ' active' : ''}${danger ? ' danger' : ''}${className ? ` ${className}` : ''}`}
     onClick={onClick}
     disabled={disabled}
     onContextMenu={(event) => { if (onContextMenu) { event.preventDefault(); onContextMenu() } }}
@@ -332,11 +334,11 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="7枚形" icon="7" onClick={() => props.onRandomHand(7)} />
           <ToolButton label="13枚" icon="13" onClick={() => props.onRandomHand(13)} />
           <ToolButton label="14枚" icon="14" onClick={() => props.onRandomHand(14)} />
-          <ToolButton label="余剰牌型" icon="1S" onClick={() => props.onRandomHand('surplus')} />
-          <ToolButton label="完全形" icon="1S" onClick={() => props.onRandomHand('complete')} />
-          <ToolButton label="ヘッドレス1" icon="1S" onClick={() => props.onRandomHand('headless1')} />
-          <ToolButton label="ヘッドレス2" icon="1S" onClick={() => props.onRandomHand('headless2')} />
-          <ToolButton label="くっつき" icon="1S" onClick={() => props.onRandomHand('kuttsuki')} />
+          <ToolButton label="余剰牌型" icon="" className="iishanten-button" onClick={() => props.onRandomHand('surplus')} />
+          <ToolButton label="完全形" icon="" className="iishanten-button" onClick={() => props.onRandomHand('complete')} />
+          <ToolButton label="ヘッドレス1" icon="" className="iishanten-button" onClick={() => props.onRandomHand('headless1')} />
+          <ToolButton label="ヘッドレス2" icon="" className="iishanten-button" onClick={() => props.onRandomHand('headless2')} />
+          <ToolButton label="くっつき" icon="" className="iishanten-button" onClick={() => props.onRandomHand('kuttsuki')} />
           <ToolButton label="シャッフル" icon="⤨" onClick={props.onShuffle} disabled={!props.hasItems} />
         </div>}
 
