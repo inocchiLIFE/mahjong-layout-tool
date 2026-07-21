@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './ContextMenu'
+import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './contextMenuItems'
 
 export interface AppPreferences {
   showGrid: boolean

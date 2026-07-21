@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { PlacementMode, SymbolType } from '../types'
 import type { DrawingTool } from './DrawingPresetDialog'
+import type { IishantenType } from '../utils/iishanten'
 import { TEXT_COLOR_PALETTE, readCustomColors, saveCustomColors } from '../utils/colors'
 
 interface ToolbarProps {
@@ -38,7 +39,7 @@ interface ToolbarProps {
   onEditProperties: () => void
   onBringFront: () => void
   onSendBack: () => void
-  onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous') => void
+  onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | IishantenType) => void
   handSuits: Array<'man' | 'pin' | 'sou'>
   onToggleHandSuit: (suit: 'man' | 'pin' | 'sou') => void
   onShuffle: () => void
@@ -331,6 +332,11 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="7枚形" icon="7" onClick={() => props.onRandomHand(7)} />
           <ToolButton label="13枚" icon="13" onClick={() => props.onRandomHand(13)} />
           <ToolButton label="14枚" icon="14" onClick={() => props.onRandomHand(14)} />
+          <ToolButton label="余剰牌型" icon="1S" onClick={() => props.onRandomHand('surplus')} />
+          <ToolButton label="完全形" icon="1S" onClick={() => props.onRandomHand('complete')} />
+          <ToolButton label="ヘッドレス1" icon="1S" onClick={() => props.onRandomHand('headless1')} />
+          <ToolButton label="ヘッドレス2" icon="1S" onClick={() => props.onRandomHand('headless2')} />
+          <ToolButton label="くっつき" icon="1S" onClick={() => props.onRandomHand('kuttsuki')} />
           <ToolButton label="シャッフル" icon="⤨" onClick={props.onShuffle} disabled={!props.hasItems} />
         </div>}
 

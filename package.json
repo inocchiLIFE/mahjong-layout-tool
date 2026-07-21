@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:iishanten": "vite build --ssr src/utils/iishanten.ts --outDir .tmp-iishanten-test && node scripts/test-iishanten.mjs"
   },
   "dependencies": {
     "html-to-image": "^1.11.13",

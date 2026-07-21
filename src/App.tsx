@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
-import { ContextMenu, CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './components/ContextMenu'
+import { ContextMenu } from './components/ContextMenu'
+import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './components/contextMenuItems'
 import { HelpModal } from './components/HelpModal'
 import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
@@ -59,6 +60,7 @@ import {
   snap,
 } from './utils/layout'
 import { readLargeValue, writeLargeValue } from './utils/largeStorage'
+import { generateIishanten, IISHANTEN_LABELS, type IishantenType } from './utils/iishanten'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const PAGE_DECK_KEY = 'mahjong-layout-tool:page-deck-v1'
@@ -905,15 +907,12 @@ const App = () => {
     notify(selectedTiles.length ? `${selectedTiles.length}枚を等間隔で整列しました` : 'すべての牌を等間隔で整列しました')
   }
 
-  const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous') => {
-    const count = type === '6-triplet' ? 6 : type === 'continuous' ? 5 : type
-    const tileIds = type === 'continuous'
-      ? randomContinuousHand(handSuits)
-      : type === '6-triplet'
-        ? randomShapeHand(6, true, handSuits)
-        : type === 6 || type === 7
-          ? randomShapeHand(type, false, handSuits)
-          : handSuits.length ? randomSingleSuitHand(type, handSuits) : randomHand(type)
+  const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | IishantenType) => {
+    const isIishanten = typeof type === 'string' && ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki'].includes(type)
+    const count: number = isIishanten ? 13 : type === '6-triplet' ? 6 : type === 'continuous' ? 5 : type as number
+    let tileIds: string[]
+    try { tileIds = isIishanten ? generateIishanten(type as IishantenType) : type === 'continuous' ? randomContinuousHand(handSuits) : type === '6-triplet' ? randomShapeHand(6, true, handSuits) : type === 6 || type === 7 ? randomShapeHand(type, false, handSuits) : handSuits.length ? randomSingleSuitHand(type as 13 | 14, handSuits) : randomHand(type as 13 | 14)
+    } catch (error) { notify(error instanceof Error ? error.message : '生成に失敗しました'); return }
     const totalWidth = count * TILE_WIDTH + (count - 1) * TILE_GAP
     const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
     // The ruler begins at x=32 and the canvas begins immediately below it.
@@ -935,7 +934,7 @@ const App = () => {
     })
     setRulerCount(count)
     setPlacementMode('select')
-    notify(`${type === 'continuous' ? '連続形' : type === '6-triplet' ? '6枚形暗刻含み' : `${count}枚${count === 6 || count === 7 ? '形' : 'の配牌'}`}を生成し、理牌しました`)
+    notify(`${isIishanten ? IISHANTEN_LABELS[type as IishantenType] : type === 'continuous' ? '連続形' : type === '6-triplet' ? '6枚形暗刻含み' : `${count}枚${count === 6 || count === 7 ? '形' : 'の配牌'}`}を生成し、理牌しました`)
   }
 
   const shuffleTiles = () => {
