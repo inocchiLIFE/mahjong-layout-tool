@@ -56,7 +56,8 @@ export const verifyIishantenCandidate = (type: IishantenType, tiles: string[]) =
   const efficiency = getEfficiency(tiles)
   if (!efficiency || efficiency.shanten !== 1) return false
   const decompositions = findMeldFirstDecompositions(tiles)
-  const matches = (melds: number, pairs: number, taatsu: number, isolated: number) => decompositions.some((item) => item.melds === melds && item.pairs === pairs && item.taatsu === taatsu && item.isolated === isolated)
+  const maxMelds = Math.max(...decompositions.map((item) => item.melds))
+  const matches = (melds: number, pairs: number, taatsu: number, isolated: number) => maxMelds === melds && decompositions.some((item) => item.melds === melds && item.pairs === pairs && item.taatsu === taatsu && item.isolated === isolated)
   if (type === 'surplus' || type === 'complete') {
     if (!matches(2, 1, 2, 1)) return false
     const changes = [...new Set(tiles)].map((tile) => {
