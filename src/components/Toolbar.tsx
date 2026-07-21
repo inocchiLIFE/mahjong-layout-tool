@@ -334,12 +334,16 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="7枚形" icon="7" onClick={() => props.onRandomHand(7)} />
           <ToolButton label="13枚" icon="13" onClick={() => props.onRandomHand(13)} />
           <ToolButton label="14枚" icon="14" onClick={() => props.onRandomHand(14)} />
+          <ToolButton label="シャッフル" icon="⤨" onClick={props.onShuffle} disabled={!props.hasItems} />
+        </div>}
+
+        {activeTab === 'hand' && <div className="tool-group iishanten-generator-group">
+          <span className="tool-group-label">1シャンテン形</span>
           <ToolButton label="余剰牌型" icon="" className="iishanten-button" onClick={() => props.onRandomHand('surplus')} />
           <ToolButton label="完全形" icon="" className="iishanten-button" onClick={() => props.onRandomHand('complete')} />
           <ToolButton label="ヘッドレス1" icon="" className="iishanten-button" onClick={() => props.onRandomHand('headless1')} />
           <ToolButton label="ヘッドレス2" icon="" className="iishanten-button" onClick={() => props.onRandomHand('headless2')} />
           <ToolButton label="くっつき" icon="" className="iishanten-button" onClick={() => props.onRandomHand('kuttsuki')} />
-          <ToolButton label="シャッフル" icon="⤨" onClick={props.onShuffle} disabled={!props.hasItems} />
         </div>}
 
         {activeTab === 'hand' && <div className="tool-group hand-suit-filter-group">
