@@ -24,7 +24,7 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
   const result = getEfficiency(tileIds)
   const discards = tileIds.length === 14 ? getDiscardEfficiencies(tileIds) : []
   const sortedDiscards = discards
-    .filter((discard): discard is { discardTileId: string; result: NonNullable<typeof discard.result> } => discard.result !== null)
+    .filter((discard): discard is { discardTileId: string; result: NonNullable<typeof discard.result> } => discard.result !== null && discard.result.shanten <= (result?.shanten ?? Number.MAX_SAFE_INTEGER))
     .sort((left, right) => {
       const tileOrder = (tileId: string) => TILE_MAP.get(tileId)?.order ?? Number.MAX_SAFE_INTEGER
       if (discardSort === 'tile') return tileOrder(left.discardTileId) - tileOrder(right.discardTileId)
