@@ -85,7 +85,13 @@ export const verifyIishantenCandidate = (type: IishantenType, tiles: string[]) =
     })
     return type === 'complete' ? isolateComparisons.some(Boolean) : isolateComparisons.some((value) => !value)
   }
-  if (type === 'headless1') return matches(3, 0, 1, 2)
+  if (type === 'headless1') {
+    // A hand such as 13m234p12345678s can be deliberately split into one
+    // taatsu and two singles, but its meld-first remainder has two taatsu
+    // (13m and 78s). It is therefore headless-2, not headless-1.
+    const maxTaatsu = Math.max(...decompositions.filter((item) => item.melds === maxMelds).map((item) => item.taatsu))
+    return maxTaatsu === 1 && matches(3, 0, 1, 2)
+  }
   if (type === 'headless2') return matches(3, 0, 2, 0)
   return matches(3, 1, 0, 2)
 }
