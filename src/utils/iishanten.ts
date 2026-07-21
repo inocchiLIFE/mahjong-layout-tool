@@ -89,10 +89,18 @@ export const verifyIishantenCandidate = (type: IishantenType, tiles: string[]) =
     // A hand such as 13m234p12345678s can be deliberately split into one
     // taatsu and two singles, but its meld-first remainder has two taatsu
     // (13m and 78s). It is therefore headless-2, not headless-1.
-    const maxTaatsu = Math.max(...decompositions.filter((item) => item.melds === maxMelds).map((item) => item.taatsu))
-    return maxTaatsu === 1 && matches(3, 0, 1, 2)
+    const maxMeldDecompositions = decompositions.filter((item) => item.melds === maxMelds)
+    const maxTaatsu = Math.max(...maxMeldDecompositions.map((item) => item.taatsu))
+    // A headless shape must not have a possible head after taking all melds.
+    // classifyRemainder also enumerates the weaker choice of treating a pair as
+    // two singles, so checking only the selected decomposition is insufficient.
+    const hasHead = maxMeldDecompositions.some((item) => item.pairs > 0)
+    return !hasHead && maxTaatsu === 1 && matches(3, 0, 1, 2)
   }
-  if (type === 'headless2') return matches(3, 0, 2, 0)
+  if (type === 'headless2') {
+    const maxMeldDecompositions = decompositions.filter((item) => item.melds === maxMelds)
+    return !maxMeldDecompositions.some((item) => item.pairs > 0) && matches(3, 0, 2, 0)
+  }
   return matches(3, 1, 0, 2)
 }
 

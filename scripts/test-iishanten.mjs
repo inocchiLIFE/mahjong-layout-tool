@@ -12,6 +12,8 @@ for (const type of ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki']
 assert.equal(hasLegalTileCounts(['man1', 'man1', 'man1', 'man1', 'man1']), false, 'five identical tiles are invalid')
 assert.equal(verifyIishantenCandidate('headless2', ['man1', 'man1', 'man1', 'man2', 'man2', 'man2', 'man3', 'man3', 'man3', 'pin1', 'pin2', 'pin3', 'ton']), false, 'headless2 must have two taatsu')
 assert.equal(verifyIishantenCandidate('headless1', ['man1', 'man3', 'pin2', 'pin3', 'pin4', 'sou1', 'sou2', 'sou3', 'sou4', 'sou5', 'sou6', 'sou7', 'sou8']), false, 'headless1 must reject a hand that has two taatsu after taking three melds')
+assert.equal(verifyIishantenCandidate('headless1', ['man3', 'pin3', 'pin4', 'pin5', 'pin6', 'pin7', 'pin8', 'pin8', 'pin8', 'sou3', 'sou4', 'sou4', 'sou4']), false, 'headless1 must reject a hand with a head after taking three melds')
+assert.equal(verifyIishantenCandidate('headless2', ['man1', 'man1', 'man1', 'man2', 'man2', 'man2', 'man3', 'man3', 'man3', 'pin3', 'pin3', 'pin4', 'pin4']), false, 'headless2 must reject a hand with a possible head after taking three melds')
 assert.equal(verifyIishantenCandidate('surplus', ['man2', 'man3', 'man4', 'man5', 'man6', 'man7', 'man7', 'pin3', 'pin5', 'pin5', 'pin5', 'pin7', 'pin8']), false, 'surplus must reject a hand with three melds')
 assert.equal(verifyIishantenCandidate('surplus', ['man1', 'man1', 'man6', 'man6', 'man6', 'man7', 'man7', 'man8', 'pin3', 'pin5', 'sou5', 'sou6', 'sou7']), false, 'surplus must reject a vertically supported taatsu')
 
