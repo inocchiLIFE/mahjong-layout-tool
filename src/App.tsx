@@ -1258,13 +1258,28 @@ const App = () => {
     })
   }
 
-  const updateElementStrokeWidth = (id: string, strokeWidth: number) => {
+  const updateSelectedShapeStrokeWidth = (strokeWidth: number) => {
+    const selectedIds = new Set(scene.elements.filter((element) => element.selected && !element.locked && (element.kind === 'symbol' || element.kind === 'drawing')).map((element) => element.id))
+    if (!selectedIds.size) return false
     history.commit({
       ...scene,
-      elements: scene.elements.map((element) => element.id === id && (element.kind === 'symbol' || element.kind === 'drawing') && !element.locked
+      elements: scene.elements.map((element) => selectedIds.has(element.id) && (element.kind === 'symbol' || element.kind === 'drawing')
         ? { ...element, strokeWidth: clamp(strokeWidth, 1, element.kind === 'symbol' ? 12 : 20) }
         : element),
     })
+    return true
+  }
+
+  const updateDefaultShapeStrokeWidth = (strokeWidth: number) => {
+    const nextStrokeWidth = clamp(strokeWidth, 1, 12)
+    applySharedPreferences({ ...preferences, defaultShapeStrokeWidth: nextStrokeWidth })
+    const nextSymbolPresets = Object.fromEntries((Object.keys(symbolPresets) as SymbolType[]).map((symbolType) => [symbolType, { ...symbolPresets[symbolType], strokeWidth: nextStrokeWidth }])) as Record<SymbolType, SymbolPreset>
+    const nextDrawingPresets = Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, { ...drawingPresets[tool], strokeWidth: nextStrokeWidth }])) as Pick<Record<DrawingTool, DrawingPreset>, 'draw' | 'line' | 'curve' | 'arrow'>
+    const mergedDrawingPresets = { ...drawingPresets, ...nextDrawingPresets }
+    setSymbolPresets(nextSymbolPresets)
+    setDrawingPresets(mergedDrawingPresets)
+    localStorage.setItem(SYMBOL_PRESETS_KEY, JSON.stringify(nextSymbolPresets))
+    localStorage.setItem(DRAWING_PRESETS_KEY, JSON.stringify(mergedDrawingPresets))
   }
 
   const resizeElement = (id: string, width: number, height: number) => {
@@ -1644,7 +1659,7 @@ const App = () => {
           applySharedPreferences({ ...preferences, defaultShapeColor: color })
           if (selectedColoredElement) updateElementColor(selectedColoredElement.id, color)
         }}
-        onUpdateShapeStrokeWidth={(strokeWidth) => selectedColoredElement ? updateElementStrokeWidth(selectedColoredElement.id, strokeWidth) : applySharedPreferences({ ...preferences, defaultShapeStrokeWidth: clamp(strokeWidth, 1, 20) })}
+        onUpdateShapeStrokeWidth={(strokeWidth) => { if (!updateSelectedShapeStrokeWidth(strokeWidth)) updateDefaultShapeStrokeWidth(strokeWidth) }}
         onUpdateEraserSize={(size) => {
           const eraserSize = clamp(size, 8, 80)
           setEraserSize(eraserSize)
