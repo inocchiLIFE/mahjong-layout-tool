@@ -77,4 +77,19 @@ const openYakuhai = scoreWinningHand(
 assert.ok(openYakuhai, 'an open hand with a yakuhai block is scored')
 assert.ok(openYakuhai?.yaku.includes('役牌 白'), 'open yakuhai is detected')
 assert.ok(!openYakuhai?.yaku.includes('門前清自摸和'), 'open hands do not receive menzen tsumo')
+
+const mixedTriplets = scoreWinningHand(
+  ['man1', 'man2', 'man3', 'pin4', 'pin4', 'pin4', 'sou2', 'sou2'],
+  'pin4',
+  {
+    ...scoreSettings,
+    riichi: false,
+    melds: [
+      { id: 'open-haku', kind: 'open-triplet', tileIds: ['haku', 'haku', 'haku'] },
+      { id: 'open-hatsu', kind: 'open-triplet', tileIds: ['hatsu', 'hatsu', 'hatsu'] },
+    ],
+  },
+)
+assert.ok(mixedTriplets, 'a hand with open triplets is scored')
+assert.ok(!mixedTriplets?.yaku.includes('三暗刻'), 'open triplets are not counted as concealed triplets')
 console.log('expected value tests passed')

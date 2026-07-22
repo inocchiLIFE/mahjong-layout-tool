@@ -131,7 +131,10 @@ const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, 
   const tripletIndices = triplets.map((meld) => meld.tiles[0])
   for (let rank = 0; rank < 9; rank += 1) if ([rank, rank + 9, rank + 18].every((index) => tripletIndices.includes(index))) { han += 2; yaku.push('三色同刻'); break }
   if (triplets.length === 4) { han += 2; yaku.push('対々和') }
-  if (triplets.length >= 3) { han += 2; yaku.push('三暗刻') }
+  const concealedTriplets = triplets.filter((meld) => !meld.open)
+  if (concealedTriplets.length >= 3) { han += 2; yaku.push('三暗刻') }
+  const kans = triplets.filter((meld) => meld.kan)
+  if (kans.length >= 3) { han += 2; yaku.push('三槓子') }
 
   const everyGroupHasTerminalOrHonor = decomposition.melds.every((meld) => meld.tiles.some(isTerminalOrHonor)) && isTerminalOrHonor(decomposition.pair)
   const hasSequence = sequences.length > 0
@@ -140,7 +143,7 @@ const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, 
     han += hasHonor ? (closed ? 2 : 1) : (closed ? 3 : 2)
     yaku.push(hasHonor ? '混全帯么九' : '純全帯么九')
   }
-  if (allIndices.every(isTerminalOrHonor) && triplets.length === 4) { han += 2; yaku.push('混老頭') }
+  if (allIndices.every(isTerminalOrHonor)) { han += 2; yaku.push('混老頭') }
   const dragonTriplets = triplets.filter((meld) => meld.tiles[0] >= 31).length
   if (dragonTriplets === 2 && decomposition.pair >= 31) { han += 2; yaku.push('小三元') }
 
@@ -157,7 +160,8 @@ const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, 
   if (allIndices.every(isHonor)) { yakuman += 1; yaku.push('字一色') }
   if (allIndices.every(isTerminal)) { yakuman += 1; yaku.push('清老頭') }
   if (allIndices.every((index) => GREEN.has(index))) { yakuman += 1; yaku.push('緑一色') }
-  if (triplets.length === 4) { yakuman += 1; yaku.push('四暗刻') }
+  if (concealedTriplets.length === 4) { yakuman += 1; yaku.push('四暗刻') }
+  if (kans.length === 4) { yakuman += 1; yaku.push('四槓子') }
   if (numberedSuits.size === 1 && !hasHonor) {
     const suit = Math.floor(allIndices[0] / 9)
     const suitCounts = Array(9).fill(0) as number[]
