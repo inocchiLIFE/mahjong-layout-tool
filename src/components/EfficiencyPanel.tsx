@@ -1,6 +1,7 @@
-import { useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { TILE_MAP } from '../data/tiles'
 import { getDiscardEfficiencies, getEfficiency } from '../utils/mahjongEfficiency'
+import { calculateExpectedValues, EXPECTED_VALUE_TILE_IDS, type ExpectedValueSettings, type Wind } from '../utils/expectedValue'
 
 const Tile = ({ tileId }: { tileId: string }) => {
   const tile = TILE_MAP.get(tileId)
@@ -12,6 +13,14 @@ const formatShanten = (shanten: number) => shanten === -1 ? '和了' : shanten =
 export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: string[]; onClose: () => void; onResize: (width: number) => void }) => {
   const panelRef = useRef<HTMLElement>(null)
   const [discardSort, setDiscardSort] = useState<'efficiency' | 'tile'>('efficiency')
+  const [showExpectedValue, setShowExpectedValue] = useState(false)
+  const [showVisibleTiles, setShowVisibleTiles] = useState(false)
+  const [expectedValues, setExpectedValues] = useState<ReturnType<typeof calculateExpectedValues>>([])
+  const [isCalculatingExpectedValue, setIsCalculatingExpectedValue] = useState(false)
+  const [expectedSettings, setExpectedSettings] = useState<ExpectedValueSettings>(() => ({
+    roundWind: 'ton', seatWind: 'ton', turn: 3, doraIndicator: null, visibleCounts: {},
+    includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true,
+  }))
   const startResize = (event: PointerEvent<HTMLButtonElement>) => {
     event.preventDefault()
     const startX = event.clientX
@@ -21,8 +30,17 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', end)
   }
-  const result = getEfficiency(tileIds)
-  const discards = tileIds.length === 14 ? getDiscardEfficiencies(tileIds) : []
+  const baseTileIds = tileIds.map((id) => TILE_MAP.get(id)?.baseId ?? id)
+  const result = getEfficiency(baseTileIds)
+  const discards = baseTileIds.length === 14 ? getDiscardEfficiencies(baseTileIds) : []
+  useEffect(() => setExpectedValues([]), [tileIds, expectedSettings])
+  const runExpectedValueCalculation = () => {
+    setIsCalculatingExpectedValue(true)
+    window.setTimeout(() => {
+      setExpectedValues(calculateExpectedValues(tileIds, expectedSettings))
+      setIsCalculatingExpectedValue(false)
+    }, 30)
+  }
   const sortedDiscards = discards
     .filter((discard): discard is { discardTileId: string; result: NonNullable<typeof discard.result> } => discard.result !== null && discard.result.shanten <= (result?.shanten ?? Number.MAX_SAFE_INTEGER))
     .sort((left, right) => {
@@ -42,6 +60,28 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
       {resizeHandle}{heading}
       {!isDiscardAnalysis && <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b><span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>}
       {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong><label>並び順<select value={discardSort} onChange={(event) => setDiscardSort(event.target.value as 'efficiency' | 'tile')}><option value="efficiency">受け入れ枚数順</option><option value="tile">牌の並び順</option></select></label></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>)}</div>}
+      {tileIds.length === 14 && <section className="expected-value-section">
+        <button type="button" className="expected-value-toggle" onClick={() => setShowExpectedValue((value) => !value)}>{showExpectedValue ? '期待値を閉じる' : '一人麻雀の期待値を計算'}</button>
+        {showExpectedValue && <>
+          <div className="expected-value-settings">
+            <label>場風<select value={expectedSettings.roundWind} onChange={(event) => setExpectedSettings({ ...expectedSettings, roundWind: event.target.value as Wind })}>{([['ton', '東'], ['nan', '南'], ['sha', '西'], ['pei', '北']] as const).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+            <label>自風<select value={expectedSettings.seatWind} onChange={(event) => setExpectedSettings({ ...expectedSettings, seatWind: event.target.value as Wind })}>{([['ton', '東'], ['nan', '南'], ['sha', '西'], ['pei', '北']] as const).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
+            <label>巡目<input type="number" min="1" max="18" value={expectedSettings.turn} onChange={(event) => setExpectedSettings({ ...expectedSettings, turn: Math.max(1, Math.min(18, Number(event.target.value) || 1)) })} /></label>
+            <label>ドラ表示牌<select value={expectedSettings.doraIndicator ?? ''} onChange={(event) => setExpectedSettings({ ...expectedSettings, doraIndicator: event.target.value || null })}><option value="">なし</option>{EXPECTED_VALUE_TILE_IDS.map((id) => <option key={id} value={id}>{TILE_MAP.get(id)?.label}</option>)}</select></label>
+          </div>
+          <div className="expected-value-options">
+            <label><input type="checkbox" checked={expectedSettings.includeRedDora} onChange={(event) => setExpectedSettings({ ...expectedSettings, includeRedDora: event.target.checked })} />赤ドラ</label>
+            <label><input type="checkbox" checked={expectedSettings.includeUraDora} onChange={(event) => setExpectedSettings({ ...expectedSettings, includeUraDora: event.target.checked })} />裏ドラ</label>
+            <label><input type="checkbox" checked={expectedSettings.allowShantenBack} onChange={(event) => setExpectedSettings({ ...expectedSettings, allowShantenBack: event.target.checked })} />向聴戻し</label>
+            <label><input type="checkbox" checked={expectedSettings.allowHandChange} onChange={(event) => setExpectedSettings({ ...expectedSettings, allowHandChange: event.target.checked })} />手変わり</label>
+          </div>
+          <button type="button" className="visible-tile-toggle" onClick={() => setShowVisibleTiles((value) => !value)}>見えている牌を設定</button>
+          {showVisibleTiles && <div className="visible-tile-grid">{EXPECTED_VALUE_TILE_IDS.map((id) => <label key={id}><img src={TILE_MAP.get(id)?.asset} alt={TILE_MAP.get(id)?.label ?? id} /><input aria-label={`${TILE_MAP.get(id)?.label ?? id}の見えている枚数`} type="number" min="0" max="4" value={expectedSettings.visibleCounts[id] ?? 0} onChange={(event) => setExpectedSettings({ ...expectedSettings, visibleCounts: { ...expectedSettings.visibleCounts, [id]: Math.max(0, Math.min(4, Number(event.target.value) || 0)) } })} /></label>)}</div>}
+          <button type="button" className="expected-value-calculate" disabled={isCalculatingExpectedValue} onClick={runExpectedValueCalculation}>{isCalculatingExpectedValue ? '計算中…' : 'この設定で計算する'}</button>
+          <div className="expected-value-results">{expectedValues.map((value) => <article key={value.discardTileId}><div><Tile tileId={value.discardTileId} /><b>切り</b><strong>{value.expectedPoints.toLocaleString()}点</strong></div><span>和了 {Math.round(value.winProbability * 1000) / 10}%　聴牌 {Math.round(value.tenpaiProbability * 1000) / 10}%</span><small>平均和了点 {value.estimatedWinPoints.toLocaleString()}点／受け入れ {value.effectiveTileCount}牌</small></article>)}</div>
+          <p className="expected-value-note">各打牌を48回ずつ試す一人麻雀の独自計算です。役・符・親子・ドラを計算し、他家・放銃・鳴き・一発・海底は考慮しません。</p>
+        </>}
+      </section>}
       <small>通常形・七対子・国士無双を含む。残り枚数は選択中の手牌だけを既知牌として計算します。</small>
     </aside>
   )

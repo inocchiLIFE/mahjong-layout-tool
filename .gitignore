@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 .tmp-iishanten-test
+.tmp-expected-value-test
 *.local
 
 # Editor directories and files

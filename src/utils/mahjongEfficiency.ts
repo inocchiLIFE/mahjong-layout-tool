@@ -49,7 +49,12 @@ const normalShanten = (counts: number[]) => {
   return minimum
 }
 
+const SHANTEN_CACHE = new Map<string, number>()
+
 const shanten = (counts: number[]) => {
+  const cacheKey = counts.join('')
+  const cached = SHANTEN_CACHE.get(cacheKey)
+  if (cached !== undefined) return cached
   const normal = normalShanten([...counts])
   const pairs = counts.filter((count) => count >= 2).length
   const unique = counts.filter((count) => count > 0).length
@@ -58,12 +63,15 @@ const shanten = (counts: number[]) => {
   const uniqueOrphans = orphanIndices.filter((index) => counts[index] > 0).length
   const orphanPair = orphanIndices.some((index) => counts[index] >= 2) ? 1 : 0
   const thirteenOrphans = 13 - uniqueOrphans - orphanPair
-  return Math.min(normal, sevenPairs, thirteenOrphans)
+  const result = Math.min(normal, sevenPairs, thirteenOrphans)
+  if (SHANTEN_CACHE.size > 100_000) SHANTEN_CACHE.clear()
+  SHANTEN_CACHE.set(cacheKey, result)
+  return result
 }
 
 export const tileIdToIndex = (tileId: string) => TILE_IDS.indexOf(tileId)
 
-export const getEfficiency = (tileIds: string[]): EfficiencyResult | null => {
+const tileIdsToCounts = (tileIds: string[]) => {
   if (tileIds.length > 14) return null
   const counts = Array(34).fill(0) as number[]
   for (const tileId of tileIds) {
@@ -71,6 +79,17 @@ export const getEfficiency = (tileIds: string[]): EfficiencyResult | null => {
     if (index < 0 || counts[index] >= 4) return null
     counts[index] += 1
   }
+  return counts
+}
+
+export const getShanten = (tileIds: string[]) => {
+  const counts = tileIdsToCounts(tileIds)
+  return counts ? shanten(counts) : null
+}
+
+export const getEfficiency = (tileIds: string[]): EfficiencyResult | null => {
+  const counts = tileIdsToCounts(tileIds)
+  if (!counts) return null
   const currentShanten = shanten(counts)
   const effectiveTileIds = TILE_IDS.filter((_, index) => {
     if (counts[index] >= 4) return false

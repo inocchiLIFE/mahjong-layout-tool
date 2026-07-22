@@ -1601,7 +1601,7 @@ const App = () => {
   const selectedEditable = selected.length === 1 && selected[0].kind !== 'tile' && !selected[0].locked ? selected[0] : null
   const selectedHandTileIds = selected
     .filter((element): element is TileElement => element.kind === 'tile' && !element.faceDown)
-    .map((element) => TILE_MAP.get(element.tileId)?.baseId ?? element.tileId)
+    .map((element) => element.tileId)
   const tileCount = scene.elements.filter((element) => element.kind === 'tile').length
   const contextElement = contextMenu ? scene.elements.find((element) => element.id === contextMenu.elementId) ?? null : null
   const propertyElement = propertyElementId
