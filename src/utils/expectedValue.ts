@@ -31,211 +31,194 @@ export interface ExpectedValueResult {
   expectedPoints: number
 }
 
+interface DrawOption { tileId: string; count: number }
+interface StateValue { expectedPoints: number; pointWins: number; wins: number; tenpai: number }
+interface GraphAction { nodeId?: number; winPoints?: number }
+interface GraphTransition { weight: number; actions: GraphAction[] }
+interface GraphNode { hand: string[]; shanten: number; transitions: GraphTransition[] }
+
+const MAX_GRAPH_NODES = 6_000
+const MAX_CHANGE_GRAPH_NODES = 1_500
 const RED_IDS: Record<string, string> = { man5: 'aka-man5', pin5: 'aka-pin5', sou5: 'aka-sou5' }
 const normalize = (tileId: string) => TILE_MAP.get(tileId)?.baseId ?? tileId
 const normalizeHand = (tileIds: string[]) => tileIds.map(normalize)
+const tileOrder = (tileId: string) => TILE_MAP.get(tileId)?.order ?? 999
+const sortHand = (tileIds: string[]) => [...tileIds].sort((left, right) => tileOrder(left) - tileOrder(right) || left.localeCompare(right))
+const handKey = (tileIds: string[]) => sortHand(tileIds).join(',')
 const removeOne = (tileIds: string[], target: string) => {
   const exactIndex = tileIds.indexOf(target)
   const index = exactIndex >= 0 ? exactIndex : tileIds.findIndex((tileId) => normalize(tileId) === normalize(target))
   return index < 0 ? [...tileIds] : [...tileIds.slice(0, index), ...tileIds.slice(index + 1)]
 }
+const uniqueTiles = (tileIds: string[]) => [...new Set(tileIds)]
+const clampProbability = (value: number) => Math.max(0, Math.min(1, value))
 
-const hashText = (text: string) => {
-  let value = 2166136261
-  for (let index = 0; index < text.length; index += 1) {
-    value ^= text.charCodeAt(index)
-    value = Math.imul(value, 16777619)
-  }
-  return value >>> 0
-}
-
-const createRandom = (seed: number) => () => {
-  seed |= 0
-  seed = seed + 0x6d2b79f5 | 0
-  let value = Math.imul(seed ^ seed >>> 15, 1 | seed)
-  value = value + Math.imul(value ^ value >>> 7, 61 | value) ^ value
-  return ((value ^ value >>> 14) >>> 0) / 4294967296
-}
-
-const shuffled = (values: string[], random: () => number) => {
-  const result = [...values]
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const other = Math.floor(random() * (index + 1))
-    ;[result[index], result[other]] = [result[other], result[index]]
-  }
-  return result
-}
-
-const buildWall = (tileIds: string[], settings: ExpectedValueSettings) => {
-  const wall = EXPECTED_VALUE_TILE_IDS.flatMap((baseId) => {
-    const copies = Array(4).fill(baseId) as string[]
-    if (settings.includeRedDora && RED_IDS[baseId]) copies[0] = RED_IDS[baseId]
-    return copies
-  })
-  const removeKnown = (tileId: string) => {
-    let index = wall.indexOf(tileId)
-    if (index < 0) index = wall.findIndex((candidate) => normalize(candidate) === normalize(tileId))
-    if (index >= 0) wall.splice(index, 1)
-  }
-  tileIds.forEach(removeKnown)
-  for (const tileId of EXPECTED_VALUE_TILE_IDS) {
-    const count = Math.max(0, Math.min(4, settings.visibleCounts[tileId] ?? 0))
-    for (let index = 0; index < count; index += 1) removeKnown(tileId)
-  }
-  if (settings.doraIndicator) removeKnown(settings.doraIndicator)
-  return wall
-}
-
-const remainingEffectiveCount = (wall: string[], effectiveTileIds: string[]) => {
-  const effective = new Set(effectiveTileIds)
-  return wall.filter((tileId) => effective.has(normalize(tileId))).length
-}
-
-const nextDora = (indicator: string | null) => {
-  if (!indicator) return null
-  const numbered = /^(man|pin|sou)(\d)$/.exec(indicator)
-  if (numbered) return `${numbered[1]}${Number(numbered[2]) === 9 ? 1 : Number(numbered[2]) + 1}`
-  const group = ['ton', 'nan', 'sha', 'pei'].includes(indicator)
-    ? ['ton', 'nan', 'sha', 'pei']
-    : ['haku', 'hatsu', 'chun'].includes(indicator) ? ['haku', 'hatsu', 'chun'] : []
-  return group.length ? group[(group.indexOf(indicator) + 1) % group.length] : null
-}
-
-const shapeScore = (tileIds: string[], settings: ExpectedValueSettings) => {
+const tileCounts = (tileIds: string[]) => {
   const counts = new Map<string, number>()
-  tileIds.forEach((tileId) => counts.set(tileId, (counts.get(tileId) ?? 0) + 1))
-  let score = 0
-  for (const [tileId, count] of counts) {
-    if (count >= 2) score += count === 2 ? 6 : 10
-    const numbered = /^(man|pin|sou)(\d)$/.exec(tileId)
-    if (!numbered) {
-      if (count === 1) score -= 2
-      continue
+  normalizeHand(tileIds).forEach((tileId) => counts.set(tileId, (counts.get(tileId) ?? 0) + 1))
+  return counts
+}
+
+const replacementDistance = (tileIds: string[], originCounts: Map<string, number>) => {
+  const counts = tileCounts(tileIds)
+  return [...counts].reduce((sum, [tileId, count]) => sum + Math.max(0, count - (originCounts.get(tileId) ?? 0)), 0)
+}
+
+const createDeadCounts = (settings: ExpectedValueSettings) => {
+  const counts = new Map<string, number>()
+  for (const tileId of EXPECTED_VALUE_TILE_IDS) counts.set(tileId, Math.max(0, Math.min(4, settings.visibleCounts[tileId] ?? 0)))
+  if (settings.doraIndicator) counts.set(settings.doraIndicator, Math.min(4, (counts.get(settings.doraIndicator) ?? 0) + 1))
+  return counts
+}
+
+const createDrawOptions = (hand: string[], deadCounts: Map<string, number>, includeRedDora: boolean): DrawOption[] => {
+  const rawCounts = new Map<string, number>()
+  hand.forEach((tileId) => rawCounts.set(tileId, (rawCounts.get(tileId) ?? 0) + 1))
+  const baseCounts = tileCounts(hand)
+  return EXPECTED_VALUE_TILE_IDS.flatMap((baseId) => {
+    const dead = deadCounts.get(baseId) ?? 0
+    if (!includeRedDora || !RED_IDS[baseId]) {
+      const count = Math.max(0, 4 - dead - (baseCounts.get(baseId) ?? 0))
+      return count ? [{ tileId: baseId, count }] : []
     }
-    const rank = Number(numbered[2])
-    const suit = numbered[1]
-    if (rank < 9 && counts.has(`${suit}${rank + 1}`)) score += 4
-    if (rank < 8 && counts.has(`${suit}${rank + 2}`)) score += 2
-    if (rank >= 3 && rank <= 7) score += 0.4
-  }
-  const dora = nextDora(settings.doraIndicator)
-  if (dora) score += (counts.get(dora) ?? 0) * 3
-  return score
+    const redId = RED_IDS[baseId]
+    const normalCount = Math.max(0, 3 - Math.min(3, dead) - (rawCounts.get(baseId) ?? 0))
+    const redCount = Math.max(0, 1 - Math.max(0, dead - 3) - (rawCounts.get(redId) ?? 0))
+    return [...(normalCount ? [{ tileId: baseId, count: normalCount }] : []), ...(redCount ? [{ tileId: redId, count: redCount }] : [])]
+  })
 }
 
-const selectDiscard = (
-  hand: string[],
-  settings: ExpectedValueSettings,
-  previousShanten: number,
-  drawnTileId: string,
-) => {
-  if (!settings.allowHandChange) {
-    const drawnRemoved = removeOne(hand, drawnTileId)
-    const drawnShanten = getShanten(normalizeHand(drawnRemoved))
-    if (drawnShanten !== null && drawnShanten >= previousShanten) return { hand: drawnRemoved, shanten: drawnShanten }
-  }
-  const normalized = normalizeHand(hand)
-  const candidates = [...new Set(normalized)].flatMap((discardTileId) => {
-    const remainingHand = removeOne(normalized, discardTileId)
-    const shanten = getShanten(remainingHand)
-    return shanten === null ? [] : [{ discardTileId, remainingHand, shanten }]
-  })
-  const bestShanten = Math.min(...candidates.map((candidate) => candidate.shanten))
-  const allowed = candidates
-    .filter((candidate) => candidate.shanten === bestShanten || (settings.allowShantenBack && candidate.shanten === bestShanten + 1))
-    .map((candidate) => ({ ...candidate, shape: shapeScore(candidate.remainingHand, settings) }))
-  allowed.sort((left, right) => {
-    const leftValue = left.shape - (left.shanten - bestShanten) * 16
-    const rightValue = right.shape - (right.shanten - bestShanten) * 16
-    return rightValue - leftValue
-      || left.shanten - right.shanten
-      || (TILE_MAP.get(left.discardTileId)?.order ?? 999) - (TILE_MAP.get(right.discardTileId)?.order ?? 999)
-  })
-  const selected = allowed[0]
-  if (!selected) return null
-  const matchingRawTiles = hand.filter((tileId) => normalize(tileId) === selected.discardTileId)
-  const rawDiscard = matchingRawTiles.find((tileId) => !TILE_MAP.get(tileId)?.isRed) ?? matchingRawTiles[0] ?? selected.discardTileId
-  return { hand: removeOne(hand, rawDiscard), shanten: selected.shanten }
-}
+const createHandGraph = (origin: string[], originShanten: number, settings: ExpectedValueSettings) => {
+  const nodes: GraphNode[] = []
+  const nodeIds = new Map<string, number>()
+  const deadCounts = createDeadCounts(settings)
+  const originCounts = tileCounts(origin)
+  const changeBudget = settings.allowHandChange || settings.allowShantenBack ? 1 : 0
 
-const uniqueRawDiscards = (tileIds: string[]) => [...new Set(tileIds)]
+  const getNode = (hand: string[]): number => {
+    const sortedHand = sortHand(hand)
+    const key = handKey(sortedHand)
+    const existing = nodeIds.get(key)
+    if (existing !== undefined) return existing
+    const nodeLimit = changeBudget > 0 ? MAX_CHANGE_GRAPH_NODES : MAX_GRAPH_NODES
+    if (nodes.length >= nodeLimit) throw new Error('手変わり候補が多すぎます。手変わり・向聴戻しをオフにして計算してください。')
+    const shanten = getShanten(normalizeHand(sortedHand))
+    if (shanten === null) throw new Error('解析できない牌姿が含まれています。')
+    const nodeId = nodes.length
+    const node: GraphNode = { hand: sortedHand, shanten, transitions: [] }
+    nodes.push(node)
+    nodeIds.set(key, nodeId)
+    const canChangeDraw = changeBudget > 0 && replacementDistance(sortedHand, originCounts) + shanten < originShanten + changeBudget
 
-export const calculateExpectedValues = (
-  tileIds: string[],
-  settings: ExpectedValueSettings,
-  simulationCount = 48,
-): ExpectedValueResult[] => {
-  if (tileIds.length !== 14 || !getEfficiency(normalizeHand(tileIds))) return []
-  const current = getEfficiency(normalizeHand(tileIds))
-  const baseWall = buildWall(tileIds, settings)
-  // 指定巡目のツモを終えて打牌する場面なので、次巡以降の自摸回数だけを残す。
-  const drawsRemaining = Math.max(0, 18 - settings.turn)
-  const stableSettings = JSON.stringify({ ...settings, turn: undefined, visibleCounts: Object.entries(settings.visibleCounts).sort() })
-
-  return uniqueRawDiscards(tileIds).flatMap((discardTileId) => {
-    const initialHand = removeOne(tileIds, discardTileId)
-    const initialResult = getEfficiency(normalizeHand(initialHand))
-    if (!initialResult || (!settings.allowShantenBack && initialResult.shanten > (current?.shanten ?? initialResult.shanten))) return []
-    const effectiveTileCount = remainingEffectiveCount(baseWall, initialResult.effectiveTileIds)
-    let wins = 0
-    let tenpaiTrials = 0
-    let totalWinPoints = 0
-    const trials = Math.max(1, Math.floor(simulationCount))
-
-    for (let trial = 0; trial < trials; trial += 1) {
-      const seed = hashText(`${tileIds.join(',')}|${discardTileId}|${stableSettings}|${trial}`)
-      const wall = shuffled(baseWall, createRandom(seed))
-      let hand = [...initialHand]
-      let state: { shanten: number } = initialResult
-      let riichi = state.shanten === 0
-      let reachedTenpai = riichi
-
-      for (let drawIndex = 0; drawIndex < drawsRemaining && drawIndex < wall.length; drawIndex += 1) {
-        const drawnTileId = wall[drawIndex]
-        const drawnHand = [...hand, drawnTileId]
-        const drawnShanten = getShanten(normalizeHand(drawnHand))
-        if (drawnShanten === -1) {
-          const score = scoreWinningHand(drawnHand, drawnTileId, {
-            roundWind: settings.roundWind,
-            seatWind: settings.seatWind,
-            doraIndicator: settings.doraIndicator,
-            includeRedDora: settings.includeRedDora,
-            includeUraDora: settings.includeUraDora,
-            riichi,
-          })
-          if (score) {
-            wins += 1
-            totalWinPoints += score.points
-            reachedTenpai = true
-          }
-          break
-        }
-        if (riichi) continue
-        const selected = selectDiscard(drawnHand, settings, state.shanten, drawnTileId)
-        if (!selected) break
-        hand = selected.hand
-        state = { shanten: selected.shanten }
-        if (state.shanten === 0) {
-          riichi = true
-          reachedTenpai = true
+    for (const draw of createDrawOptions(sortedHand, deadCounts, settings.includeRedDora)) {
+      const drawnHand = [...sortedHand, draw.tileId]
+      const drawnShanten = getShanten(normalizeHand(drawnHand))
+      const actions: GraphAction[] = []
+      if (drawnShanten === -1) {
+        const score = scoreWinningHand(drawnHand, draw.tileId, {
+          roundWind: settings.roundWind,
+          seatWind: settings.seatWind,
+          doraIndicator: settings.doraIndicator,
+          includeRedDora: settings.includeRedDora,
+          includeUraDora: settings.includeUraDora,
+          riichi: shanten === 0,
+        })
+        if (score) actions.push({ winPoints: score.points })
+      } else if (shanten !== 0 && (canChangeDraw || drawnShanten !== null && drawnShanten < shanten)) {
+        const candidates = uniqueTiles(drawnHand).flatMap((discardTileId) => {
+          const nextHand = removeOne(drawnHand, discardTileId)
+          const nextShanten = getShanten(normalizeHand(nextHand))
+          return nextShanten === null ? [] : [{ nextHand, nextShanten }]
+        })
+        const bestShanten = Math.min(...candidates.map((candidate) => candidate.nextShanten))
+        const maintainedShanten = drawnShanten !== null && candidates.some((candidate) => candidate.nextShanten === drawnShanten) ? drawnShanten : bestShanten
+        const canChangeDiscard = changeBudget > 0 && replacementDistance(drawnHand, originCounts) + maintainedShanten < originShanten + changeBudget
+        const nextKeys = new Set<string>()
+        for (const candidate of candidates) {
+          if ((!canChangeDiscard || !settings.allowShantenBack) && candidate.nextShanten !== maintainedShanten) continue
+          const nextKey = handKey(candidate.nextHand)
+          if (nextKeys.has(nextKey)) continue
+          nextKeys.add(nextKey)
+          actions.push({ nodeId: getNode(candidate.nextHand) })
         }
       }
-      if (reachedTenpai) tenpaiTrials += 1
+      if (actions.length) node.transitions.push({ weight: draw.count, actions })
     }
+    return nodeId
+  }
 
-    const winProbability = wins / trials
-    const tenpaiProbability = tenpaiTrials / trials
-    const estimatedWinPoints = wins ? Math.round(totalWinPoints / wins) : 0
-    return [{
+  return { nodes, nodeIds, deadCounts, getNode }
+}
+
+const solveGraph = (nodes: GraphNode[], settings: ExpectedValueSettings, drawsRemaining: number, initialWallSize: number) => {
+  let next = nodes.map((node): StateValue => ({ expectedPoints: 0, pointWins: 0, wins: 0, tenpai: node.shanten === 0 ? 1 : 0 }))
+  for (let depth = drawsRemaining - 1; depth >= 0; depth -= 1) {
+    const denominator = Math.max(1, initialWallSize - settings.turn - depth)
+    const current = nodes.map((node, nodeId): StateValue => {
+      const baseline = next[nodeId]
+      const value = { ...baseline }
+      for (const transition of node.transitions) {
+        const actions = transition.actions.map((action): StateValue => action.winPoints !== undefined
+          ? { expectedPoints: action.winPoints, pointWins: 1, wins: 1, tenpai: 1 }
+          : next[action.nodeId ?? nodeId])
+        let bestPoint = baseline
+        let bestWin = baseline
+        let bestTenpai = baseline
+        for (const action of actions) {
+          if (action.expectedPoints > bestPoint.expectedPoints + 1e-8
+            || Math.abs(action.expectedPoints - bestPoint.expectedPoints) <= 1e-8 && action.pointWins > bestPoint.pointWins) bestPoint = action
+          if (action.wins > bestWin.wins) bestWin = action
+          if (action.tenpai > bestTenpai.tenpai) bestTenpai = action
+        }
+        const probability = transition.weight / denominator
+        if (bestPoint.expectedPoints > baseline.expectedPoints + 1e-8
+          || Math.abs(bestPoint.expectedPoints - baseline.expectedPoints) <= 1e-8 && bestPoint.pointWins > baseline.pointWins) {
+          value.expectedPoints += probability * (bestPoint.expectedPoints - baseline.expectedPoints)
+          value.pointWins += probability * (bestPoint.pointWins - baseline.pointWins)
+        }
+        if (bestWin.wins > baseline.wins) value.wins += probability * (bestWin.wins - baseline.wins)
+        if (bestTenpai.tenpai > baseline.tenpai) value.tenpai += probability * (bestTenpai.tenpai - baseline.tenpai)
+      }
+      value.pointWins = clampProbability(value.pointWins)
+      value.wins = clampProbability(value.wins)
+      value.tenpai = clampProbability(value.tenpai)
+      return value
+    })
+    next = current
+  }
+  return next
+}
+
+export const calculateExpectedValues = (tileIds: string[], settings: ExpectedValueSettings): ExpectedValueResult[] => {
+  if (tileIds.length !== 14 || !getEfficiency(normalizeHand(tileIds))) return []
+  const current = getEfficiency(normalizeHand(tileIds))
+  const initialHands = uniqueTiles(tileIds).flatMap((discardTileId) => {
+    const hand = removeOne(tileIds, discardTileId)
+    const result = getEfficiency(normalizeHand(hand))
+    return result && (settings.allowShantenBack || result.shanten <= (current?.shanten ?? result.shanten)) ? [{ discardTileId, hand, result }] : []
+  })
+  const graph = createHandGraph(tileIds, current?.shanten ?? 8, settings)
+  initialHands.forEach(({ hand }) => graph.getNode(hand))
+  const deadTotal = [...graph.deadCounts.values()].reduce((sum, count) => sum + count, 0)
+  const initialWallSize = Math.max(1, 136 - 13 - deadTotal)
+  const values = solveGraph(graph.nodes, settings, Math.max(0, 18 - settings.turn), initialWallSize)
+
+  return initialHands.map(({ discardTileId, hand, result }) => {
+    const value = values[graph.nodeIds.get(handKey(hand)) ?? 0]
+    const effective = new Set(result.effectiveTileIds)
+    const effectiveTileCount = createDrawOptions(hand, graph.deadCounts, settings.includeRedDora)
+      .filter((draw) => effective.has(normalize(draw.tileId)))
+      .reduce((sum, draw) => sum + draw.count, 0)
+    return {
       discardTileId,
-      shanten: initialResult.shanten,
-      effectiveTileIds: initialResult.effectiveTileIds,
+      shanten: result.shanten,
+      effectiveTileIds: result.effectiveTileIds,
       effectiveTileCount,
-      tenpaiProbability,
-      winProbability,
-      estimatedWinPoints,
-      expectedPoints: Math.round(totalWinPoints / trials),
-    }]
+      tenpaiProbability: value.tenpai,
+      winProbability: value.wins,
+      estimatedWinPoints: value.pointWins > 0 ? Math.round(value.expectedPoints / value.pointWins) : 0,
+      expectedPoints: Math.round(value.expectedPoints),
+    }
   }).sort((left, right) => right.expectedPoints - left.expectedPoints
     || right.winProbability - left.winProbability
     || left.shanten - right.shanten

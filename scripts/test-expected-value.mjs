@@ -2,16 +2,23 @@ import assert from 'node:assert/strict'
 import { calculateExpectedValues, scoreWinningHand } from '../.tmp-expected-value-test/expectedValue.js'
 
 const hand = ['man1', 'man2', 'man3', 'man6', 'pin1', 'pin2', 'pin3', 'pin5', 'pin5', 'sou1', 'sou2', 'sou3', 'sou7', 'sou8']
-const settings = { roundWind: 'ton', seatWind: 'ton', turn: 1, doraIndicator: null, visibleCounts: {}, includeRedDora: true, includeUraDora: false, allowShantenBack: true, allowHandChange: true }
-const early = calculateExpectedValues(hand, settings, 8)
+const settings = { roundWind: 'ton', seatWind: 'ton', turn: 1, doraIndicator: null, visibleCounts: {}, includeRedDora: true, includeUraDora: false, allowShantenBack: false, allowHandChange: false }
+const early = calculateExpectedValues(hand, settings)
 assert.ok(early.length > 0, '14 tiles produce discard candidates')
 assert.ok(early.every((item) => item.expectedPoints >= 0 && item.winProbability >= 0 && item.winProbability <= 1), 'probabilities and expected points are bounded')
 
-const late = calculateExpectedValues(hand, { ...settings, turn: 18 }, 8)
+const late = calculateExpectedValues(hand, { ...settings, turn: 18 })
 assert.ok(late[0].winProbability <= early[0].winProbability, 'fewer remaining turns cannot improve the best win probability')
 
-const blocked = calculateExpectedValues(hand, { ...settings, visibleCounts: { sou6: 4, sou9: 4 } }, 8)
+const blocked = calculateExpectedValues(hand, { ...settings, visibleCounts: { sou6: 4, sou9: 4 } })
 assert.ok(blocked[0].effectiveTileCount <= early[0].effectiveTileCount, 'visible tiles reduce remaining acceptance')
+
+const publishedExample = ['man2', 'man3', 'man4', 'man5', 'man7', 'man8', 'pin1', 'pin6', 'pin8', 'pin9', 'sou3', 'sou5', 'sou7', 'ton']
+const publishedResult = calculateExpectedValues(publishedExample, { ...settings, includeRedDora: false })
+const resultFor = (tileId) => publishedResult.find((item) => item.discardTileId === tileId)?.winProbability
+assert.ok(Math.abs(resultFor('man2') - 0.1387) < 0.0001, 'published DP example matches the 2m discard probability')
+assert.ok(Math.abs(resultFor('man8') - 0.0879) < 0.0001, 'published DP example matches the 8m discard probability')
+assert.deepEqual(calculateExpectedValues(publishedExample, { ...settings, includeRedDora: false }), publishedResult, 'dynamic programming is deterministic')
 
 const scoreSettings = { roundWind: 'ton', seatWind: 'nan', doraIndicator: null, includeRedDora: true, includeUraDora: false, riichi: true }
 const pinfu = scoreWinningHand(

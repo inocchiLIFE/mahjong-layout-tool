@@ -16,10 +16,11 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
   const [showExpectedValue, setShowExpectedValue] = useState(false)
   const [showVisibleTiles, setShowVisibleTiles] = useState(false)
   const [expectedValues, setExpectedValues] = useState<ReturnType<typeof calculateExpectedValues>>([])
+  const [expectedError, setExpectedError] = useState('')
   const [isCalculatingExpectedValue, setIsCalculatingExpectedValue] = useState(false)
   const [expectedSettings, setExpectedSettings] = useState<ExpectedValueSettings>(() => ({
     roundWind: 'ton', seatWind: 'ton', turn: 3, doraIndicator: null, visibleCounts: {},
-    includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true,
+    includeRedDora: true, includeUraDora: true, allowShantenBack: false, allowHandChange: false,
   }))
   const startResize = (event: PointerEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -33,12 +34,19 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
   const baseTileIds = tileIds.map((id) => TILE_MAP.get(id)?.baseId ?? id)
   const result = getEfficiency(baseTileIds)
   const discards = baseTileIds.length === 14 ? getDiscardEfficiencies(baseTileIds) : []
-  useEffect(() => setExpectedValues([]), [tileIds, expectedSettings])
+  useEffect(() => { setExpectedValues([]); setExpectedError('') }, [tileIds, expectedSettings])
   const runExpectedValueCalculation = () => {
     setIsCalculatingExpectedValue(true)
+    setExpectedError('')
     window.setTimeout(() => {
-      setExpectedValues(calculateExpectedValues(tileIds, expectedSettings))
-      setIsCalculatingExpectedValue(false)
+      try {
+        setExpectedValues(calculateExpectedValues(tileIds, expectedSettings))
+      } catch (error) {
+        setExpectedValues([])
+        setExpectedError(error instanceof Error ? error.message : '期待値を計算できませんでした。')
+      } finally {
+        setIsCalculatingExpectedValue(false)
+      }
     }, 30)
   }
   const sortedDiscards = discards
@@ -78,8 +86,9 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
           <button type="button" className="visible-tile-toggle" onClick={() => setShowVisibleTiles((value) => !value)}>見えている牌を設定</button>
           {showVisibleTiles && <div className="visible-tile-grid">{EXPECTED_VALUE_TILE_IDS.map((id) => <label key={id}><img src={TILE_MAP.get(id)?.asset} alt={TILE_MAP.get(id)?.label ?? id} /><input aria-label={`${TILE_MAP.get(id)?.label ?? id}の見えている枚数`} type="number" min="0" max="4" value={expectedSettings.visibleCounts[id] ?? 0} onChange={(event) => setExpectedSettings({ ...expectedSettings, visibleCounts: { ...expectedSettings.visibleCounts, [id]: Math.max(0, Math.min(4, Number(event.target.value) || 0)) } })} /></label>)}</div>}
           <button type="button" className="expected-value-calculate" disabled={isCalculatingExpectedValue} onClick={runExpectedValueCalculation}>{isCalculatingExpectedValue ? '計算中…' : 'この設定で計算する'}</button>
+          {expectedError && <p className="expected-value-error" role="alert">{expectedError}</p>}
           <div className="expected-value-results">{expectedValues.map((value) => <article key={value.discardTileId}><div><Tile tileId={value.discardTileId} /><b>切り</b><strong>{value.expectedPoints.toLocaleString()}点</strong></div><span>和了 {Math.round(value.winProbability * 1000) / 10}%　聴牌 {Math.round(value.tenpaiProbability * 1000) / 10}%</span><small>平均和了点 {value.estimatedWinPoints.toLocaleString()}点／受け入れ {value.effectiveTileCount}牌</small></article>)}</div>
-          <p className="expected-value-note">各打牌を48回ずつ試す一人麻雀の独自計算です。役・符・親子・ドラを計算し、他家・放銃・鳴き・一発・海底は考慮しません。</p>
+          <p className="expected-value-note">手牌変化グラフを18巡目から逆算する動的計画法です。役・符・親子・ドラを計算し、他家・放銃・鳴き・一発・海底は考慮しません。</p>
         </>}
       </section>}
       <small>通常形・七対子・国士無双を含む。残り枚数は選択中の手牌だけを既知牌として計算します。</small>
