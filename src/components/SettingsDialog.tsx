@@ -3,7 +3,6 @@ import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId 
 
 export interface AppPreferences {
   showGrid: boolean
-  snapToGrid: boolean
   defaultFontFamily: string
   defaultTextFontSize: number
   defaultTextColor: string
@@ -22,7 +21,6 @@ interface SettingsDialogProps {
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
-  snapToGrid: true,
   defaultFontFamily: 'sans-serif',
   defaultTextFontSize: 35,
   defaultTextColor: '#172c27',
@@ -57,7 +55,6 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
             <legend>表示と配置</legend>
             <label>画面・文字サイズ <input type="range" min="0.9" max="1.3" step="0.05" value={draft.uiScale} onChange={(event) => setDraft((current) => ({ ...current, uiScale: Number(event.target.value) }))} /><output>{Math.round(draft.uiScale * 100)}%</output></label>
             <label><input type="checkbox" checked={draft.showGrid} onChange={(event) => setDraft((current) => ({ ...current, showGrid: event.target.checked }))} /> 新しい画面でグリッドを表示する</label>
-            <label><input type="checkbox" checked={draft.snapToGrid} onChange={(event) => setDraft((current) => ({ ...current, snapToGrid: event.target.checked }))} /> 新しい画面でグリッドに吸着する</label>
             <label>ポップアップ・文字サイズ <input type="range" min="1" max="1.5" step="0.05" value={draft.popupFontScale} onChange={(event) => setDraft((current) => ({ ...current, popupFontScale: Number(event.target.value) }))} /><output>{Math.round(draft.popupFontScale * 100)}%</output></label>
           </fieldset>
 

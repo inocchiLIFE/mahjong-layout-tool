@@ -21,7 +21,6 @@ interface ToolbarProps {
   canEditProperties: boolean
   canChangeLayer: boolean
   showGrid: boolean
-  snapToGrid: boolean
   placementMode: PlacementMode
   onClear: () => void
   onUndo: () => void
@@ -45,7 +44,6 @@ interface ToolbarProps {
   onShuffle: () => void
   onSetPlacementMode: (mode: PlacementMode) => void
   onToggleGrid: () => void
-  onToggleSnap: () => void
   onSaveLocal: () => void
   onOpenSavedLayouts: () => void
   onImportSharedLayout: () => void
@@ -356,7 +354,6 @@ export const Toolbar = (props: ToolbarProps) => {
         {activeTab === 'view' && <div className="tool-group">
           <span className="tool-group-label">表示</span>
           <ToolButton label="グリッド" icon="▦" onClick={props.onToggleGrid} active={props.showGrid} />
-          <ToolButton label="吸着" icon="⌗" onClick={props.onToggleSnap} active={props.snapToGrid} />
           <ToolButton label="設定" icon="⚙" onClick={props.onOpenSettings} />
           <ToolButton label="操作ガイド" icon="?" onClick={props.onHelp} />
         </div>}

@@ -77,7 +77,6 @@ const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visib
 const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
-  snapToGrid: true,
   defaultFontFamily: 'sans-serif',
   defaultTextFontSize: 35,
   defaultTextColor: '#172c27',
@@ -250,9 +249,7 @@ const migrateVersionOne = (data: Record<string, unknown>): SavedLayout | null =>
     scene: { elements: [...tiles, ...texts], width: DEFAULT_WORKSPACE_WIDTH, height: DEFAULT_WORKSPACE_HEIGHT },
     settings: {
       showGrid: settings?.showGrid !== false,
-      // Older layouts did not store this value.  Absence must retain the
-      // application's default (enabled), rather than silently disabling snap.
-      snapToGrid: settings?.snapToGrid !== false,
+      snapToGrid: true,
     },
   }
 }
@@ -282,7 +279,7 @@ const parseSavedLayout = (raw: string | null): SavedLayout | null => {
       },
       settings: {
         showGrid: settings?.showGrid !== false,
-        snapToGrid: settings?.snapToGrid !== false,
+        snapToGrid: true,
       },
     }
   } catch {
@@ -346,7 +343,6 @@ const readPreferences = (): AppPreferences => {
     const saved = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}') as Partial<AppPreferences>
     return {
       showGrid: typeof saved.showGrid === 'boolean' ? saved.showGrid : DEFAULT_PREFERENCES.showGrid,
-      snapToGrid: typeof saved.snapToGrid === 'boolean' ? saved.snapToGrid : DEFAULT_PREFERENCES.snapToGrid,
       defaultFontFamily: typeof saved.defaultFontFamily === 'string' ? saved.defaultFontFamily : DEFAULT_PREFERENCES.defaultFontFamily,
       defaultTextFontSize: typeof saved.defaultTextFontSize === 'number' ? clamp(saved.defaultTextFontSize, 12, 72) : DEFAULT_PREFERENCES.defaultTextFontSize,
       defaultTextColor: typeof saved.defaultTextColor === 'string' ? saved.defaultTextColor : DEFAULT_PREFERENCES.defaultTextColor,
@@ -454,7 +450,7 @@ const App = () => {
   const scene = history.scene
   const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
   const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? preferences.showGrid)
-  const [snapToGrid, setSnapToGrid] = useState(initialLayout?.settings.snapToGrid ?? preferences.snapToGrid)
+  const snapToGrid = true
   const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, color: preferences.defaultTextColor })
   const [defaultShapeColor, setDefaultShapeColor] = useState(preferences.defaultShapeColor)
   const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(preferences.defaultShapeStrokeWidth)
@@ -534,7 +530,6 @@ const App = () => {
   const applySharedPreferences = (next: AppPreferences) => {
     setPreferences(next)
     setShowGrid(next.showGrid)
-    setSnapToGrid(next.snapToGrid)
     setDefaultTextStyle((current) => ({ ...current, fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, color: next.defaultTextColor }))
     setDefaultShapeColor(next.defaultShapeColor)
     setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
@@ -545,15 +540,6 @@ const App = () => {
     applySharedPreferences(next)
     setSettingsOpen(false)
     notify('設定を保存しました')
-  }
-
-  const setSnapEnabled = (enabled: boolean) => {
-    setSnapToGrid(enabled)
-    setPreferences((current) => {
-      const next = { ...current, snapToGrid: enabled }
-      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(next))
-      return next
-    })
   }
 
   useEffect(() => {
@@ -574,7 +560,6 @@ const App = () => {
           restoreHistoryLoadRef.current(restored.scene)
           setRulerCount(restored.scene.elements.filter((element) => element.kind === 'tile').length)
           setShowGrid(restored.settings.showGrid)
-          setSnapToGrid(restored.settings.snapToGrid)
         }
         localStorage.removeItem(SAVED_LAYOUTS_KEY)
       } catch {
@@ -630,7 +615,6 @@ const App = () => {
         const next = readPreferences()
         setPreferences(next)
         setShowGrid(next.showGrid)
-        setSnapToGrid(next.snapToGrid)
         setDefaultTextStyle({ fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, color: next.defaultTextColor })
         setDefaultShapeColor(next.defaultShapeColor)
         setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
@@ -1333,7 +1317,6 @@ const App = () => {
     history.load(layout.scene)
     setRulerCount(layout.scene.elements.filter((element) => element.kind === 'tile').length)
     setShowGrid(layout.settings.showGrid)
-    setSnapToGrid(layout.settings.snapToGrid)
     setPlacementMode('select')
     setContextMenu(null)
     notify(message)
@@ -1643,7 +1626,6 @@ const App = () => {
         canEditProperties={Boolean(selectedEditable)}
         canChangeLayer={selected.some((element) => !element.locked && element.kind !== 'image')}
         showGrid={showGrid}
-        snapToGrid={snapToGrid}
         placementMode={placementMode}
         onClear={() => {
           history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height })
@@ -1698,7 +1680,6 @@ const App = () => {
         onShuffle={shuffleTiles}
         onSetPlacementMode={setPlacementMode}
         onToggleGrid={() => setShowGrid((value) => !value)}
-        onToggleSnap={() => setSnapEnabled(!snapToGrid)}
         onSaveLocal={saveQuickLayout}
         onOpenSavedLayouts={() => setSavedLayoutsOpen(true)}
         onImportSharedLayout={() => shareInputRef.current?.click()}
@@ -1745,7 +1726,6 @@ const App = () => {
               ref={workspaceRef}
               scene={scene}
               showGrid={showGrid}
-              snapToGrid={snapToGrid}
               placementMode={placementMode}
               eraserSize={eraserSize}
               textStyle={defaultTextStyle}
@@ -1851,7 +1831,6 @@ const App = () => {
           onSendBack={() => moveSelectedLayers('back')}
           onAlign={alignTiles}
           onToggleGrid={() => setShowGrid((value) => !value)}
-          onToggleSnap={() => setSnapEnabled(!snapToGrid)}
           onClear={() => { history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height }); setRulerCount(0) }}
           onUndo={history.undo}
           onRedo={history.redo}

@@ -39,7 +39,6 @@ interface EditTextRequest {
 interface WorkspaceProps {
   scene: Scene
   showGrid: boolean
-  snapToGrid: boolean
   placementMode: PlacementMode
   eraserSize: number
   textStyle: { fontFamily: string; fontSize: number; color: string }
@@ -345,8 +344,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (!primary) return
     const rawX = primary.x + toLogicalDelta(clientX - drag.startClientX)
     const rawY = primary.y + toLogicalDelta(clientY - drag.startClientY)
-    let targetX = snap(rawX, currentProps.snapToGrid)
-    let targetY = snap(rawY, currentProps.snapToGrid)
+    let targetX = snap(rawX, true)
+    let targetY = snap(rawY, true)
     const primaryElement = currentProps.scene.elements.find((element) => element.id === drag.primaryId)
     if (primaryElement?.kind === 'tile' && drag.starts.length === 1) {
       const neighbor = currentProps.scene.elements

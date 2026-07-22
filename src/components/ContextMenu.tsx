@@ -6,7 +6,7 @@ interface ContextMenuProps {
   x: number; y: number; element: CanvasElement | null; hasSelection: boolean; canModifySelection: boolean; canPaste: boolean; canUndo: boolean; canRedo: boolean
   visibleItems: ContextMenuItemId[]; onClose: () => void; onDuplicate: () => void; onDelete: () => void; onCopy: () => void; onPaste: () => void; onRotate: () => void
   onAddRectangle: () => void; onAddTriangle: () => void; onAddCircle: () => void; onAddCross: () => void; onDrawMode: () => void; onLineMode: () => void; onCurveMode: () => void; onArrowMode: () => void; onAddImage: () => void; onSelectMode: () => void; onTextMode: () => void
-  onToggleFace: () => void; onToggleLock: () => void; onEditProperties: () => void; onBringFront: () => void; onSendBack: () => void; onAlign: () => void; onToggleGrid: () => void; onToggleSnap: () => void; onClear: () => void; onUndo: () => void; onRedo: () => void
+  onToggleFace: () => void; onToggleLock: () => void; onEditProperties: () => void; onBringFront: () => void; onSendBack: () => void; onAlign: () => void; onToggleGrid: () => void; onClear: () => void; onUndo: () => void; onRedo: () => void
 }
 const MenuButton = ({ label, shortcut, onClick, disabled }: { label: string; shortcut?: string; onClick: () => void; disabled?: boolean }) => <button type="button" role="menuitem" disabled={disabled} onClick={onClick}><span>{label}</span>{shortcut && <kbd>{shortcut}</kbd>}</button>
 
@@ -16,7 +16,7 @@ export const ContextMenu = (props: ContextMenuProps) => {
   const show = (id: ContextMenuItemId) => props.visibleItems.includes(id)
   const left = Math.max(8, Math.min(props.x, window.innerWidth - 248)); const top = Math.max(8, Math.min(props.y, window.innerHeight - 540)); const locked = props.element?.locked ?? false
   const additions: Array<[ContextMenuItemId, string, () => void]> = [['rectangle', '長方形', props.onAddRectangle], ['triangle', '三角形', props.onAddTriangle], ['circle', '丸', props.onAddCircle], ['cross', '✕', props.onAddCross], ['text', 'クリック文字', props.onTextMode], ['draw', '線を描く', props.onDrawMode], ['line', '直線', props.onLineMode], ['curve', '曲線', props.onCurveMode], ['arrow', '矢印', props.onArrowMode], ['image', '画像を追加', props.onAddImage]]
-  const workspaceActions: Array<[ContextMenuItemId, string, () => void]> = [['align', '選択牌を整列', props.onAlign], ['grid', 'グリッド表示を切替', props.onToggleGrid], ['snap', 'グリッド吸着を切替', props.onToggleSnap], ['clear', '作業画面をクリア', props.onClear]]
+  const workspaceActions: Array<[ContextMenuItemId, string, () => void]> = [['align', '選択牌を整列', props.onAlign], ['grid', 'グリッド表示を切替', props.onToggleGrid], ['clear', '作業画面をクリア', props.onClear]]
   return <div className="context-menu export-hidden" role="menu" aria-label="配置物メニュー" style={{ left, top }} onPointerDown={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()}>
     <div className="context-menu-heading">{props.hasSelection ? '選択中の配置物' : 'Workspace'}</div>
     {show('select') && <MenuButton label="選択" shortcut="Esc" onClick={() => run(props.onSelectMode)} />}
