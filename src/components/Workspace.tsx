@@ -1030,6 +1030,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             fontFamily: props.textStyle.fontFamily,
           }}
           value={editor.value}
+          rows={Math.max(1, editor.value.split('\n').length)}
           autoFocus
           aria-label="文字を入力"
           onPointerDown={(event) => event.stopPropagation()}
