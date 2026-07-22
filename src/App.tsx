@@ -815,6 +815,19 @@ const App = () => {
         changed = true
         return splitFreehandDrawing(element, point, radius).map((points, index) => ({ ...element, id: index === 0 ? element.id : createId('drawing'), points, selected: false }))
       }
+      if (element.kind === 'text') {
+        const dimensions = getElementDimensions(element)
+        const withinRow = point.y >= element.y - radius && point.y <= element.y + dimensions.height + radius
+        if (!withinRow) return [element]
+        const characters = Array.from(element.text)
+        const characterWidth = dimensions.width / Math.max(characters.length, 1)
+        const first = Math.max(0, Math.floor((point.x - radius - element.x) / characterWidth))
+        const last = Math.min(characters.length - 1, Math.floor((point.x + radius - element.x) / characterWidth))
+        if (last < 0 || first >= characters.length) return [element]
+        const text = characters.filter((_, index) => index < first || index > last).join('')
+        changed = true
+        return text ? [{ ...element, text, selected: false }] : []
+      }
       const dimensions = getElementDimensions(element)
       const touchesElement = point.x >= element.x - radius && point.x <= element.x + dimensions.width + radius
         && point.y >= element.y - radius && point.y <= element.y + dimensions.height + radius
@@ -1625,7 +1638,6 @@ const App = () => {
         canToggleTileFaces={selected.some((element) => element.kind === 'tile' && !element.locked)}
         canEditProperties={Boolean(selectedEditable)}
         canChangeLayer={selected.some((element) => !element.locked && element.kind !== 'image')}
-        showGrid={showGrid}
         placementMode={placementMode}
         onClear={() => {
           history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height })
@@ -1679,7 +1691,6 @@ const App = () => {
         })}
         onShuffle={shuffleTiles}
         onSetPlacementMode={setPlacementMode}
-        onToggleGrid={() => setShowGrid((value) => !value)}
         onSaveLocal={saveQuickLayout}
         onOpenSavedLayouts={() => setSavedLayoutsOpen(true)}
         onImportSharedLayout={() => shareInputRef.current?.click()}
@@ -1830,7 +1841,6 @@ const App = () => {
           onBringFront={() => moveSelectedLayers('front')}
           onSendBack={() => moveSelectedLayers('back')}
           onAlign={alignTiles}
-          onToggleGrid={() => setShowGrid((value) => !value)}
           onClear={() => { history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height }); setRulerCount(0) }}
           onUndo={history.undo}
           onRedo={history.redo}

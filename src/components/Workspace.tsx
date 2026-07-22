@@ -212,11 +212,12 @@ const constrainStraightLine = (start: CanvasPoint, end: CanvasPoint): CanvasPoin
   return [snappedStart, { x: snappedStart.x, y: snap(end.y, true) }]
 }
 
-/** The curve handle intentionally moves only vertically from the chord's midpoint. */
-const constrainCurveApex = (start: CanvasPoint, end: CanvasPoint, point: CanvasPoint): CanvasPoint => ({
-  x: (start.x + end.x) / 2,
-  y: point.y,
-})
+/** Keep the curve handle perpendicular to its chord: horizontal curves bend
+ * vertically, while vertically drawn curves bend along the horizontal axis. */
+const constrainCurveApex = (start: CanvasPoint, end: CanvasPoint, point: CanvasPoint): CanvasPoint =>
+  Math.abs(end.y - start.y) > Math.abs(end.x - start.x)
+    ? { x: point.x, y: (start.y + end.y) / 2 }
+    : { x: (start.x + end.x) / 2, y: point.y }
 
 export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref) => {
   const propsRef = useRef(props)

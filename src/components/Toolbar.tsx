@@ -20,7 +20,6 @@ interface ToolbarProps {
   canToggleTileFaces: boolean
   canEditProperties: boolean
   canChangeLayer: boolean
-  showGrid: boolean
   placementMode: PlacementMode
   onClear: () => void
   onUndo: () => void
@@ -43,7 +42,6 @@ interface ToolbarProps {
   onToggleHandSuit: (suit: 'man' | 'pin' | 'sou') => void
   onShuffle: () => void
   onSetPlacementMode: (mode: PlacementMode) => void
-  onToggleGrid: () => void
   onSaveLocal: () => void
   onOpenSavedLayouts: () => void
   onImportSharedLayout: () => void
@@ -180,7 +178,7 @@ export const Toolbar = (props: ToolbarProps) => {
           ['file', '保存・出力'],
           ['view', '設定'],
         ] as Array<[RibbonTab, string]>).map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => { setActiveTab(id); if (ribbonCollapsed) setRibbonCollapsed(false) }} onDoubleClick={() => setRibbonCollapsed((value) => !value)} title="ダブルクリックでリボンを折りたたむ">{label}</button>
+          <button key={id} type="button" role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => { if (id === 'view') { props.onOpenSettings(); return } setActiveTab(id); if (ribbonCollapsed) setRibbonCollapsed(false) }} onDoubleClick={() => setRibbonCollapsed((value) => !value)} title="ダブルクリックでリボンを折りたたむ">{label}</button>
         ))}
         <div className="page-tabs" aria-label="ページ">
           {props.pages.map((page, index) => <div key={page.id} draggable onDragStart={(event) => event.dataTransfer.setData('application/x-mahjong-page', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const from = Number(event.dataTransfer.getData('application/x-mahjong-page')); if (Number.isInteger(from)) props.onReorderPages(from, index) }} className={`page-tab${index === props.activePageIndex ? ' active' : ''}`}><button type="button" onClick={() => props.onSwitchPage(index)} onDoubleClick={() => props.onRenamePage(index)} title={`${page.name}（ダブルクリックで名前変更）`}>{Array.from(page.name).slice(0, 5).join('')}</button>{index === props.activePageIndex && <button type="button" className="page-close-tab" onClick={(event) => { event.stopPropagation(); props.onDeletePage(index) }} title="ページを削除">×</button>}</div>)}
@@ -193,6 +191,7 @@ export const Toolbar = (props: ToolbarProps) => {
           title={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
           aria-label={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
         >{ribbonCollapsed ? '⌄' : '⌃'}</button>
+        <button className="ribbon-help-button" type="button" onClick={props.onHelp} title="操作ガイド" aria-label="操作ガイド">?</button>
       </div>
 
       <div className="ribbon-content" role="tabpanel">
@@ -351,12 +350,6 @@ export const Toolbar = (props: ToolbarProps) => {
           </div>
         </div>}
 
-        {activeTab === 'view' && <div className="tool-group">
-          <span className="tool-group-label">表示</span>
-          <ToolButton label="グリッド" icon="▦" onClick={props.onToggleGrid} active={props.showGrid} />
-          <ToolButton label="設定" icon="⚙" onClick={props.onOpenSettings} />
-          <ToolButton label="操作ガイド" icon="?" onClick={props.onHelp} />
-        </div>}
 
         {activeTab === 'file' && <>
           <div className="tool-group">

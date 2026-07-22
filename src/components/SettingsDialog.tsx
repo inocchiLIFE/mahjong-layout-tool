@@ -54,7 +54,7 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
           <fieldset>
             <legend>表示と配置</legend>
             <label>画面・文字サイズ <input type="range" min="0.9" max="1.3" step="0.05" value={draft.uiScale} onChange={(event) => setDraft((current) => ({ ...current, uiScale: Number(event.target.value) }))} /><output>{Math.round(draft.uiScale * 100)}%</output></label>
-            <label><input type="checkbox" checked={draft.showGrid} onChange={(event) => setDraft((current) => ({ ...current, showGrid: event.target.checked }))} /> 新しい画面でグリッドを表示する</label>
+            <label><input type="checkbox" checked={draft.showGrid} onChange={(event) => setDraft((current) => ({ ...current, showGrid: event.target.checked }))} /> グリッドを表示する</label>
             <label>ポップアップ・文字サイズ <input type="range" min="1" max="1.5" step="0.05" value={draft.popupFontScale} onChange={(event) => setDraft((current) => ({ ...current, popupFontScale: Number(event.target.value) }))} /><output>{Math.round(draft.popupFontScale * 100)}%</output></label>
           </fieldset>
 
