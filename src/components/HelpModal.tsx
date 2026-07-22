@@ -22,73 +22,83 @@ export const HelpModal = ({ onClose }: HelpModalProps) => {
         <header className="help-header">
           <span className="eyebrow">OPERATION GUIDE</span>
           <h2 id="help-title">麻雀牌レイアウトツールの使い方</h2>
-          <p id="help-intro">牌姿の作成、講義資料の注釈、問題図の作成を、配置から保存まで一つの画面で行えます。</p>
+          <p id="help-intro">牌姿の作成、牌理・受け入れの確認、図形や文字による解説画像づくりを、ひとつの画面で行えます。</p>
         </header>
 
         <nav className="help-index" aria-label="操作ガイドの目次">
-          <a href="#help-start">はじめる</a>
-          <a href="#help-edit">編集する</a>
-          <a href="#help-insert">文字・図形</a>
+          <a href="#help-start">はじめに</a>
+          <a href="#help-edit">配置・編集</a>
+          <a href="#help-efficiency">牌理・受け入れ</a>
+          <a href="#help-hand">ランダム牌姿</a>
           <a href="#help-save">保存・共有</a>
         </nav>
 
         <div className="help-content">
           <section className="help-section" id="help-start">
-            <div className="help-section-heading"><span>01</span><h3>まずは牌を置く</h3></div>
+            <div className="help-section-heading"><span>01</span><h3>はじめに</h3></div>
             <div className="help-steps">
-              <div><b>1</b><p><strong>牌一覧から選ぶ</strong><span>左側の牌をクリックすると、グリッド線にそろった開始位置から空いている場所へ追加されます。牌をそのままワークスペースへドラッグして、好きな場所に置くこともできます。</span></p></div>
-              <div><b>2</b><p><strong>連続して配置する</strong><span>自動配置は一定の間隔で横に並び、移動済みの牌も避けます。上部の牌数メモリは同じ開始位置を基準に、追加した牌の枚数を13枚まで表示します。</span></p></div>
-              <div><b>3</b><p><strong>配牌をすばやく作る</strong><span>「配牌」タブの13枚・14枚を使うと、赤牌を含むルールに沿ったランダムな手牌を作成できます。作成後は自動で理牌されます。</span></p></div>
+              <div><b>1</b><p><strong>牌を配置する</strong><span>左の牌一覧から牌をクリックすると、ワークスペースに追加されます。空いている場所をクリックして配置することもできます。</span></p></div>
+              <div><b>2</b><p><strong>選択して動かす</strong><span>牌や図形をクリックして選択し、ドラッグで移動します。複数選択は範囲選択または Ctrl / ⌘ を押しながらクリックで行えます。</span></p></div>
+              <div><b>3</b><p><strong>タブを切り替える</strong><span>上部の「ホーム」「挿入」「手牌」「保存・共有」「設定」から、目的の操作を選びます。タブをダブルクリック、または Ctrl + F1 でリボンを折りたためます。</span></p></div>
             </div>
           </section>
 
           <section className="help-section" id="help-edit">
-            <div className="help-section-heading"><span>02</span><h3>選択・移動・編集</h3></div>
+            <div className="help-section-heading"><span>02</span><h3>配置・編集</h3></div>
             <div className="help-grid">
-              <article><strong>選択と複数選択</strong><p>要素をクリックして選択します。何もない場所をクリックすると選択解除。空白をドラッグすると、囲んだ牌・文字・図形をまとめて選択できます。</p></article>
-              <article><strong>移動と整列</strong><p>選択した要素はドラッグで移動できます。複数選択も一緒に移動します。「ホーム」タブの「牌を整列」で、選択中の牌または全牌を横一列にそろえます。</p></article>
-              <article><strong>牌を裏返す</strong><p>ワークスペース上の牌をダブルクリックすると表・裏を切り替えられます。牌の種類は保持されるため、もう一度ダブルクリックすれば元に戻ります。</p></article>
-              <article><strong>右クリックのメニュー</strong><p>要素の上だけでなく、ワークスペースの空白を右クリックしても操作できます。複製、貼り付け、ロック、重なり順、プロパティ編集などを実行できます。</p></article>
-              <article><strong>配置ツールを解除する</strong><p>選択中の文字・図形・線ツールは、同じツールをもう一度クリックするか、Escキーで「選択」モードに戻せます。</p></article>
+              <article><strong>移動・整列・重なり順</strong><p>選択中の要素はドラッグで移動できます。ホームタブの整列、最前面／最背面で見やすく配置できます。</p></article>
+              <article><strong>牌の表裏と回転</strong><p>牌を選択して表裏を切り替えられます。牌を右クリックして「牌を90度回転」を選ぶと、その牌だけを回転できます。</p></article>
+              <article><strong>右クリックメニュー</strong><p>選択した要素を右クリックすると、複製、コピー、貼り付け、削除、ロック、プロパティ編集などを実行できます。表示項目は設定で自由に変更できます。</p></article>
+              <article><strong>グリッドと吸着</strong><p>設定タブでグリッド表示と吸着を切り替えられます。吸着は初期状態でオンです。細かく位置を調整したいときは一時的にオフにできます。</p></article>
+              <article><strong>文字・図形・画像</strong><p>挿入タブから文字、ペン、消しゴム、線・曲線・矢印、各種図形、画像を追加できます。図形や描画ツールは右クリックで初期設定も変更できます。</p></article>
+              <article><strong>コピー＆ペースト</strong><p>選択要素はコピーして貼り付けられます。牌姿表記をクリップボードから貼り付けた場合も、牌として配置できます。</p></article>
             </div>
-            <div className="help-tip"><strong>ヒント</strong><span>牌・文字・図形・画像は、左の牌一覧エリアへドラッグしてドロップすると削除できます。削除後も「元に戻す」で復元できます。</span></div>
           </section>
 
-          <section className="help-section" id="help-insert">
-            <div className="help-section-heading"><span>03</span><h3>文字・図形・画像を加える</h3></div>
+          <section className="help-section" id="help-efficiency">
+            <div className="help-section-heading"><span>03</span><h3>牌理・受け入れ</h3></div>
             <div className="help-feature-list">
-              <div><strong>文字</strong><span>「挿入」タブで「クリック文字」を選び、ワークスペースをクリックして入力します。文字を選択すると、ホームタブでフォント、サイズ、色を変更できます。</span></div>
-              <div><strong>図形・線・手書き</strong><span>長方形、三角形、丸、バツ、牌5枚分・高さ1マスの波線、直線、曲線、矢印、手書き線を連続配置できます。線は既存の牌や線の上からでも描けます。曲線は、まず始点から終点までドラッグし、次にふくらませたい位置をクリックして確定します。図形を選択し、外枠のハンドルをドラッグするとサイズを変えられます。</span></div>
-              <div><strong>画像</strong><span>「画像を追加」から選ぶほか、画像ファイルをワークスペースへドラッグ＆ドロップ、またはコピー＆ペーストして追加できます。選択後はドラッグでサイズ変更できます。</span></div>
-              <div><strong>色のパレット</strong><span>ホームタブの <b>A</b> ボタンから細かな色を選び、カスタム色として登録できます。登録済みの色は文字と図形で共通して使えます。</span></div>
+              <div><strong>表示する</strong><span>画面右上の「牌理・受け入れ」でパネルを表示／非表示にできます。パネル右上の×でも閉じられ、境界をドラッグすると大きさを変えられます。</span></div>
+              <div><strong>13枚を選択した場合</strong><span>選択中の13枚を解析し、シャンテン数、有効牌（受け入れ）の種類数・枚数と、実際の有効牌を表示します。0シャンテンは「聴牌」と表示されます。</span></div>
+              <div><strong>14枚を選択した場合</strong><span>選択した各牌を切ったときの受け入れだけを一覧で表示します。「受け入れ枚数順」はシャンテン数を優先し、同じシャンテン数では受け入れ枚数の多い順です。「牌の並び順」も選べます。</span></div>
+              <div><strong>解析対象</strong><span>ワークスペース上の表向きの牌を選択して解析します。13枚または14枚を選択していない場合は結果を表示しません。</span></div>
+            </div>
+          </section>
+
+          <section className="help-section" id="help-hand">
+            <div className="help-section-heading"><span>04</span><h3>ランダム牌姿</h3></div>
+            <div className="help-feature-list">
+              <div><strong>基本のランダム生成</strong><span>手牌タブから連続形、6枚形、6枚形・複合形、7枚形、13枚、14枚を生成できます。シャッフルは配置済みの牌をランダムに並べ替えます。</span></div>
+              <div><strong>1シャンテン形</strong><span>「余剰牌型」「完全形」「ヘッドレス1型」「ヘッドレス2型」「くっつき」を選ぶと、条件を検証した13枚の牌姿を生成します。同一牌は最大4枚です。</span></div>
+              <div><strong>完全形のフォロー</strong><span>完全形は、ターツの構成牌を重ねる縦のフォローと、カンチャン形の外側・構成牌を使うフォローを含めて生成します。</span></div>
+              <div><strong>使用する牌種</strong><span>1シャンテン形は萬子・筒子・索子・字牌を含む全34種から生成します。通常のランダム生成では、手牌タブの使用する牌種フィルターを利用できます。</span></div>
             </div>
           </section>
 
           <section className="help-section" id="help-save">
-            <div className="help-section-heading"><span>04</span><h3>保存・呼び出し・共有</h3></div>
+            <div className="help-section-heading"><span>05</span><h3>保存・共有</h3></div>
             <div className="help-steps compact">
-              <div><b>1</b><p><strong>保存する</strong><span>「保存・出力」タブの「保存」を押し、名前を入力します。保存するたびに保存ページへ追加されます。</span></p></div>
-              <div><b>2</b><p><strong>あとから開く</strong><span>「保存ページ」では、保存済みレイアウトの読み込み、タイトル変更、削除ができます。画像を含むデータは、このブラウザの大容量保存領域に保存されます。</span></p></div>
-              <div><b>3</b><p><strong>共有する</strong><span>保存ページの「共有ファイル保存」をクリックして保存するか、デスクトップ・フォルダへドラッグして出力します。受け取った人は共有ファイルをワークスペースへドラッグ＆ドロップするだけで、保存された画面を開けます。</span></p></div>
+              <div><b>1</b><p><strong>ブラウザに保存</strong><span>保存・共有タブの「保存」で、現在のページと配置をこのブラウザに保存します。保存ページから読み込み・名前変更・削除ができます。</span></p></div>
+              <div><b>2</b><p><strong>保存ページを管理する</strong><span>保存ページでは、呼び出し、上書き保存、名前変更、分類、並べ替え、削除ができます。複数ページをまとめて保存することもできます。</span></p></div>
+              <div><b>3</b><p><strong>共有する</strong><span>保存ページの「共有ファイル保存」でレイアウトファイルを書き出せます。保存・共有タブの「共有ファイル読込」から、受け取ったファイルを開けます。</span></p></div>
             </div>
           </section>
 
           <section className="help-section help-shortcuts" aria-labelledby="shortcut-title">
             <div className="help-section-heading"><span>⌨</span><h3 id="shortcut-title">よく使うショートカット</h3></div>
             <div className="shortcut-list">
-              <span><Shortcut>Delete / Backspace</Shortcut> 選択を削除</span>
+              <span><Shortcut>Delete / Backspace</Shortcut> 選択要素を削除</span>
               <span><Shortcut>Ctrl / ⌘ + Z</Shortcut> 元に戻す</span>
               <span><Shortcut>Ctrl / ⌘ + Y</Shortcut> やり直す</span>
               <span><Shortcut>Ctrl / ⌘ + C / V</Shortcut> コピー・貼り付け</span>
               <span><Shortcut>Ctrl / ⌘ + D</Shortcut> 複製</span>
-              <span><Shortcut>矢印</Shortcut> 少し移動</span>
-              <span><Shortcut>Shift + 矢印</Shortcut> 大きく移動</span>
+              <span><Shortcut>矢印キー</Shortcut> 少し移動</span>
+              <span><Shortcut>Shift + 矢印キー</Shortcut> 大きく移動</span>
               <span><Shortcut>Esc</Shortcut> 選択・配置ツールを解除</span>
-              <span><Shortcut>選択中の配置ツールをクリック</Shortcut> 配置ツールを解除</span>
             </div>
           </section>
         </div>
-        <footer className="help-footer"><button className="primary-button" type="button" onClick={onClose}>レイアウト作成をはじめる</button></footer>
+        <footer className="help-footer"><button className="primary-button" type="button" onClick={onClose}>レイアウト編集をはじめる</button></footer>
       </section>
     </div>
   )
