@@ -250,7 +250,9 @@ const migrateVersionOne = (data: Record<string, unknown>): SavedLayout | null =>
     scene: { elements: [...tiles, ...texts], width: DEFAULT_WORKSPACE_WIDTH, height: DEFAULT_WORKSPACE_HEIGHT },
     settings: {
       showGrid: settings?.showGrid !== false,
-      snapToGrid: settings?.snapToGrid === true,
+      // Older layouts did not store this value.  Absence must retain the
+      // application's default (enabled), rather than silently disabling snap.
+      snapToGrid: settings?.snapToGrid !== false,
     },
   }
 }
@@ -280,7 +282,7 @@ const parseSavedLayout = (raw: string | null): SavedLayout | null => {
       },
       settings: {
         showGrid: settings?.showGrid !== false,
-        snapToGrid: settings?.snapToGrid === true,
+        snapToGrid: settings?.snapToGrid !== false,
       },
     }
   } catch {
@@ -543,6 +545,15 @@ const App = () => {
     applySharedPreferences(next)
     setSettingsOpen(false)
     notify('設定を保存しました')
+  }
+
+  const setSnapEnabled = (enabled: boolean) => {
+    setSnapToGrid(enabled)
+    setPreferences((current) => {
+      const next = { ...current, snapToGrid: enabled }
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(next))
+      return next
+    })
   }
 
   useEffect(() => {
@@ -1687,7 +1698,7 @@ const App = () => {
         onShuffle={shuffleTiles}
         onSetPlacementMode={setPlacementMode}
         onToggleGrid={() => setShowGrid((value) => !value)}
-        onToggleSnap={() => setSnapToGrid((value) => !value)}
+        onToggleSnap={() => setSnapEnabled(!snapToGrid)}
         onSaveLocal={saveQuickLayout}
         onOpenSavedLayouts={() => setSavedLayoutsOpen(true)}
         onImportSharedLayout={() => shareInputRef.current?.click()}
@@ -1840,7 +1851,7 @@ const App = () => {
           onSendBack={() => moveSelectedLayers('back')}
           onAlign={alignTiles}
           onToggleGrid={() => setShowGrid((value) => !value)}
-          onToggleSnap={() => setSnapToGrid((value) => !value)}
+          onToggleSnap={() => setSnapEnabled(!snapToGrid)}
           onClear={() => { history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height }); setRulerCount(0) }}
           onUndo={history.undo}
           onRedo={history.redo}
