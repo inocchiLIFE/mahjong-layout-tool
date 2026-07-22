@@ -848,7 +848,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           style: {
             left: element.x + camera.x,
             top: element.y + camera.y,
-            zIndex: element.kind === 'image' ? Math.max(1, element.zIndex) : 100000 + element.zIndex,
+            // Annotation elements are always drawn above tiles; their own
+            // z-index still controls overlap order between annotations.
+            zIndex: element.kind === 'image'
+              ? Math.max(1, element.zIndex)
+              : element.kind === 'tile'
+                ? 100000 + element.zIndex
+                : 200000 + element.zIndex,
             width: dimensions.width,
             height: dimensions.height,
           },
