@@ -11,6 +11,8 @@
 import { TILE_MAP } from '../data/tiles'
 import { getEfficiency, getShanten } from './mahjongEfficiency'
 import { scoreWinningHand } from './mahjongScore'
+import { meldTileIds } from './mahjongMelds'
+import type { MahjongMeld } from './mahjongMelds'
 
 export const EXPECTED_VALUE_TILE_IDS = [
   ...(['man', 'pin', 'sou'] as const).flatMap((suit) => Array.from({ length: 9 }, (_, index) => `${suit}${index + 1}`)),
@@ -28,6 +30,7 @@ export interface ExpectedValueSettings {
   includeUraDora: boolean
   allowShantenBack: boolean
   allowHandChange: boolean
+  melds?: MahjongMeld[]
 }
 
 export interface ExpectedValueResult {
@@ -80,10 +83,10 @@ const createDeadCounts = (settings: ExpectedValueSettings) => {
   return counts
 }
 
-const createDrawOptions = (hand: string[], deadCounts: Map<string, number>, includeRedDora: boolean): DrawOption[] => {
+const createDrawOptions = (hand: string[], deadCounts: Map<string, number>, includeRedDora: boolean, fixedTiles: string[] = []): DrawOption[] => {
   const rawCounts = new Map<string, number>()
-  hand.forEach((tileId) => rawCounts.set(tileId, (rawCounts.get(tileId) ?? 0) + 1))
-  const baseCounts = tileCounts(hand)
+  ;[...hand, ...fixedTiles].forEach((tileId) => rawCounts.set(tileId, (rawCounts.get(tileId) ?? 0) + 1))
+  const baseCounts = tileCounts([...hand, ...fixedTiles])
   return EXPECTED_VALUE_TILE_IDS.flatMap((baseId) => {
     const dead = deadCounts.get(baseId) ?? 0
     if (!includeRedDora || !RED_IDS[baseId]) {
@@ -103,6 +106,9 @@ const createHandGraph = (origin: string[], originShanten: number, settings: Expe
   const drawNodeIds = new Map<string, number>()
   const discardNodeIds = new Map<string, number>()
   const deadCounts = createDeadCounts(settings)
+  const melds = settings.melds ?? []
+  const fixedTiles = meldTileIds(melds)
+  const fixedMeldCount = melds.length
   const originCounts = tileCounts(origin)
   const nodeLimitMessage = '手牌変化が多すぎて計算できませんでした。向聴戻しまたは手変わりをオフにしてください。'
   const stateKey = (hand: string[], riichi: boolean) => `${handKey(hand)}|${riichi ? 1 : 0}`
@@ -115,6 +121,7 @@ const createHandGraph = (origin: string[], originShanten: number, settings: Expe
     includeRedDora: settings.includeRedDora,
     includeUraDora: settings.includeUraDora,
     riichi,
+    melds,
   })?.points ?? 0
 
   const addEdge = (sourceId: number, targetId: number, weight: number, points: number) => {
@@ -128,15 +135,15 @@ const createHandGraph = (origin: string[], originShanten: number, settings: Expe
     const existing = drawNodeIds.get(key)
     if (existing !== undefined) return existing
     if (drawNodes.length + discardNodes.length >= MAX_GRAPH_NODES) throw new Error(nodeLimitMessage)
-    const shanten = getShanten(normalizeHand(sortedHand))
+    const shanten = getShanten(normalizeHand(sortedHand), fixedMeldCount)
     if (shanten === null) throw new Error('解析できない牌姿が含まれています。')
     const nodeId = drawNodes.length
     drawNodes.push({ hand: sortedHand, shanten, riichi, edges: [], values: values() })
     drawNodeIds.set(key, nodeId)
     const allowHandChange = settings.allowHandChange && !riichi && withinChangeRange(sortedHand, shanten)
 
-    for (const draw of createDrawOptions(sortedHand, deadCounts, settings.includeRedDora)) {
-      const isEffective = getShanten(normalizeHand([...sortedHand, draw.tileId]))! < shanten
+    for (const draw of createDrawOptions(sortedHand, deadCounts, settings.includeRedDora, fixedTiles)) {
+      const isEffective = getShanten(normalizeHand([...sortedHand, draw.tileId]), fixedMeldCount)! < shanten
       if (!allowHandChange && !isEffective) continue
       const drawnHand = [...sortedHand, draw.tileId]
       const targetId = getDiscardNode(drawnHand, riichi)
@@ -152,7 +159,7 @@ const createHandGraph = (origin: string[], originShanten: number, settings: Expe
     const existing = discardNodeIds.get(key)
     if (existing !== undefined) return existing
     if (drawNodes.length + discardNodes.length >= MAX_GRAPH_NODES) throw new Error(nodeLimitMessage)
-    const shanten = getShanten(normalizeHand(sortedHand))
+    const shanten = getShanten(normalizeHand(sortedHand), fixedMeldCount)
     if (shanten === null) throw new Error('解析できない牌姿が含まれています。')
     const nodeId = discardNodes.length
     discardNodes.push({ hand: sortedHand, shanten, sourceIds: [], values: values() })
@@ -161,14 +168,14 @@ const createHandGraph = (origin: string[], originShanten: number, settings: Expe
 
     for (const discardTileId of uniqueTiles(sortedHand)) {
       const nextHand = removeOne(sortedHand, discardTileId)
-      const nextShanten = getShanten(normalizeHand(nextHand))
+      const nextShanten = getShanten(normalizeHand(nextHand), fixedMeldCount)
       if (nextShanten === null) continue
       const isUnnecessary = nextShanten === shanten
       if (!allowShantenBack && !isUnnecessary) continue
-      const callRiichi = riichi || shanten === 0 && isUnnecessary
+      const callRiichi = riichi || melds.every((meld) => meld.kind === 'closed-kan') && shanten === 0 && isUnnecessary
       const sourceId = getDrawNode(nextHand, callRiichi)
       if (!discardNodes[nodeId].sourceIds.includes(sourceId)) discardNodes[nodeId].sourceIds.push(sourceId)
-      const weight = createDrawOptions(nextHand, deadCounts, settings.includeRedDora).find((draw) => draw.tileId === discardTileId)?.count ?? 0
+      const weight = createDrawOptions(nextHand, deadCounts, settings.includeRedDora, fixedTiles).find((draw) => draw.tileId === discardTileId)?.count ?? 0
       if (weight > 0) addEdge(sourceId, nodeId, weight, shanten === -1 ? winPoints(sortedHand, discardTileId, riichi) : 0)
     }
     return nodeId
@@ -218,24 +225,27 @@ const solveGraph = (drawNodes: DrawNode[], discardNodes: DiscardNode[], initialW
 }
 
 export const calculateExpectedValues = (tileIds: string[], settings: ExpectedValueSettings): ExpectedValueResult[] => {
-  if (tileIds.length !== 14 || !getEfficiency(normalizeHand(tileIds))) return []
-  const current = getEfficiency(normalizeHand(tileIds))
+  const melds = settings.melds ?? []
+  const fixedMeldCount = melds.length
+  const expectedConcealedCount = 14 - fixedMeldCount * 3
+  if (tileIds.length !== expectedConcealedCount || !getEfficiency(normalizeHand(tileIds), fixedMeldCount)) return []
+  const current = getEfficiency(normalizeHand(tileIds), fixedMeldCount)
   const graph = createHandGraph(tileIds, current?.shanten ?? 8, settings)
   const deadTotal = [...graph.deadCounts.values()].reduce((sum, count) => sum + count, 0)
   // mahjong-cpp fixes the probability denominator from the wall that is
   // visible at calculation start: 136 tiles minus the 14-tile hand and
   // dora/other known tiles. Discarded tiles are returned to this virtual
   // wall, while the denominator advances only by the turn number.
-  const initialWallSize = Math.max(1, 136 - tileIds.length - deadTotal)
+  const initialWallSize = Math.max(1, 136 - 14 - deadTotal)
   solveGraph(graph.drawNodes, graph.discardNodes, initialWallSize)
   const turn = Math.max(0, Math.min(18, settings.turn))
 
   const initialHands = uniqueTiles(tileIds).flatMap((discardTileId) => {
     const hand = removeOne(tileIds, discardTileId)
-    const result = getEfficiency(normalizeHand(hand))
+    const result = getEfficiency(normalizeHand(hand), fixedMeldCount)
     if (!result) return []
     const isUnnecessary = result.shanten === (current?.shanten ?? result.shanten)
-    const callRiichi = (current?.shanten ?? 8) === 0 && isUnnecessary
+    const callRiichi = melds.every((meld) => meld.kind === 'closed-kan') && (current?.shanten ?? 8) === 0 && isUnnecessary
     const nodeId = graph.drawNodeIds.get(graph.stateKey(hand, callRiichi))
     return nodeId === undefined ? [] : [{ discardTileId, hand, result, nodeId }]
   })
@@ -243,7 +253,7 @@ export const calculateExpectedValues = (tileIds: string[], settings: ExpectedVal
   return initialHands.map(({ discardTileId, hand, result, nodeId }) => {
     const value = graph.drawNodes[nodeId].values[turn]
     const effective = new Set(result.effectiveTileIds)
-    const effectiveTileCount = createDrawOptions(hand, graph.deadCounts, settings.includeRedDora)
+    const effectiveTileCount = createDrawOptions(hand, graph.deadCounts, settings.includeRedDora, meldTileIds(melds))
       .filter((draw) => effective.has(normalize(draw.tileId)))
       .reduce((sum, draw) => sum + draw.count, 0)
     return {

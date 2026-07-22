@@ -11,7 +11,7 @@ export interface EfficiencyResult {
   effectiveTileCount: number
 }
 
-const normalShanten = (counts: number[]) => {
+const normalShanten = (counts: number[], fixedMelds: number) => {
   let minimum = 8
   const search = (index: number, melds: number, taatsu: number, pair: number) => {
     while (index < 34 && counts[index] === 0) index += 1
@@ -45,17 +45,18 @@ const normalShanten = (counts: number[]) => {
     }
     counts[index]--; search(index, melds, taatsu, pair); counts[index]++
   }
-  search(0, 0, 0, 0)
+  search(0, fixedMelds, 0, 0)
   return minimum
 }
 
 const SHANTEN_CACHE = new Map<string, number>()
 
-const shanten = (counts: number[]) => {
-  const cacheKey = counts.join('')
+const shanten = (counts: number[], fixedMelds = 0) => {
+  const cacheKey = `${fixedMelds}|${counts.join('')}`
   const cached = SHANTEN_CACHE.get(cacheKey)
   if (cached !== undefined) return cached
-  const normal = normalShanten([...counts])
+  const normal = normalShanten([...counts], fixedMelds)
+  if (fixedMelds > 0) return normal
   const pairs = counts.filter((count) => count >= 2).length
   const unique = counts.filter((count) => count > 0).length
   const sevenPairs = 6 - pairs + Math.max(0, 7 - unique)
@@ -82,19 +83,19 @@ const tileIdsToCounts = (tileIds: string[]) => {
   return counts
 }
 
-export const getShanten = (tileIds: string[]) => {
+export const getShanten = (tileIds: string[], fixedMelds = 0) => {
   const counts = tileIdsToCounts(tileIds)
-  return counts ? shanten(counts) : null
+  return counts && fixedMelds >= 0 && fixedMelds <= 4 ? shanten(counts, fixedMelds) : null
 }
 
-export const getEfficiency = (tileIds: string[]): EfficiencyResult | null => {
+export const getEfficiency = (tileIds: string[], fixedMelds = 0): EfficiencyResult | null => {
   const counts = tileIdsToCounts(tileIds)
   if (!counts) return null
-  const currentShanten = shanten(counts)
+  const currentShanten = shanten(counts, fixedMelds)
   const effectiveTileIds = TILE_IDS.filter((_, index) => {
     if (counts[index] >= 4) return false
     counts[index] += 1
-    const improves = shanten(counts) < currentShanten
+    const improves = shanten(counts, fixedMelds) < currentShanten
     counts[index] -= 1
     return improves
   })

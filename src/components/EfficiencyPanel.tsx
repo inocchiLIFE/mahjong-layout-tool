@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { TILE_MAP } from '../data/tiles'
-import { getDiscardEfficiencies, getEfficiency } from '../utils/mahjongEfficiency'
+import { getEfficiency } from '../utils/mahjongEfficiency'
 import { calculateExpectedValues, EXPECTED_VALUE_TILE_IDS, type ExpectedValueSettings, type Wind } from '../utils/expectedValue'
+import { MELD_KIND_LABELS, concealedTileCountForMelds, createMeldChoices, isValidMeld, type MeldKind } from '../utils/mahjongMelds'
 
 const Tile = ({ tileId }: { tileId: string }) => {
   const tile = TILE_MAP.get(tileId)
@@ -18,9 +19,10 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
   const [expectedValues, setExpectedValues] = useState<ReturnType<typeof calculateExpectedValues>>([])
   const [expectedError, setExpectedError] = useState('')
   const [isCalculatingExpectedValue, setIsCalculatingExpectedValue] = useState(false)
+  const [meldKind, setMeldKind] = useState<MeldKind>('open-sequence')
   const [expectedSettings, setExpectedSettings] = useState<ExpectedValueSettings>(() => ({
     roundWind: 'ton', seatWind: 'ton', turn: 3, doraIndicator: null, visibleCounts: {},
-    includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true,
+    includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true, melds: [],
   }))
   const startResize = (event: PointerEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -32,14 +34,20 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
     window.addEventListener('pointerup', end)
   }
   const baseTileIds = tileIds.map((id) => TILE_MAP.get(id)?.baseId ?? id)
-  const result = getEfficiency(baseTileIds)
-  const discards = baseTileIds.length === 14 ? getDiscardEfficiencies(baseTileIds) : []
+  const melds = expectedSettings.melds ?? []
+  const fixedMeldCount = melds.length
+  const concealedTileCount = concealedTileCountForMelds(melds)
+  const result = getEfficiency(baseTileIds, fixedMeldCount)
+  const discards = baseTileIds.length === concealedTileCount
+    ? [...new Set(baseTileIds)].map((discardTileId) => ({ discardTileId, result: getEfficiency(baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId)), fixedMeldCount) }))
+    : []
   useEffect(() => { setExpectedValues([]); setExpectedError('') }, [tileIds, expectedSettings])
   const runExpectedValueCalculation = () => {
     setIsCalculatingExpectedValue(true)
     setExpectedError('')
     window.setTimeout(() => {
       try {
+        if (tileIds.length !== concealedTileCount) throw new Error(`副露${melds.length}組では、手牌は${concealedTileCount}枚を選択してください。`)
         setExpectedValues(calculateExpectedValues(tileIds, expectedSettings))
       } catch (error) {
         setExpectedValues([])
@@ -68,8 +76,19 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
       {resizeHandle}{heading}
       {!isDiscardAnalysis && <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b><span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>}
       {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong><label>並び順<select value={discardSort} onChange={(event) => setDiscardSort(event.target.value as 'efficiency' | 'tile')}><option value="efficiency">受け入れ枚数順</option><option value="tile">牌の並び順</option></select></label></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>)}</div>}
-      {tileIds.length === 14 && <section className="expected-value-section">
-        <button type="button" className="expected-value-toggle" onClick={() => setShowExpectedValue((value) => !value)}>{showExpectedValue ? '期待値を閉じる' : '一人麻雀の期待値を計算'}</button>
+      {baseTileIds.length >= 2 && <section className="expected-value-section">
+        <div className="meld-input">
+          <strong>副露ブロック</strong>
+          <label>種類<select value={meldKind} onChange={(event) => setMeldKind(event.target.value as MeldKind)}>{(Object.keys(MELD_KIND_LABELS) as MeldKind[]).map((kind) => <option key={kind} value={kind}>{MELD_KIND_LABELS[kind]}</option>)}</select></label>
+          <div className="meld-choice-grid">{createMeldChoices(meldKind).map((choice) => <button type="button" key={`${meldKind}-${choice.join(',')}`} onClick={() => {
+            const next = [...melds, { id: `${Date.now()}-${choice.join('-')}`, kind: meldKind, tileIds: choice }]
+            if (next.length > 4 || !next.every(isValidMeld)) return
+            setExpectedSettings({ ...expectedSettings, melds: next })
+          }}>{choice.map((tileId, index) => <Tile key={`${tileId}-${index}`} tileId={tileId} />)}</button>)}</div>
+          {melds.length > 0 && <div className="meld-list">{melds.map((meld, index) => <div key={meld.id}><span>{MELD_KIND_LABELS[meld.kind]}</span>{meld.tileIds.map((tileId, tileIndex) => <Tile key={`${tileId}-${tileIndex}`} tileId={tileId} />)}<button type="button" onClick={() => setExpectedSettings({ ...expectedSettings, melds: melds.filter((_, meldIndex) => meldIndex !== index) })}>×</button></div>)}</div>}
+          <small>副露{melds.length}組：手牌は{concealedTileCount}枚を選択します。副露牌は手牌へ重ねて選択しません。</small>
+        </div>
+        <button type="button" className="expected-value-toggle" disabled={tileIds.length !== concealedTileCount} onClick={() => setShowExpectedValue((value) => !value)}>{showExpectedValue ? '期待値を閉じる' : '一人麻雀の期待値を計算'}</button>
         {showExpectedValue && <>
           <div className="expected-value-settings">
             <label>場風<select value={expectedSettings.roundWind} onChange={(event) => setExpectedSettings({ ...expectedSettings, roundWind: event.target.value as Wind })}>{([['ton', '東'], ['nan', '南'], ['sha', '西'], ['pei', '北']] as const).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>

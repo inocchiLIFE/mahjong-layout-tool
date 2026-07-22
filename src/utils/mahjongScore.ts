@@ -1,8 +1,9 @@
 import { TILE_MAP } from '../data/tiles'
 import { tileIdToIndex } from './mahjongEfficiency'
 import type { Wind } from './expectedValue'
+import type { MahjongMeld } from './mahjongMelds'
 
-type Meld = { kind: 'sequence' | 'triplet'; tiles: number[] }
+type Meld = { kind: 'sequence' | 'triplet'; tiles: number[]; open?: boolean; kan?: boolean }
 type Decomposition = { pair: number; melds: Meld[] }
 
 export interface ScoreSettings {
@@ -12,6 +13,7 @@ export interface ScoreSettings {
   includeRedDora: boolean
   includeUraDora: boolean
   riichi: boolean
+  melds?: MahjongMeld[]
 }
 
 export interface HandScore {
@@ -56,7 +58,7 @@ const totalTsumoPoints = (han: number, fu: number, dealer: boolean, yakuman = 0)
   return dealer ? round100(base * 2) * 3 : round100(base * 2) + round100(base) * 2
 }
 
-const enumerateNormal = (counts: number[]): Decomposition[] => {
+const enumerateNormal = (counts: number[], fixedMelds: Meld[] = []): Decomposition[] => {
   const results: Decomposition[] = []
   for (let pair = 0; pair < 34; pair += 1) {
     if (counts[pair] < 2) continue
@@ -65,7 +67,7 @@ const enumerateNormal = (counts: number[]): Decomposition[] => {
     const walk = () => {
       const index = counts.findIndex((count) => count > 0)
       if (index < 0) {
-        if (melds.length === 4) results.push({ pair, melds: melds.map((meld) => ({ ...meld, tiles: [...meld.tiles] })) })
+        if (melds.length + fixedMelds.length === 4) results.push({ pair, melds: [...fixedMelds, ...melds].map((meld) => ({ ...meld, tiles: [...meld.tiles] })) })
         return
       }
       if (counts[index] >= 3) {
@@ -89,12 +91,13 @@ const baseDoraHan = (tileIds: string[], counts: number[], settings: ScoreSetting
   return han
 }
 
-const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, decomposition: Decomposition, settings: ScoreSettings): HandScore => {
+const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, decomposition: Decomposition, settings: ScoreSettings): HandScore | null => {
   const yaku: string[] = []
   let han = 0
   let yakuman = 0
   const sequences = decomposition.melds.filter((meld) => meld.kind === 'sequence')
   const triplets = decomposition.melds.filter((meld) => meld.kind === 'triplet')
+  const closed = !decomposition.melds.some((meld) => meld.open)
   const allIndices = counts.flatMap((count, index) => Array.from({ length: count }, () => index))
   const allSimples = allIndices.every((index) => !isTerminalOrHonor(index))
   const valuePair = DRAGONS.includes(indexToId(decomposition.pair)) || indexToId(decomposition.pair) === settings.roundWind || indexToId(decomposition.pair) === settings.seatWind
@@ -105,10 +108,10 @@ const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, 
   })
   const pairWait = decomposition.pair === winningIndex
   const kanchanOrPenchan = !ryanmen && !pairWait && winningSequences.length > 0
-  const pinfu = sequences.length === 4 && !valuePair && ryanmen
+  const pinfu = closed && sequences.length === 4 && !valuePair && ryanmen
 
-  if (settings.riichi) { han += 1; yaku.push('立直') }
-  han += 1; yaku.push('門前清自摸和')
+  if (settings.riichi && closed) { han += 1; yaku.push('立直') }
+  if (closed) { han += 1; yaku.push('門前清自摸和') }
   if (allSimples) { han += 1; yaku.push('断么九') }
   if (pinfu) { han += 1; yaku.push('平和') }
 
@@ -121,10 +124,10 @@ const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, 
 
   const sequenceStarts = sequences.map((meld) => meld.tiles[0])
   const duplicateGroups = [...new Set(sequenceStarts)].filter((start) => sequenceStarts.filter((value) => value === start).length >= 2).length
-  if (duplicateGroups >= 2) { han += 3; yaku.push('二盃口') }
-  else if (duplicateGroups === 1) { han += 1; yaku.push('一盃口') }
-  for (let rank = 0; rank <= 6; rank += 1) if ([rank, rank + 9, rank + 18].every((start) => sequenceStarts.includes(start))) { han += 2; yaku.push('三色同順'); break }
-  for (const suitStart of [0, 9, 18]) if ([suitStart, suitStart + 3, suitStart + 6].every((start) => sequenceStarts.includes(start))) { han += 2; yaku.push('一気通貫'); break }
+  if (closed && duplicateGroups >= 2) { han += 3; yaku.push('二盃口') }
+  else if (closed && duplicateGroups === 1) { han += 1; yaku.push('一盃口') }
+  for (let rank = 0; rank <= 6; rank += 1) if ([rank, rank + 9, rank + 18].every((start) => sequenceStarts.includes(start))) { han += closed ? 2 : 1; yaku.push('三色同順'); break }
+  for (const suitStart of [0, 9, 18]) if ([suitStart, suitStart + 3, suitStart + 6].every((start) => sequenceStarts.includes(start))) { han += closed ? 2 : 1; yaku.push('一気通貫'); break }
   const tripletIndices = triplets.map((meld) => meld.tiles[0])
   for (let rank = 0; rank < 9; rank += 1) if ([rank, rank + 9, rank + 18].every((index) => tripletIndices.includes(index))) { han += 2; yaku.push('三色同刻'); break }
   if (triplets.length === 4) { han += 2; yaku.push('対々和') }
@@ -134,7 +137,7 @@ const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, 
   const hasSequence = sequences.length > 0
   const hasHonor = allIndices.some(isHonor)
   if (everyGroupHasTerminalOrHonor && hasSequence) {
-    han += hasHonor ? 2 : 3
+    han += hasHonor ? (closed ? 2 : 1) : (closed ? 3 : 2)
     yaku.push(hasHonor ? '混全帯么九' : '純全帯么九')
   }
   if (allIndices.every(isTerminalOrHonor) && triplets.length === 4) { han += 2; yaku.push('混老頭') }
@@ -143,7 +146,7 @@ const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, 
 
   const numberedSuits = new Set(allIndices.filter((index) => index < 27).map((index) => Math.floor(index / 9)))
   if (numberedSuits.size === 1) {
-    han += hasHonor ? 3 : 6
+    han += hasHonor ? (closed ? 3 : 2) : (closed ? 6 : 5)
     yaku.push(hasHonor ? '混一色' : '清一色')
   }
 
@@ -162,12 +165,16 @@ const scoreNormal = (tileIds: string[], counts: number[], winningIndex: number, 
     if (suitCounts[0] >= 3 && suitCounts[8] >= 3 && suitCounts.slice(1, 8).every((count) => count >= 1)) { yakuman += 1; yaku.push('九蓮宝燈') }
   }
 
+  if (han === 0 && yakuman === 0) return null
   let fu = pinfu ? 20 : 22 // 副底20 + ツモ2
   if (!pinfu) {
     if (DRAGONS.includes(indexToId(decomposition.pair))) fu += 2
     if (indexToId(decomposition.pair) === settings.roundWind) fu += 2
     if (indexToId(decomposition.pair) === settings.seatWind) fu += 2
-    for (const meld of triplets) fu += isTerminalOrHonor(meld.tiles[0]) ? 8 : 4
+    for (const meld of triplets) {
+      const base = meld.kan ? (meld.open ? 8 : 16) : (meld.open ? 2 : 4)
+      fu += isTerminalOrHonor(meld.tiles[0]) ? base * 2 : base
+    }
     if (pairWait || kanchanOrPenchan) fu += 2
     fu = Math.ceil(fu / 10) * 10
   }
@@ -181,11 +188,30 @@ const indexToId = (index: number) => index < 9 ? `man${index + 1}` : index < 18 
 const idLabel = (id: string) => ({ ton: '東', nan: '南', sha: '西', pei: '北', haku: '白', hatsu: '發', chun: '中' } as Record<string, string>)[id] ?? id
 
 export const scoreWinningHand = (tileIds: string[], winningTileId: string, settings: ScoreSettings): HandScore | null => {
-  if (tileIds.length !== 14) return null
+  const fixed = settings.melds ?? []
+  const expectedConcealedCount = 14 - fixed.length * 3
+  if (tileIds.length !== expectedConcealedCount) return null
   const baseIds = tileIds.map((id) => TILE_MAP.get(id)?.baseId ?? id)
+  const fixedTileIds = fixed.flatMap((meld) => meld.tileIds)
+  const allTileIds = [...tileIds, ...fixedTileIds]
   const counts = Array(34).fill(0) as number[]
-  for (const id of baseIds) { const index = tileIdToIndex(id); if (index < 0 || ++counts[index] > 4) return null }
+  for (const id of [...baseIds, ...fixedTileIds.map((tileId) => TILE_MAP.get(tileId)?.baseId ?? tileId)]) { const index = tileIdToIndex(id); if (index < 0 || ++counts[index] > 4) return null }
   const winningIndex = tileIdToIndex(TILE_MAP.get(winningTileId)?.baseId ?? winningTileId)
+  if (fixed.length > 0) {
+    const fixedMelds = fixed.map((meld): Meld => ({
+      kind: meld.kind === 'open-sequence' ? 'sequence' : 'triplet',
+      tiles: meld.tileIds.map((tileId) => tileIdToIndex(TILE_MAP.get(tileId)?.baseId ?? tileId)),
+      open: meld.kind !== 'closed-kan',
+      kan: meld.tileIds.length === 4,
+    }))
+    const concealedCounts = Array(34).fill(0) as number[]
+    for (const id of baseIds) concealedCounts[tileIdToIndex(id)] += 1
+    const scores = enumerateNormal(concealedCounts, fixedMelds)
+      .map((decomposition) => scoreNormal(allTileIds, counts, winningIndex, decomposition, settings))
+      .filter((score): score is HandScore => score !== null)
+    if (!scores.length) return null
+    return scores.reduce((best, score) => score.points > best.points ? score : best)
+  }
   const uniqueOrphans = [...ORPHANS].filter((index) => counts[index] > 0).length
   if (uniqueOrphans === 13 && [...ORPHANS].some((index) => counts[index] >= 2)) return { han: 0, fu: 0, points: totalTsumoPoints(0, 0, settings.seatWind === 'ton', 1), yaku: ['国士無双'], yakuman: 1 }
   const pairs = counts.filter((count) => count === 2).length
@@ -202,7 +228,10 @@ export const scoreWinningHand = (tileIds: string[], winningTileId: string, setti
     const dora = baseDoraHan(tileIds, counts, settings); han += dora; if (dora) yaku.push(`ドラ${dora}`)
     scores.push({ han, fu: 25, points: totalTsumoPoints(han, 25, settings.seatWind === 'ton'), yaku, yakuman: 0 })
   }
-  for (const decomposition of enumerateNormal([...counts])) scores.push(scoreNormal(tileIds, counts, winningIndex, decomposition, settings))
+  for (const decomposition of enumerateNormal([...counts])) {
+    const score = scoreNormal(tileIds, counts, winningIndex, decomposition, settings)
+    if (score) scores.push(score)
+  }
   if (!scores.length) return null
   const best = scores.sort((left, right) => right.points - left.points)[0]
   if (!settings.includeUraDora || !settings.riichi || best.yakuman) return best

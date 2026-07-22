@@ -68,4 +68,13 @@ const kokushi = scoreWinningHand(
 )
 assert.equal(kokushi?.yakuman, 1, 'thirteen orphans is a yakuman')
 assert.ok(kokushi?.yaku.includes('国士無双'), 'thirteen orphans is detected')
+
+const openYakuhai = scoreWinningHand(
+  ['pin4', 'pin5', 'pin6', 'pin7', 'pin8', 'pin9', 'sou3', 'sou4', 'sou5', 'man2', 'man2'],
+  'sou5',
+  { ...scoreSettings, riichi: false, melds: [{ id: 'open-haku', kind: 'open-triplet', tileIds: ['haku', 'haku', 'haku'] }] },
+)
+assert.ok(openYakuhai, 'an open hand with a yakuhai block is scored')
+assert.ok(openYakuhai?.yaku.includes('役牌 白'), 'open yakuhai is detected')
+assert.ok(!openYakuhai?.yaku.includes('門前清自摸和'), 'open hands do not receive menzen tsumo')
 console.log('expected value tests passed')
