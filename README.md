@@ -19,15 +19,15 @@ GitHub Pages: https://inocchilife.github.io/mahjong-layout-tool/
 
 ## 参考実装・ライセンス
 
-一人麻雀の期待値計算にある手牌変化グラフと確率の逆算処理は、
-[tomohxx/mahjong-win-prob](https://github.com/tomohxx/mahjong-win-prob)（GNU GPLv3）を参考に、
-ブラウザ向けTypeScriptとして移植・変更しています。参照した版は
-`36ac07db113ef9bad146a1e336800e8e79a52916`、変更日は2026年7月23日です。
+一人麻雀の期待値計算にあるツモ・打牌の手牌変化グラフと確率・期待値の逆算処理は、
+元サイトで使われている[nekobean/mahjong-cpp](https://github.com/nekobean/mahjong-cpp)（GNU GPLv3、参照版
+`453cae05caf0e3c0da13846f82c20685becaea6e`）をブラウザ向けTypeScriptへ移植・変更しています。
+この実装は[tomohxx/mahjong-win-prob](https://github.com/tomohxx/mahjong-win-prob)を基礎としています。変更日は2026年7月23日です。
 
 このアプリ全体をGNU General Public License v3.0で公開します。詳しい条件は[LICENSE](LICENSE)を確認してください。
 このソフトウェアは無保証です。
 
-Copyright © 2026 inocchiLIFE. Portions © 2022–2025 tomohxx.
+Copyright © 2026 inocchiLIFE. Portions © 2021–2026 nekobean; © 2022–2025 tomohxx.
 
 ## 主な機能
 

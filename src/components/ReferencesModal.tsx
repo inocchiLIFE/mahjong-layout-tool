@@ -4,7 +4,8 @@ interface ReferencesModalProps {
   onClose: () => void
 }
 
-const SOURCE_REVISION = '36ac07db113ef9bad146a1e336800e8e79a52916'
+const MAHJONG_CPP_REVISION = '453cae05caf0e3c0da13846f82c20685becaea6e'
+const WIN_PROB_REVISION = '36ac07db113ef9bad146a1e336800e8e79a52916'
 
 export const ReferencesModal = ({ onClose }: ReferencesModalProps) => {
   useEffect(() => {
@@ -37,28 +38,33 @@ export const ReferencesModal = ({ onClose }: ReferencesModalProps) => {
                 <strong>麻雀アルゴリズム</strong>
                 <span>手牌変化グラフと動的計画法の解説</span>
               </a>
+              <a href="https://github.com/nekobean/mahjong-cpp" target="_blank" rel="noreferrer">
+                <strong>mahjong-cpp</strong>
+                <span>元サイトの現行計算実装（GNU GPLv3）</span>
+              </a>
               <a href="https://github.com/tomohxx/mahjong-win-prob" target="_blank" rel="noreferrer">
                 <strong>mahjong-win-prob</strong>
-                <span>和了確率計算の参照実装（GNU GPLv3）</span>
+                <span>計算アルゴリズムの基礎となった実装（GNU GPLv3）</span>
               </a>
             </div>
           </section>
 
           <section className="license-notice">
             <h3>GNU General Public License v3.0</h3>
-            <p className="copyright-notice">Copyright © 2026 inocchiLIFE. Portions © 2022–2025 tomohxx.</p>
+            <p className="copyright-notice">Copyright © 2026 inocchiLIFE. Portions © 2021–2026 nekobean; © 2022–2025 tomohxx.</p>
             <p>このアプリはGNU GPLv3で公開しています。利用者は同ライセンスの条件に従って、ソースコードを利用・変更・再配布できます。</p>
-            <p>期待値計算の手牌グラフ生成と確率の逆算処理は、tomohxx氏の <code>mahjong-win-prob</code> を参考にTypeScriptへ移植・変更したものです。</p>
+            <p>期待値計算の手牌グラフ生成と確率の逆算処理は、元サイトで使われているnekobean氏の <code>mahjong-cpp</code> をTypeScriptへ移植・変更したものです。この実装はtomohxx氏のアルゴリズムを基礎としています。</p>
             <dl>
-              <div><dt>参照した版</dt><dd><code>{SOURCE_REVISION.slice(0, 12)}</code></dd></div>
-              <div><dt>変更内容</dt><dd>ブラウザ向けTypeScript化、得点期待値・場風・自風・ドラ・既知牌への対応</dd></div>
+              <div><dt>参照した版</dt><dd><code>{MAHJONG_CPP_REVISION.slice(0, 12)}</code></dd></div>
+              <div><dt>変更内容</dt><dd>ブラウザ向けTypeScript化、既存UI・既知牌・赤牌表示への統合</dd></div>
               <div><dt>変更日</dt><dd>2026年7月23日</dd></div>
             </dl>
             <p className="no-warranty">このソフトウェアは無保証です。正確性や特定目的への適合性を含め、法律で認められる範囲で一切の保証を行いません。</p>
             <div className="license-links">
               <a href="https://github.com/inocchiLIFE/mahjong-layout-tool/blob/main/LICENSE" target="_blank" rel="noreferrer">GPLv3全文</a>
               <a href="https://github.com/inocchiLIFE/mahjong-layout-tool" target="_blank" rel="noreferrer">このアプリのソースコード</a>
-              <a href={`https://github.com/tomohxx/mahjong-win-prob/tree/${SOURCE_REVISION}`} target="_blank" rel="noreferrer">参照元のソースコード</a>
+              <a href={`https://github.com/nekobean/mahjong-cpp/tree/${MAHJONG_CPP_REVISION}`} target="_blank" rel="noreferrer">現行計算の参照元</a>
+              <a href={`https://github.com/tomohxx/mahjong-win-prob/tree/${WIN_PROB_REVISION}`} target="_blank" rel="noreferrer">基礎実装の参照元</a>
             </div>
           </section>
         </div>

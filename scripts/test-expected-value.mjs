@@ -13,12 +13,28 @@ assert.ok(late[0].winProbability <= early[0].winProbability, 'fewer remaining tu
 const blocked = calculateExpectedValues(hand, { ...settings, visibleCounts: { sou6: 4, sou9: 4 } })
 assert.ok(blocked[0].effectiveTileCount <= early[0].effectiveTileCount, 'visible tiles reduce remaining acceptance')
 
-const publishedExample = ['man2', 'man3', 'man4', 'man5', 'man7', 'man8', 'pin1', 'pin6', 'pin8', 'pin9', 'sou3', 'sou5', 'sou7', 'ton']
-const publishedResult = calculateExpectedValues(publishedExample, { ...settings, includeRedDora: false })
-const resultFor = (tileId) => publishedResult.find((item) => item.discardTileId === tileId)?.winProbability
-assert.ok(Math.abs(resultFor('man2') - 0.1387) < 0.0001, 'published DP example matches the 2m discard probability')
-assert.ok(Math.abs(resultFor('man8') - 0.0879) < 0.0001, 'published DP example matches the 8m discard probability')
-assert.deepEqual(calculateExpectedValues(publishedExample, { ...settings, includeRedDora: false }), publishedResult, 'dynamic programming is deterministic')
+// Source-site regression fixture (pystyle simulator 0.9.8 / mahjong-cpp).
+// 3339m34678p44478s, East round, East seat, turn 3, East indicator.
+const referenceHand = ['man3', 'man3', 'man3', 'man9', 'pin3', 'pin4', 'pin6', 'pin7', 'pin8', 'sou4', 'sou4', 'sou4', 'sou7', 'sou8']
+const referenceSettings = {
+  ...settings,
+  turn: 3,
+  doraIndicator: 'ton',
+  includeUraDora: true,
+  allowShantenBack: true,
+  allowHandChange: true,
+}
+const referenceResult = calculateExpectedValues(referenceHand, referenceSettings)
+const referenceFor = (tileId) => referenceResult.find((item) => item.discardTileId === tileId)
+const assertNear = (actual, expected, tolerance, message) => assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} vs ${expected}`)
+
+assert.equal(referenceResult[0].discardTileId, 'man9', 'source-site fixture selects 9m as the best discard')
+assertNear(referenceFor('man9').expectedPoints, 4496, 20, '9m expected value matches source site')
+assertNear(referenceFor('man9').winProbability, 0.5516, 0.002, '9m win probability matches source site')
+assertNear(referenceFor('man9').tenpaiProbability, 0.9873, 0.002, '9m tenpai probability matches source site')
+assertNear(referenceFor('sou8').expectedPoints, 4202, 60, '8s expected value matches source site')
+assertNear(referenceFor('sou8').winProbability, 0.4962, 0.003, '8s win probability matches source site')
+assertNear(referenceFor('man3').expectedPoints, 3232, 20, '3m expected value matches source site')
 
 const scoreSettings = { roundWind: 'ton', seatWind: 'nan', doraIndicator: null, includeRedDora: true, includeUraDora: false, riichi: true }
 const pinfu = scoreWinningHand(

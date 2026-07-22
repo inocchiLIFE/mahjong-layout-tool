@@ -20,7 +20,7 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
   const [isCalculatingExpectedValue, setIsCalculatingExpectedValue] = useState(false)
   const [expectedSettings, setExpectedSettings] = useState<ExpectedValueSettings>(() => ({
     roundWind: 'ton', seatWind: 'ton', turn: 3, doraIndicator: null, visibleCounts: {},
-    includeRedDora: true, includeUraDora: true, allowShantenBack: false, allowHandChange: false,
+    includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true,
   }))
   const startResize = (event: PointerEvent<HTMLButtonElement>) => {
     event.preventDefault()

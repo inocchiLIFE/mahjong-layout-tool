@@ -522,7 +522,7 @@
 .references-content { min-height: 0; display: grid; gap: 20px; overflow-y: auto; padding: 22px 42px 26px; }
 .references-content section { display: grid; gap: 10px; }
 .references-content h3 { margin: 0; color: #244c41; font: 700 17px "Yu Mincho", serif; }
-.reference-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.reference-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
 .reference-links a { display: grid; gap: 5px; padding: 13px; border: 1px solid #dbe6df; border-radius: 8px; color: #245346; background: #fff; text-decoration: none; }
 .reference-links a:hover { border-color: #6ca58f; background: #f3faf6; }
 .reference-links strong { font-size: 12px; }

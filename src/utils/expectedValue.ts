@@ -1,7 +1,8 @@
 /*
  * The hand-transition graph and backward probability recurrence in this file
- * are adapted from tomohxx/mahjong-win-prob at revision
- * 36ac07db113ef9bad146a1e336800e8e79a52916 (GNU GPL v3.0).
+ * are a TypeScript port of nekobean/mahjong-cpp at revision
+ * 453cae05caf0e3c0da13846f82c20685becaea6e (GNU GPL v3.0).
+ * mahjong-cpp is based on the algorithm published by tomohxx.
  *
  * Modified 2026-07-23 for mahjong-layout-tool: TypeScript/browser port,
  * known-tile counts, red/ura dora, tenpai probability and score expectation.
@@ -41,13 +42,12 @@ export interface ExpectedValueResult {
 }
 
 interface DrawOption { tileId: string; count: number }
-interface StateValue { expectedPoints: number; pointWins: number; wins: number; tenpai: number }
-interface GraphAction { nodeId?: number; winPoints?: number }
-interface GraphTransition { weight: number; actions: GraphAction[] }
-interface GraphNode { hand: string[]; shanten: number; transitions: GraphTransition[] }
+interface StateValue { expectedPoints: number; wins: number; tenpai: number }
+interface DrawEdge { targetId: number; weight: number; winPoints: number }
+interface DrawNode { hand: string[]; shanten: number; riichi: boolean; edges: DrawEdge[]; values: StateValue[] }
+interface DiscardNode { hand: string[]; shanten: number; sourceIds: number[]; values: StateValue[] }
 
-const MAX_GRAPH_NODES = 6_000
-const MAX_CHANGE_GRAPH_NODES = 1_500
+const MAX_GRAPH_NODES = 12_000
 const RED_IDS: Record<string, string> = { man5: 'aka-man5', pin5: 'aka-pin5', sou5: 'aka-sou5' }
 const normalize = (tileId: string) => TILE_MAP.get(tileId)?.baseId ?? tileId
 const normalizeHand = (tileIds: string[]) => tileIds.map(normalize)
@@ -98,122 +98,150 @@ const createDrawOptions = (hand: string[], deadCounts: Map<string, number>, incl
 }
 
 const createHandGraph = (origin: string[], originShanten: number, settings: ExpectedValueSettings) => {
-  const nodes: GraphNode[] = []
-  const nodeIds = new Map<string, number>()
+  const drawNodes: DrawNode[] = []
+  const discardNodes: DiscardNode[] = []
+  const drawNodeIds = new Map<string, number>()
+  const discardNodeIds = new Map<string, number>()
   const deadCounts = createDeadCounts(settings)
   const originCounts = tileCounts(origin)
-  const changeBudget = settings.allowHandChange || settings.allowShantenBack ? 1 : 0
+  const nodeLimitMessage = '手牌変化が多すぎて計算できませんでした。向聴戻しまたは手変わりをオフにしてください。'
+  const stateKey = (hand: string[], riichi: boolean) => `${handKey(hand)}|${riichi ? 1 : 0}`
+  const values = () => Array.from({ length: 19 }, (): StateValue => ({ expectedPoints: 0, wins: 0, tenpai: 0 }))
+  const withinChangeRange = (hand: string[], shanten: number) => replacementDistance(hand, originCounts) + shanten < originShanten + 1
+  const winPoints = (hand: string[], winningTileId: string, riichi: boolean) => scoreWinningHand(hand, winningTileId, {
+    roundWind: settings.roundWind,
+    seatWind: settings.seatWind,
+    doraIndicator: settings.doraIndicator,
+    includeRedDora: settings.includeRedDora,
+    includeUraDora: settings.includeUraDora,
+    riichi,
+  })?.points ?? 0
 
-  const getNode = (hand: string[]): number => {
+  const addEdge = (sourceId: number, targetId: number, weight: number, points: number) => {
+    const edges = drawNodes[sourceId].edges
+    if (!edges.some((edge) => edge.targetId === targetId)) edges.push({ targetId, weight, winPoints: points })
+  }
+
+  const getDrawNode = (hand: string[], riichi: boolean): number => {
     const sortedHand = sortHand(hand)
-    const key = handKey(sortedHand)
-    const existing = nodeIds.get(key)
+    const key = stateKey(sortedHand, riichi)
+    const existing = drawNodeIds.get(key)
     if (existing !== undefined) return existing
-    const nodeLimit = changeBudget > 0 ? MAX_CHANGE_GRAPH_NODES : MAX_GRAPH_NODES
-    if (nodes.length >= nodeLimit) throw new Error('手変わり候補が多すぎます。手変わり・向聴戻しをオフにして計算してください。')
+    if (drawNodes.length + discardNodes.length >= MAX_GRAPH_NODES) throw new Error(nodeLimitMessage)
     const shanten = getShanten(normalizeHand(sortedHand))
     if (shanten === null) throw new Error('解析できない牌姿が含まれています。')
-    const nodeId = nodes.length
-    const node: GraphNode = { hand: sortedHand, shanten, transitions: [] }
-    nodes.push(node)
-    nodeIds.set(key, nodeId)
-    const canChangeDraw = changeBudget > 0 && replacementDistance(sortedHand, originCounts) + shanten < originShanten + changeBudget
+    const nodeId = drawNodes.length
+    drawNodes.push({ hand: sortedHand, shanten, riichi, edges: [], values: values() })
+    drawNodeIds.set(key, nodeId)
+    const allowHandChange = settings.allowHandChange && !riichi && withinChangeRange(sortedHand, shanten)
 
     for (const draw of createDrawOptions(sortedHand, deadCounts, settings.includeRedDora)) {
+      const isEffective = getShanten(normalizeHand([...sortedHand, draw.tileId]))! < shanten
+      if (!allowHandChange && !isEffective) continue
       const drawnHand = [...sortedHand, draw.tileId]
-      const drawnShanten = getShanten(normalizeHand(drawnHand))
-      const actions: GraphAction[] = []
-      if (drawnShanten === -1) {
-        const score = scoreWinningHand(drawnHand, draw.tileId, {
-          roundWind: settings.roundWind,
-          seatWind: settings.seatWind,
-          doraIndicator: settings.doraIndicator,
-          includeRedDora: settings.includeRedDora,
-          includeUraDora: settings.includeUraDora,
-          riichi: shanten === 0,
-        })
-        if (score) actions.push({ winPoints: score.points })
-      } else if (shanten !== 0 && (canChangeDraw || drawnShanten !== null && drawnShanten < shanten)) {
-        const candidates = uniqueTiles(drawnHand).flatMap((discardTileId) => {
-          const nextHand = removeOne(drawnHand, discardTileId)
-          const nextShanten = getShanten(normalizeHand(nextHand))
-          return nextShanten === null ? [] : [{ nextHand, nextShanten }]
-        })
-        const bestShanten = Math.min(...candidates.map((candidate) => candidate.nextShanten))
-        const maintainedShanten = drawnShanten !== null && candidates.some((candidate) => candidate.nextShanten === drawnShanten) ? drawnShanten : bestShanten
-        const canChangeDiscard = changeBudget > 0 && replacementDistance(drawnHand, originCounts) + maintainedShanten < originShanten + changeBudget
-        const nextKeys = new Set<string>()
-        for (const candidate of candidates) {
-          if ((!canChangeDiscard || !settings.allowShantenBack) && candidate.nextShanten !== maintainedShanten) continue
-          const nextKey = handKey(candidate.nextHand)
-          if (nextKeys.has(nextKey)) continue
-          nextKeys.add(nextKey)
-          actions.push({ nodeId: getNode(candidate.nextHand) })
-        }
-      }
-      if (actions.length) node.transitions.push({ weight: draw.count, actions })
+      const targetId = getDiscardNode(drawnHand, riichi)
+      const points = shanten === 0 && isEffective ? winPoints(drawnHand, draw.tileId, riichi) : 0
+      addEdge(nodeId, targetId, draw.count, points)
     }
     return nodeId
   }
 
-  return { nodes, nodeIds, deadCounts, getNode }
+  const getDiscardNode = (hand: string[], riichi: boolean): number => {
+    const sortedHand = sortHand(hand)
+    const key = stateKey(sortedHand, riichi)
+    const existing = discardNodeIds.get(key)
+    if (existing !== undefined) return existing
+    if (drawNodes.length + discardNodes.length >= MAX_GRAPH_NODES) throw new Error(nodeLimitMessage)
+    const shanten = getShanten(normalizeHand(sortedHand))
+    if (shanten === null) throw new Error('解析できない牌姿が含まれています。')
+    const nodeId = discardNodes.length
+    discardNodes.push({ hand: sortedHand, shanten, sourceIds: [], values: values() })
+    discardNodeIds.set(key, nodeId)
+    const allowShantenBack = settings.allowShantenBack && !riichi && withinChangeRange(sortedHand, shanten)
+
+    for (const discardTileId of uniqueTiles(sortedHand)) {
+      const nextHand = removeOne(sortedHand, discardTileId)
+      const nextShanten = getShanten(normalizeHand(nextHand))
+      if (nextShanten === null) continue
+      const isUnnecessary = nextShanten === shanten
+      if (!allowShantenBack && !isUnnecessary) continue
+      const callRiichi = riichi || shanten === 0 && isUnnecessary
+      const sourceId = getDrawNode(nextHand, callRiichi)
+      if (!discardNodes[nodeId].sourceIds.includes(sourceId)) discardNodes[nodeId].sourceIds.push(sourceId)
+      const weight = createDrawOptions(nextHand, deadCounts, settings.includeRedDora).find((draw) => draw.tileId === discardTileId)?.count ?? 0
+      if (weight > 0) addEdge(sourceId, nodeId, weight, shanten === -1 ? winPoints(sortedHand, discardTileId, riichi) : 0)
+    }
+    return nodeId
+  }
+
+  getDiscardNode(origin, false)
+  return { drawNodes, discardNodes, drawNodeIds, deadCounts, stateKey }
 }
 
-const solveGraph = (nodes: GraphNode[], settings: ExpectedValueSettings, drawsRemaining: number, initialWallSize: number) => {
-  let next = nodes.map((node): StateValue => ({ expectedPoints: 0, pointWins: 0, wins: 0, tenpai: node.shanten === 0 ? 1 : 0 }))
-  for (let depth = drawsRemaining - 1; depth >= 0; depth -= 1) {
-    const denominator = Math.max(1, initialWallSize - settings.turn - depth)
-    const current = nodes.map((node, nodeId): StateValue => {
-      const baseline = next[nodeId]
-      const value = { ...baseline }
-      for (const transition of node.transitions) {
-        const actions = transition.actions.map((action): StateValue => action.winPoints !== undefined
-          ? { expectedPoints: action.winPoints, pointWins: 1, wins: 1, tenpai: 1 }
-          : next[action.nodeId ?? nodeId])
-        let bestPoint = baseline
-        let bestWin = baseline
-        let bestTenpai = baseline
-        for (const action of actions) {
-          if (action.expectedPoints > bestPoint.expectedPoints + 1e-8
-            || Math.abs(action.expectedPoints - bestPoint.expectedPoints) <= 1e-8 && action.pointWins > bestPoint.pointWins) bestPoint = action
-          if (action.wins > bestWin.wins) bestWin = action
-          if (action.tenpai > bestTenpai.tenpai) bestTenpai = action
-        }
-        const probability = transition.weight / denominator
-        if (bestPoint.expectedPoints > baseline.expectedPoints + 1e-8
-          || Math.abs(bestPoint.expectedPoints - baseline.expectedPoints) <= 1e-8 && bestPoint.pointWins > baseline.pointWins) {
-          value.expectedPoints += probability * (bestPoint.expectedPoints - baseline.expectedPoints)
-          value.pointWins += probability * (bestPoint.pointWins - baseline.pointWins)
-        }
-        if (bestWin.wins > baseline.wins) value.wins += probability * (bestWin.wins - baseline.wins)
-        if (bestTenpai.tenpai > baseline.tenpai) value.tenpai += probability * (bestTenpai.tenpai - baseline.tenpai)
+const solveGraph = (drawNodes: DrawNode[], discardNodes: DiscardNode[], initialWallSize: number) => {
+  for (let turn = 18; turn >= 0; turn -= 1) {
+    for (const node of drawNodes) {
+      const value = node.values[turn]
+      if (turn === 18) {
+        if (node.shanten === 0) value.tenpai = 1
+        continue
       }
-      value.pointWins = clampProbability(value.pointWins)
-      value.wins = clampProbability(value.wins)
-      value.tenpai = clampProbability(value.tenpai)
-      return value
-    })
-    next = current
+      const baseline = node.values[turn + 1]
+      let tenpaiDelta = 0
+      let winDelta = 0
+      let pointDelta = 0
+      for (const edge of node.edges) {
+        const target = discardNodes[edge.targetId].values[turn + 1]
+        const tenpai = edge.winPoints > 0 ? 1 : target.tenpai
+        const wins = edge.winPoints > 0 ? 1 : target.wins
+        const points = edge.winPoints > 0 ? Math.max(edge.winPoints, target.expectedPoints) : target.expectedPoints
+        tenpaiDelta += edge.weight * (tenpai - baseline.tenpai)
+        winDelta += edge.weight * (wins - baseline.wins)
+        pointDelta += edge.weight * (points - baseline.expectedPoints)
+      }
+      const denominator = Math.max(1, initialWallSize - turn)
+      value.tenpai = node.shanten === 0 ? 1 : clampProbability(baseline.tenpai + tenpaiDelta / denominator)
+      value.wins = clampProbability(baseline.wins + winDelta / denominator)
+      value.expectedPoints = Math.max(0, baseline.expectedPoints + pointDelta / denominator)
+    }
+
+    for (const node of discardNodes) {
+      const value = node.values[turn]
+      for (const sourceId of node.sourceIds) {
+        const source = drawNodes[sourceId].values[turn]
+        value.tenpai = Math.max(value.tenpai, source.tenpai)
+        value.wins = Math.max(value.wins, source.wins)
+        value.expectedPoints = Math.max(value.expectedPoints, source.expectedPoints)
+      }
+    }
   }
-  return next
 }
 
 export const calculateExpectedValues = (tileIds: string[], settings: ExpectedValueSettings): ExpectedValueResult[] => {
   if (tileIds.length !== 14 || !getEfficiency(normalizeHand(tileIds))) return []
   const current = getEfficiency(normalizeHand(tileIds))
+  const graph = createHandGraph(tileIds, current?.shanten ?? 8, settings)
+  const deadTotal = [...graph.deadCounts.values()].reduce((sum, count) => sum + count, 0)
+  // mahjong-cpp fixes the probability denominator from the wall that is
+  // visible at calculation start: 136 tiles minus the 14-tile hand and
+  // dora/other known tiles. Discarded tiles are returned to this virtual
+  // wall, while the denominator advances only by the turn number.
+  const initialWallSize = Math.max(1, 136 - tileIds.length - deadTotal)
+  solveGraph(graph.drawNodes, graph.discardNodes, initialWallSize)
+  const turn = Math.max(0, Math.min(18, settings.turn))
+
   const initialHands = uniqueTiles(tileIds).flatMap((discardTileId) => {
     const hand = removeOne(tileIds, discardTileId)
     const result = getEfficiency(normalizeHand(hand))
-    return result && (settings.allowShantenBack || result.shanten <= (current?.shanten ?? result.shanten)) ? [{ discardTileId, hand, result }] : []
+    if (!result) return []
+    const isUnnecessary = result.shanten === (current?.shanten ?? result.shanten)
+    const callRiichi = (current?.shanten ?? 8) === 0 && isUnnecessary
+    const nodeId = graph.drawNodeIds.get(graph.stateKey(hand, callRiichi))
+    return nodeId === undefined ? [] : [{ discardTileId, hand, result, nodeId }]
   })
-  const graph = createHandGraph(tileIds, current?.shanten ?? 8, settings)
-  initialHands.forEach(({ hand }) => graph.getNode(hand))
-  const deadTotal = [...graph.deadCounts.values()].reduce((sum, count) => sum + count, 0)
-  const initialWallSize = Math.max(1, 136 - 13 - deadTotal)
-  const values = solveGraph(graph.nodes, settings, Math.max(0, 18 - settings.turn), initialWallSize)
 
-  return initialHands.map(({ discardTileId, hand, result }) => {
-    const value = values[graph.nodeIds.get(handKey(hand)) ?? 0]
+  return initialHands.map(({ discardTileId, hand, result, nodeId }) => {
+    const value = graph.drawNodes[nodeId].values[turn]
     const effective = new Set(result.effectiveTileIds)
     const effectiveTileCount = createDrawOptions(hand, graph.deadCounts, settings.includeRedDora)
       .filter((draw) => effective.has(normalize(draw.tileId)))
@@ -225,7 +253,7 @@ export const calculateExpectedValues = (tileIds: string[], settings: ExpectedVal
       effectiveTileCount,
       tenpaiProbability: value.tenpai,
       winProbability: value.wins,
-      estimatedWinPoints: value.pointWins > 0 ? Math.round(value.expectedPoints / value.pointWins) : 0,
+      estimatedWinPoints: value.wins > 0 ? Math.round(value.expectedPoints / value.wins) : 0,
       expectedPoints: Math.round(value.expectedPoints),
     }
   }).sort((left, right) => right.expectedPoints - left.expectedPoints
