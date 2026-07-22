@@ -65,6 +65,7 @@ interface WorkspaceProps {
   onToggleTileFace: (id: string) => void
   onOpenContextMenu: (state: ContextMenuState) => void
   onResizeElement: (id: string, width: number, height: number) => void
+  onCropImage: (id: string, crop: { x: number; y: number; width: number; height: number }, width: number, height: number, x: number, y: number) => void
   onBeginDrag: () => void
   onEndDrag: () => void
 }
@@ -119,6 +120,19 @@ interface ElementResizeState {
   startClientY: number
   startWidth: number
   startHeight: number
+}
+
+interface ImageCropState {
+  pointerId: number
+  id: string
+  startX: number
+  startY: number
+  width: number
+  height: number
+  x: number
+  y: number
+  bounds: DOMRect
+  crop: { x: number; y: number; width: number; height: number }
 }
 
 interface PanState {
@@ -213,9 +227,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const drawingRef = useRef<DrawingState | null>(null)
   const eraserRef = useRef<EraserState | null>(null)
   const elementResizeRef = useRef<ElementResizeState | null>(null)
+  const imageCropRef = useRef<ImageCropState | null>(null)
+  const imageCropPreviewRef = useRef<{ id: string; x: number; y: number; width: number; height: number } | null>(null)
   const panRef = useRef<PanState | null>(null)
   const spaceDownRef = useRef(false)
   const [marquee, setMarquee] = useState<MarqueeState | null>(null)
+  const [imageCropPreview, setImageCropPreview] = useState<{ id: string; x: number; y: number; width: number; height: number } | null>(null)
   const [editor, setEditor] = useState<TextEditorState | null>(null)
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
   const [curveDraft, setCurveDraft] = useState<CurveDraftState | null>(null)
@@ -435,6 +452,59 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       window.removeEventListener('pointermove', moveElementResize)
       window.removeEventListener('pointerup', endElementResize)
       window.removeEventListener('pointercancel', endElementResize)
+    }
+  }, [])
+
+  const beginImageCrop = (event: ReactPointerEvent<HTMLButtonElement>, element: Extract<CanvasElement, { kind: 'image' }>) => {
+    if (event.button !== 0 || element.locked || props.placementMode !== 'select') return
+    event.preventDefault()
+    event.stopPropagation()
+    props.onSelectElement(element.id, false)
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const startX = Math.max(0, Math.min(element.width, (event.clientX - bounds.left) / bounds.width * element.width))
+    const startY = Math.max(0, Math.min(element.height, (event.clientY - bounds.top) / bounds.height * element.height))
+    event.currentTarget.setPointerCapture(event.pointerId)
+    imageCropRef.current = { pointerId: event.pointerId, id: element.id, startX, startY, width: element.width, height: element.height, x: element.x, y: element.y, bounds, crop: element.crop ?? { x: 0, y: 0, width: 1, height: 1 } }
+    const preview = { id: element.id, x: startX, y: startY, width: 0, height: 0 }
+    imageCropPreviewRef.current = preview
+    setImageCropPreview(preview)
+    props.onBeginDrag()
+  }
+
+  useEffect(() => {
+    const updateCrop = (event: PointerEvent) => {
+      const state = imageCropRef.current
+      if (!state || state.pointerId !== event.pointerId) return
+      const currentX = Math.max(0, Math.min(state.width, (event.clientX - state.bounds.left) / state.bounds.width * state.width))
+      const currentY = Math.max(0, Math.min(state.height, (event.clientY - state.bounds.top) / state.bounds.height * state.height))
+      const preview = { id: state.id, x: Math.min(state.startX, currentX), y: Math.min(state.startY, currentY), width: Math.abs(currentX - state.startX), height: Math.abs(currentY - state.startY) }
+      imageCropPreviewRef.current = preview
+      setImageCropPreview(preview)
+    }
+    const finishCrop = (event: PointerEvent) => {
+      const state = imageCropRef.current
+      if (!state || state.pointerId !== event.pointerId) return
+      const preview = imageCropPreviewRef.current
+      imageCropRef.current = null
+      imageCropPreviewRef.current = null
+      setImageCropPreview(null)
+      if (preview && preview.id === state.id && preview.width >= 12 && preview.height >= 12) {
+        propsRef.current.onCropImage(state.id, {
+          x: state.crop.x + preview.x / state.width * state.crop.width,
+          y: state.crop.y + preview.y / state.height * state.crop.height,
+          width: preview.width / state.width * state.crop.width,
+          height: preview.height / state.height * state.crop.height,
+        }, preview.width, preview.height, state.x + preview.x, state.y + preview.y)
+      }
+      propsRef.current.onEndDrag()
+    }
+    window.addEventListener('pointermove', updateCrop)
+    window.addEventListener('pointerup', finishCrop)
+    window.addEventListener('pointercancel', finishCrop)
+    return () => {
+      window.removeEventListener('pointermove', updateCrop)
+      window.removeEventListener('pointerup', finishCrop)
+      window.removeEventListener('pointercancel', finishCrop)
     }
   }, [])
 
@@ -789,6 +859,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               if (!element.locked) props.onDeleteDragged([element.id])
               return
             }
+            if (element.kind === 'image' && event.altKey) {
+              beginImageCrop(event, element)
+              return
+            }
             if (props.placementMode !== 'draw' && props.placementMode !== 'line' && props.placementMode !== 'curve' && props.placementMode !== 'arrow') beginElementDrag(event, element)
           },
           onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => openContextMenu(event, element),
@@ -852,20 +926,14 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }
 
         if (element.kind === 'image') {
+          const crop = element.crop ?? { x: 0, y: 0, width: 1, height: 1 }
+          const preview = imageCropPreview?.id === element.id ? imageCropPreview : null
           return (
             <button key={element.id} {...commonProps} aria-label={`画像「${element.name}」${element.selected ? '、選択中' : ''}${lockedLabel}`}>
-              <img
-                className="image-visual"
-                src={element.src}
-                alt=""
-                draggable={false}
-                style={{
-                  width: element.width,
-                  height: element.height,
-                  opacity: element.opacity,
-                  transform: `translate(-50%, -50%) rotate(${element.rotation}deg)`,
-                }}
-              />
+              <span className="image-crop-frame" style={{ width: element.width, height: element.height, opacity: element.opacity, transform: `translate(-50%, -50%) rotate(${element.rotation}deg)` }}>
+                <img className="image-crop-source" src={element.src} alt="" draggable={false} style={{ width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `${-crop.x / crop.width * 100}%`, top: `${-crop.y / crop.height * 100}%` }} />
+              </span>
+              {preview && <span className="image-crop-preview" style={{ left: `${preview.x / element.width * 100}%`, top: `${preview.y / element.height * 100}%`, width: `${preview.width / element.width * 100}%`, height: `${preview.height / element.height * 100}%` }} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )

@@ -342,6 +342,9 @@
 .placed-image { border-radius: 5px; }
 .image-visual, .drawing-visual { position: absolute; left: 50%; top: 50%; display: block; transform-origin: center; pointer-events: none; }
 .image-visual { object-fit: contain; border-radius: 4px; }
+.image-crop-frame { position: absolute; left: 50%; top: 50%; display: block; overflow: hidden; border-radius: 4px; transform-origin: center; pointer-events: none; }
+.image-crop-source { position: absolute; display: block; max-width: none; max-height: none; pointer-events: none; }
+.image-crop-preview { position: absolute; z-index: 3; box-sizing: border-box; border: 2px solid #277fbd; background: rgba(39, 127, 189, .18); pointer-events: none; }
 .drawing-visual { overflow: visible; }
 .workspace-canvas.drawing-mode, .workspace-canvas.drawing-mode .placed-item { cursor: crosshair; }
 .workspace-canvas.eraser-mode, .workspace-canvas.eraser-mode .placed-item { cursor: cell; }

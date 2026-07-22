@@ -80,6 +80,7 @@ export interface ImageElement extends CanvasElementBase {
   width: number
   height: number
   opacity: number
+  crop?: { x: number; y: number; width: number; height: number }
 }
 
 export type CanvasElement = TileElement | TextElement | SymbolElement | DrawingElement | ImageElement

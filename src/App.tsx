@@ -1300,6 +1300,13 @@ const App = () => {
     })
   }
 
+  const cropImage = (id: string, crop: { x: number; y: number; width: number; height: number }, width: number, height: number, x: number, y: number) => {
+    const elements = scene.elements.map((element) => element.id === id && element.kind === 'image' && !element.locked
+      ? { ...element, crop, width: Math.max(width, 24), height: Math.max(height, 24), x: Math.round(x), y: Math.round(y) }
+      : element)
+    history.updateLive({ ...scene, elements })
+  }
+
   const openContextMenu = (state: ContextMenuState) => {
     if (state.elementId === null) {
       setContextMenu(state)
@@ -1763,6 +1770,7 @@ const App = () => {
               onToggleTileFace={toggleTileFace}
               onOpenContextMenu={openContextMenu}
               onResizeElement={resizeElement}
+              onCropImage={cropImage}
               onBeginDrag={history.beginTransaction}
               onEndDrag={history.endTransaction}
             />
