@@ -1,3 +1,12 @@
+/*
+ * The hand-transition graph and backward probability recurrence in this file
+ * are adapted from tomohxx/mahjong-win-prob at revision
+ * 36ac07db113ef9bad146a1e336800e8e79a52916 (GNU GPL v3.0).
+ *
+ * Modified 2026-07-23 for mahjong-layout-tool: TypeScript/browser port,
+ * known-tile counts, red/ura dora, tenpai probability and score expectation.
+ * This file and the combined application are distributed under GNU GPL v3.0.
+ */
 import { TILE_MAP } from '../data/tiles'
 import { getEfficiency, getShanten } from './mahjongEfficiency'
 import { scoreWinningHand } from './mahjongScore'

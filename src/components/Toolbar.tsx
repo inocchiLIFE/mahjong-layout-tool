@@ -48,6 +48,7 @@ interface ToolbarProps {
   onAddImage: () => void
   onAddText: (text: string) => void
   onHelp: () => void
+  onOpenReferences: () => void
   onOpenSettings: () => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   onOpenDrawingPreset: (tool: DrawingTool) => void
@@ -192,6 +193,7 @@ export const Toolbar = (props: ToolbarProps) => {
           aria-label={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
         >{ribbonCollapsed ? '⌄' : '⌃'}</button>
         <button className="ribbon-help-button" type="button" onClick={props.onHelp} title="操作ガイド" aria-label="操作ガイド">?</button>
+        <button className="ribbon-references-button" type="button" onClick={props.onOpenReferences} title="参考サイト・ライセンス">参考サイト</button>
       </div>
 
       <div className="ribbon-content" role="tabpanel">

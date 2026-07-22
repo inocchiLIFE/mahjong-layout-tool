@@ -39,7 +39,7 @@ export const HelpModal = ({ onClose }: HelpModalProps) => {
             <div className="help-steps">
               <div><b>1</b><p><strong>牌を配置する</strong><span>左の牌一覧から牌をクリックすると、ワークスペースに追加されます。空いている場所をクリックして配置することもできます。</span></p></div>
               <div><b>2</b><p><strong>選択して動かす</strong><span>牌や図形をクリックして選択し、ドラッグで移動します。複数選択は範囲選択または Ctrl / ⌘ を押しながらクリックで行えます。</span></p></div>
-              <div><b>3</b><p><strong>タブを切り替える</strong><span>上部の「ホーム」「挿入」「手牌」「保存・共有」「設定」から、目的の操作を選びます。タブをダブルクリック、または Ctrl + F1 でリボンを折りたためます。</span></p></div>
+              <div><b>3</b><p><strong>タブを切り替える</strong><span>上部の「ホーム」「挿入」「手牌」「保存・共有」「設定」から、目的の操作を選びます。右上の「参考サイト」では、期待値計算の参考資料とGPLv3ライセンスを確認できます。</span></p></div>
             </div>
           </section>
 

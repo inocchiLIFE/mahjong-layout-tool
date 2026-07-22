@@ -3,6 +3,7 @@ import './App.css'
 import { ContextMenu } from './components/ContextMenu'
 import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './components/contextMenuItems'
 import { HelpModal } from './components/HelpModal'
+import { ReferencesModal } from './components/ReferencesModal'
 import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
 import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
@@ -492,6 +493,7 @@ const App = () => {
   })
   const [activePageIndex, setActivePageIndex] = useState(0)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
+  const [referencesOpen, setReferencesOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
   const workspaceRef = useRef<HTMLDivElement>(null)
@@ -1697,6 +1699,7 @@ const App = () => {
         onAddImage={() => requestImage()}
         onAddText={(text) => commitText(text)}
         onHelp={() => setHelpOpen(true)}
+        onOpenReferences={() => setReferencesOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenSymbolPreset={setSymbolPresetTarget}
         onOpenDrawingPreset={setDrawingPresetTarget}
@@ -1875,6 +1878,7 @@ const App = () => {
 
       {toast && <div className="toast" role="status">✓ {toast}</div>}
       {helpOpen && <HelpModal onClose={() => { localStorage.setItem(HELP_KEY, '1'); setHelpOpen(false) }} />}
+      {referencesOpen && <ReferencesModal onClose={() => setReferencesOpen(false)} />}
       {settingsOpen && <SettingsDialog preferences={preferences} onSave={savePreferences} onClose={() => setSettingsOpen(false)} />}
       {symbolPresetTarget && <SymbolPresetDialog
         symbolType={symbolPresetTarget}
