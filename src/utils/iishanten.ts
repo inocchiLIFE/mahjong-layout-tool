@@ -65,44 +65,46 @@ const classifyRemainder = (tiles: string[]): Omit<IishantenDecomposition, 'melds
 }
 
 
-/** Verify a candidate after construction.  This intentionally stays separate
- * from creation so a fuller decomposition analyser can be substituted without
- * changing the UI generator. */
-export const verifyIishantenCandidate = (type: IishantenType, tiles: string[]) => {
-  if (!hasLegalTileCounts(tiles)) return false
+/** Returns the strongest named iishanten type, following the lecture's order:
+ * surplus < complete < headless < kuttsuki. */
+export const classifyIishantenCandidate = (tiles: string[]): IishantenType | null => {
+  if (!hasLegalTileCounts(tiles)) return null
   const efficiency = getEfficiency(tiles)
-  if (!efficiency || efficiency.shanten !== 1) return false
+  if (!efficiency || efficiency.shanten !== 1) return null
   const decompositions = findMeldFirstDecompositions(tiles)
   const maxMelds = Math.max(...decompositions.map((item) => item.melds))
   const matches = (melds: number, pairs: number, taatsu: number, isolated: number) => maxMelds === melds && decompositions.some((item) => item.melds === melds && item.pairs === pairs && item.taatsu === taatsu && item.isolated === isolated)
-  if (type === 'surplus' || type === 'complete') {
-    if (!matches(2, 1, 2, 1)) return false
+  const candidates: IishantenType[] = []
+
+  if (matches(2, 1, 2, 1)) {
     const isolateComparisons = [...new Set(tiles)].flatMap((tile) => {
       const index = tiles.indexOf(tile); const hand = [...tiles.slice(0, index), ...tiles.slice(index + 1)]
       const remainsBaseShape = findMeldFirstDecompositions(hand).some((item) => item.melds === 2 && item.pairs === 1 && item.taatsu === 2 && item.isolated === 0)
       const without = getEfficiency(hand)
       return remainsBaseShape && without ? [efficiency.effectiveTileIds.length > without.effectiveTileIds.length || efficiency.effectiveTileCount > without.effectiveTileCount] : []
     })
-    return type === 'complete' ? isolateComparisons.some(Boolean) : isolateComparisons.some((value) => !value)
+    // In a complete shape the single tile supports a taatsu (vertical or
+    // ryan-kan) and increases acceptance. Otherwise it is surplus.
+    if (isolateComparisons.some(Boolean)) candidates.push('complete')
+    else if (isolateComparisons.some((value) => !value)) candidates.push('surplus')
   }
-  if (type === 'headless1') {
-    // A hand such as 13m234p12345678s can be deliberately split into one
-    // taatsu and two singles, but its meld-first remainder has two taatsu
-    // (13m and 78s). It is therefore headless-2, not headless-1.
+
+  if (maxMelds === 3) {
     const maxMeldDecompositions = decompositions.filter((item) => item.melds === maxMelds)
     const maxTaatsu = Math.max(...maxMeldDecompositions.map((item) => item.taatsu))
-    // A headless shape must not have a possible head after taking all melds.
-    // classifyRemainder also enumerates the weaker choice of treating a pair as
-    // two singles, so checking only the selected decomposition is insufficient.
     const hasHead = maxMeldDecompositions.some((item) => item.pairs > 0)
-    return !hasHead && maxTaatsu === 1 && matches(3, 0, 1, 2)
+    // A possible head makes the hand kuttsuki. It wins over headless even if
+    // another, weaker decomposition can turn that pair into taatsu/singles.
+    if (matches(3, 1, 0, 2)) candidates.push('kuttsuki')
+    if (!hasHead && maxTaatsu === 1 && matches(3, 0, 1, 2)) candidates.push('headless1')
+    if (!hasHead && maxTaatsu === 2 && matches(3, 0, 2, 0)) candidates.push('headless2')
   }
-  if (type === 'headless2') {
-    const maxMeldDecompositions = decompositions.filter((item) => item.melds === maxMelds)
-    return !maxMeldDecompositions.some((item) => item.pairs > 0) && matches(3, 0, 2, 0)
-  }
-  return matches(3, 1, 0, 2)
+
+  return (['kuttsuki', 'headless2', 'headless1', 'complete', 'surplus'] as IishantenType[]).find((type) => candidates.includes(type)) ?? null
 }
+
+/** Verify a generated candidate against the lecture's strongest-type rule. */
+export const verifyIishantenCandidate = (type: IishantenType, tiles: string[]) => classifyIishantenCandidate(tiles) === type
 
 /** Candidate creation is separate from validation so callers can retry safely. */
 export const createIishantenCandidate = (type: IishantenType) => {

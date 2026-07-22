@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { createCompleteFollow, generateIishanten, hasLegalTileCounts, verifyIishantenCandidate } from '../.tmp-iishanten-test/iishanten.js'
+import { classifyIishantenCandidate, createCompleteFollow, generateIishanten, hasLegalTileCounts, verifyIishantenCandidate } from '../.tmp-iishanten-test/iishanten.js'
 
 for (const type of ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki']) {
   for (let index = 0; index < 10; index += 1) {
@@ -16,6 +16,16 @@ assert.equal(verifyIishantenCandidate('headless1', ['man3', 'pin3', 'pin4', 'pin
 assert.equal(verifyIishantenCandidate('headless2', ['man1', 'man1', 'man1', 'man2', 'man2', 'man2', 'man3', 'man3', 'man3', 'pin3', 'pin3', 'pin4', 'pin4']), false, 'headless2 must reject a hand with a possible head after taking three melds')
 assert.equal(verifyIishantenCandidate('surplus', ['man2', 'man3', 'man4', 'man5', 'man6', 'man7', 'man7', 'pin3', 'pin5', 'pin5', 'pin5', 'pin7', 'pin8']), false, 'surplus must reject a hand with three melds')
 assert.equal(verifyIishantenCandidate('surplus', ['man1', 'man1', 'man6', 'man6', 'man6', 'man7', 'man7', 'man8', 'pin3', 'pin5', 'sou5', 'sou6', 'sou7']), false, 'surplus must reject a vertically supported taatsu')
+assert.equal(
+  classifyIishantenCandidate(['man3', 'pin3', 'pin4', 'pin5', 'pin6', 'pin7', 'pin8', 'pin8', 'pin8', 'sou3', 'sou4', 'sou4', 'sou4']),
+  'kuttsuki',
+  'a shape with three melds and a head is classified as kuttsuki instead of headless1',
+)
+assert.equal(
+  classifyIishantenCandidate(['man1', 'man3', 'pin2', 'pin3', 'pin4', 'sou1', 'sou2', 'sou3', 'sou4', 'sou5', 'sou6', 'sou7', 'sou8']),
+  'headless2',
+  'a shape with three melds and two taatsu is classified as headless2 instead of headless1',
+)
 
 for (let index = 0; index < 20; index += 1) {
   const vertical = createCompleteFollow('vertical')
