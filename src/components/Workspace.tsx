@@ -904,8 +904,9 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }
 
         if (element.kind === 'text') {
-          const baseWidth = Math.max(44, Math.ceil(element.text.length * element.fontSize * 1.05) + 16)
-          const baseHeight = Math.ceil(element.fontSize * 1.5) + 8
+          const lines = element.text.split('\n')
+          const baseWidth = Math.max(44, Math.ceil(Math.max(...lines.map((line) => line.length)) * element.fontSize * 1.05) + 16)
+          const baseHeight = Math.ceil(element.fontSize * 1.5) * lines.length + 8
           return (
             <button
               key={element.id}
@@ -1019,7 +1020,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       })}
 
       {editor && (
-        <input
+        <textarea
           className="workspace-text-editor export-hidden"
           style={{
             left: editor.x + camera.x,
@@ -1030,11 +1031,14 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           }}
           value={editor.value}
           autoFocus
-          placeholder="文字を入力"
+          aria-label="文字を入力"
           onPointerDown={(event) => event.stopPropagation()}
           onChange={(event) => setEditor({ ...editor, value: event.target.value })}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.nativeEvent.isComposing) event.currentTarget.blur()
+            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+              event.preventDefault()
+              event.currentTarget.blur()
+            }
             if (event.key === 'Escape') finishTextEditor(true)
           }}
           onBlur={() => finishTextEditor()}
