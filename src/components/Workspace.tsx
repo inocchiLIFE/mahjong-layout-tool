@@ -787,7 +787,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     width: Math.abs(marquee.currentX - marquee.startX),
     height: Math.abs(marquee.currentY - marquee.startY),
   } : undefined
-  const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || (element.kind === 'drawing' && element.drawingType !== 'freehand')) && element.selected && !element.locked) ?? null
+  const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || element.kind === 'image' || (element.kind === 'drawing' && element.drawingType !== 'freehand')) && element.selected && !element.locked) ?? null
   const selectedImage = props.scene.elements.find((element): element is Extract<CanvasElement, { kind: 'image' }> => element.kind === 'image' && element.selected && !element.locked) ?? null
 
   return (
