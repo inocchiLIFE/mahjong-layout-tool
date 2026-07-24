@@ -4,9 +4,15 @@ import { getEfficiency } from '../utils/mahjongEfficiency'
 import { calculateExpectedValues, EXPECTED_VALUE_TILE_IDS, type ExpectedValueSettings, type Wind } from '../utils/expectedValue'
 import { MELD_KIND_LABELS, concealedTileCountForMelds, createMeldChoices, isValidMeld, type MeldKind } from '../utils/mahjongMelds'
 
-const Tile = ({ tileId }: { tileId: string }) => {
+const Tile = ({ tileId, className = '' }: { tileId: string; className?: string }) => {
   const tile = TILE_MAP.get(tileId)
-  return tile ? <img className="efficiency-tile" src={tile.asset} alt={tile.label} title={tile.label} /> : null
+  return tile ? <img className={`efficiency-tile ${className}`} src={tile.asset} alt={tile.label} title={tile.label} /> : null
+}
+
+const MeldTiles = ({ kind, tileIds }: { kind: MeldKind; tileIds: string[] }) => {
+  // Open calls are identified by one sideways tile. Closed kans stay upright.
+  const sidewaysIndex = kind === 'closed-kan' ? -1 : kind === 'added-kan' ? tileIds.length - 1 : 0
+  return <span className="meld-tiles">{tileIds.map((tileId, index) => <Tile key={`${tileId}-${index}`} tileId={tileId} className={index === sidewaysIndex ? 'meld-sideways-tile' : ''} />)}</span>
 }
 
 const formatShanten = (shanten: number) => shanten === -1 ? '和了' : shanten === 0 ? '聴牌' : `${shanten}シャンテン`
@@ -84,8 +90,8 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
             const next = [...melds, { id: `${Date.now()}-${choice.join('-')}`, kind: meldKind, tileIds: choice }]
             if (next.length > 4 || !next.every(isValidMeld)) return
             setExpectedSettings({ ...expectedSettings, melds: next })
-          }}>{choice.map((tileId, index) => <Tile key={`${tileId}-${index}`} tileId={tileId} />)}</button>)}</div>
-          {melds.length > 0 && <div className="meld-list">{melds.map((meld, index) => <div key={meld.id}><span>{MELD_KIND_LABELS[meld.kind]}</span>{meld.tileIds.map((tileId, tileIndex) => <Tile key={`${tileId}-${tileIndex}`} tileId={tileId} />)}<button type="button" onClick={() => setExpectedSettings({ ...expectedSettings, melds: melds.filter((_, meldIndex) => meldIndex !== index) })}>×</button></div>)}</div>}
+          }}><MeldTiles kind={meldKind} tileIds={choice} /></button>)}</div>
+          {melds.length > 0 && <div className="meld-list">{melds.map((meld, index) => <div key={meld.id}><span>{MELD_KIND_LABELS[meld.kind]}</span><MeldTiles kind={meld.kind} tileIds={meld.tileIds} /><button type="button" onClick={() => setExpectedSettings({ ...expectedSettings, melds: melds.filter((_, meldIndex) => meldIndex !== index) })}>×</button></div>)}</div>}
           <small>副露{melds.length}組：手牌は{concealedTileCount}枚を選択します。副露牌は手牌へ重ねて選択しません。</small>
         </div>
         <button type="button" className="expected-value-toggle" disabled={tileIds.length !== concealedTileCount} onClick={() => setShowExpectedValue((value) => !value)}>{showExpectedValue ? '期待値を閉じる' : '一人麻雀の期待値を計算'}</button>
