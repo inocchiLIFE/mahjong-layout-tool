@@ -450,7 +450,7 @@ const App = () => {
   const [initialLayout] = useState(() => sharedLayout)
   const history = useSceneHistory(initialLayout?.scene ?? EMPTY_SCENE)
   const scene = history.scene
-  const [, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
+  const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
   const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? preferences.showGrid)
   const snapToGrid = true
   const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, color: preferences.defaultTextColor })
@@ -1741,11 +1741,11 @@ const App = () => {
         />
         <section className="workspace-panel">
           <div className="workspace-scroll">
-            <div className="workspace-tile-ruler" style={{ width: Math.max(scene.width, Math.max(13, tileCount) * TILE_WIDTH + 66) }} aria-label={`配置している牌の枚数 ${tileCount}枚`}>
-              <div className="workspace-tile-ruler-title">配置牌数 <strong>{tileCount}<small>枚（副露を含む）</small></strong></div>
-              <div className="workspace-tile-ruler-track" style={{ gridTemplateColumns: `repeat(${Math.max(13, tileCount)}, ${TILE_WIDTH}px)` }}>
-                {Array.from({ length: Math.max(13, tileCount) }, (_, index) => (
-                  <span key={index} className={index < tileCount ? 'filled' : ''} title={`${index + 1}枚目`}>{index + 1}</span>
+            <div className="workspace-tile-ruler" style={{ width: scene.width }} aria-label={`牌の枚数 ${rulerCount}枚。13枚基準`}>
+              <div className="workspace-tile-ruler-title">牌数メモリ <strong>{rulerCount}<small>/13枚</small></strong></div>
+              <div className="workspace-tile-ruler-track">
+                {Array.from({ length: 13 }, (_, index) => (
+                  <span key={index} className={index < rulerCount ? 'filled' : ''} title={`${index + 1}枚目`}>{index + 1}</span>
                 ))}
               </div>
             </div>
