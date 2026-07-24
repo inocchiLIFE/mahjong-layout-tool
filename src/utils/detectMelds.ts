@@ -23,14 +23,20 @@ export const detectOpenMelds = (tiles: TileElement[]): DetectedMeld[] => {
   const candidates: Array<{ kind: MeldKind; tiles: TileElement[] }> = []
   for (const sideways of tiles.filter((tile) => !tile.faceDown && isSideways(tile))) {
     const row = tiles
-      .filter((tile) => !tile.faceDown && Math.abs(tile.y - sideways.y) <= 20)
+      // A sideways tile is normally placed slightly lower than upright tiles.
+      // Accept up to one tile width of vertical offset so snapped and manually
+      // adjusted open-meld layouts are both recognized.
+      .filter((tile) => !tile.faceDown && Math.abs(tile.y - sideways.y) <= 48)
       .sort((left, right) => left.x - right.x || left.zIndex - right.zIndex)
     const anchor = row.findIndex((tile) => tile.id === sideways.id)
     for (const length of [4, 3]) {
       for (let start = Math.max(0, anchor - length + 1); start <= Math.min(anchor, row.length - length); start += 1) {
         const group = row.slice(start, start + length)
         if (group.filter(isSideways).length !== 1) continue
-        if (group.at(-1)!.x - group[0].x > (length - 1) * 48 + 16) continue
+        // A rotated tile is 66px wide (rather than 48px), so an open block
+        // legitimately has wider spacing than a concealed hand.
+        if (group.at(-1)!.x - group[0].x > (length - 1) * 80 + 16) continue
+        if (group.some((tile, index) => index > 0 && tile.x - group[index - 1].x > 80)) continue
         const tileIds = group.map((tile) => tile.tileId)
         const kind = candidateKind(tileIds)
         if (kind && isValidMeld({ id: 'candidate', kind, tileIds })) candidates.push({ kind, tiles: group })

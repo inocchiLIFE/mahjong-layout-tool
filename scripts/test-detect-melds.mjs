@@ -17,4 +17,7 @@ assert.equal(upright.length, 0, 'upright concealed tiles are not treated as an o
 const separated = detectOpenMelds([tile('a', 'man1', 0, 90), tile('b', 'man2', 160), tile('c', 'man3', 208)])
 assert.equal(separated.length, 0, 'separated tiles are not treated as one meld')
 
+const snappedChi = detectOpenMelds([tile('a', 'pin3', 0, 90, 32), tile('b', 'pin4', 66, 0), tile('c', 'pin5', 132, 0)])
+assert.equal(snappedChi[0].kind, 'open-sequence', 'a lower, rotated tile in a snapped meld layout is detected')
+
 console.log('meld detection tests passed')
