@@ -32,7 +32,10 @@ interface SavedLayoutsDialogProps {
 const downloadFileName = (name: string) => `${name.replace(/[\\/:*?"<>|]/g, '_').slice(0, 60) || '麻雀レイアウト'}.mahjong-layout.json`
 
 const createShareBlobUrl = (saved: NamedSavedLayout) => {
-  const contents = JSON.stringify({ format: 'mahjong-layout-tool', version: 1, name: saved.name, layout: saved.layout })
+  const contents = JSON.stringify({
+    format: 'mahjong-layout-tool', version: 2, name: saved.name, layout: saved.layout,
+    pages: saved.pages, pageNames: saved.pageNames,
+  })
   return URL.createObjectURL(new Blob([contents], { type: 'application/json;charset=utf-8' }))
 }
 

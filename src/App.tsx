@@ -1481,12 +1481,17 @@ const App = () => {
       const layout = parseSavedLayout(JSON.stringify(layoutValue))
       if (!layout) throw new Error('invalid-layout')
       const name = typeof data.name === 'string' && data.name.trim() ? data.name.trim() : file.name.replace(/\.mahjong-layout\.json$/i, '')
-      const saved: NamedSavedLayout = { id: createId('saved-layout'), name, savedAt: new Date().toISOString(), layout }
+      const pages = Array.isArray(data.pages) ? data.pages.flatMap((page) => {
+        const parsed = parseSavedLayout(JSON.stringify(page))
+        return parsed ? [parsed] : []
+      }) : undefined
+      const pageNames = Array.isArray(data.pageNames) ? data.pageNames.filter((pageName): pageName is string => typeof pageName === 'string') : undefined
+      const saved: NamedSavedLayout = { id: createId('saved-layout'), name, savedAt: new Date().toISOString(), layout, pages, pageNames }
       const next = [saved, ...savedLayouts]
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
       notifySavedLayoutsChanged()
-      loadIntoNewPages([layout], [name], `「${name}」を新しいタブへ読み込みました`)
+      loadIntoNewPages(pages?.length ? pages : [layout], pageNames?.length ? pageNames : [name], `「${name}」を新しいタブへ読み込みました`)
     } catch {
       notify('共有ファイルを読み込めませんでした')
     }
