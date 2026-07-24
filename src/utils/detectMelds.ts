@@ -1,6 +1,6 @@
 import { TILE_MAP } from '../data/tiles'
 import type { TileElement } from '../types'
-import { isValidMeld, type MahjongMeld, type MeldKind } from './mahjongMelds'
+import type { MahjongMeld, MeldKind } from './mahjongMelds'
 
 export interface DetectedMeld extends MahjongMeld {
   elementIds: string[]
@@ -11,7 +11,14 @@ const isSideways = (tile: TileElement) => tile.rotation === 90 || tile.rotation 
 const candidateKind = (tileIds: string[]): MeldKind | null => {
   const bases = tileIds.map((tileId) => TILE_MAP.get(tileId)?.baseId ?? tileId)
   if (new Set(bases).size === 1) return bases.length === 4 ? 'open-kan' : 'open-triplet'
-  return bases.length === 3 ? 'open-sequence' : null
+  if (bases.length !== 3) return null
+  const tiles = bases.map((tileId) => TILE_MAP.get(tileId))
+  if (tiles.some((tile) => !tile || tile.suit === 'honor')) return null
+  const suit = tiles[0]!.suit
+  const ranks = tiles.map((tile) => tile!.rank).sort((left, right) => left - right)
+  return tiles.every((tile) => tile!.suit === suit) && ranks[1] === ranks[0] + 1 && ranks[2] === ranks[1] + 1
+    ? 'open-sequence'
+    : null
 }
 
 /**
@@ -39,7 +46,7 @@ export const detectOpenMelds = (tiles: TileElement[]): DetectedMeld[] => {
         if (group.some((tile, index) => index > 0 && tile.x - group[index - 1].x > 80)) continue
         const tileIds = group.map((tile) => tile.tileId)
         const kind = candidateKind(tileIds)
-        if (kind && isValidMeld({ id: 'candidate', kind, tileIds })) candidates.push({ kind, tiles: group })
+        if (kind) candidates.push({ kind, tiles: group })
       }
     }
   }
