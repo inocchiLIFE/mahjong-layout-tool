@@ -1337,10 +1337,20 @@ const App = () => {
     setContextMenu(state)
   }
 
-  const loadLayout = (layout: SavedLayout, message: string) => {
-    history.load(layout.scene)
-    setRulerCount(layout.scene.elements.filter((element) => element.kind === 'tile').length)
-    setShowGrid(layout.settings.showGrid)
+  const loadIntoNewPages = (layouts: SavedLayout[], names: string[], message: string) => {
+    if (!layouts.length) return
+    const current = pagesRef.current.map((page, index) => index === activePageIndex ? { ...page, scene } : page)
+    const loaded = layouts.map((layout, index) => ({
+      id: createId('page'),
+      name: names[index]?.slice(0, 40) || String(current.length + index + 1),
+      scene: layout.scene,
+    }))
+    const next = [...current, ...loaded]
+    setPages(next)
+    setActivePageIndex(current.length)
+    history.reset(loaded[0].scene)
+    setRulerCount(loaded[0].scene.elements.filter((element) => element.kind === 'tile').length)
+    setShowGrid(layouts[0].settings.showGrid)
     setPlacementMode('select')
     setContextMenu(null)
     notify(message)
@@ -1385,19 +1395,11 @@ const App = () => {
     const saved = savedLayouts.find((item) => item.id === id)!
     if (!saved) return
     if (saved.pages?.length) {
-      const nextPages = saved.pages.map((layout, index) => ({ id: createId('page'), name: saved.pageNames?.[index] ?? String(index + 1), scene: layout.scene }))
-      setPages(nextPages)
-      setActivePageIndex(0)
-      history.reset(nextPages[0].scene)
-      notify(`「${saved.name}」の全ページを読み込みました`)
+      loadIntoNewPages(saved.pages, saved.pageNames ?? [], `「${saved.name}」の全ページを新しいタブへ読み込みました`)
       setSavedLayoutsOpen(false)
       return
     }
-    const singlePage = { id: createId('page'), name: saved.pageNames?.[0] ?? saved.name, scene: saved.layout.scene }
-    setPages([singlePage])
-    setActivePageIndex(0)
-    history.reset(singlePage.scene)
-    notify(`「${saved.name}」を読み込みました`)
+    loadIntoNewPages([saved.layout], [saved.pageNames?.[0] ?? saved.name], `「${saved.name}」を新しいタブへ読み込みました`)
     setSavedLayoutsOpen(false)
   }
 
@@ -1484,7 +1486,7 @@ const App = () => {
       await writeLargeValue(SAVED_LAYOUTS_KEY, next)
       setSavedLayouts(next)
       notifySavedLayoutsChanged()
-      loadLayout(layout, `「${name}」を読み込みました`)
+      loadIntoNewPages([layout], [name], `「${name}」を新しいタブへ読み込みました`)
     } catch {
       notify('共有ファイルを読み込めませんでした')
     }
