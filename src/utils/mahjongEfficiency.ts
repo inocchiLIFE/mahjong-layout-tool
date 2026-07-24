@@ -11,6 +11,11 @@ export interface EfficiencyResult {
   effectiveTileCount: number
 }
 
+export interface GoodShapeTenpaiTransition {
+  drawTileId: string
+  tenpaiOptions: Array<{ discardTileId: string; waitTileIds: string[]; waitTileCount: number }>
+}
+
 const normalShanten = (counts: number[], fixedMelds: number) => {
   let minimum = 8
   const search = (index: number, melds: number, taatsu: number, pair: number) => {
@@ -110,3 +115,19 @@ export const getDiscardEfficiencies = (tileIds: string[]) => [...new Set(tileIds
   discardTileId,
   result: getEfficiency(tileIds.filter((tileId, index) => tileId !== discardTileId || index !== tileIds.indexOf(discardTileId))),
 }))
+
+/** Finds 1-shanten draws that can become tenpai with six or more waits. */
+export const getGoodShapeTenpaiTransitions = (tileIds: string[], fixedMelds = 0): GoodShapeTenpaiTransition[] => {
+  const current = getEfficiency(tileIds, fixedMelds)
+  if (!current || current.shanten !== 1) return []
+  return current.effectiveTileIds.flatMap((drawTileId) => {
+    const drawn = [...tileIds, drawTileId]
+    const tenpaiOptions = [...new Set(drawn)].flatMap((discardTileId) => {
+      const afterDiscard = drawn.filter((tileId, index) => tileId !== discardTileId || index !== drawn.indexOf(discardTileId))
+      const tenpai = getEfficiency(afterDiscard, fixedMelds)
+      if (!tenpai || tenpai.shanten !== 0 || tenpai.effectiveTileCount < 6) return []
+      return [{ discardTileId, waitTileIds: tenpai.effectiveTileIds, waitTileCount: tenpai.effectiveTileCount }]
+    })
+    return tenpaiOptions.length ? [{ drawTileId, tenpaiOptions }] : []
+  })
+}

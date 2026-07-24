@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { TILE_MAP } from '../data/tiles'
-import { getEfficiency } from '../utils/mahjongEfficiency'
+import { getEfficiency, getGoodShapeTenpaiTransitions } from '../utils/mahjongEfficiency'
 import { calculateExpectedValues, EXPECTED_VALUE_TILE_IDS, type ExpectedValueSettings, type Wind } from '../utils/expectedValue'
 import { MELD_KIND_LABELS, concealedTileCountForMelds, type MahjongMeld, type MeldKind } from '../utils/mahjongMelds'
 
@@ -20,6 +20,7 @@ const formatShanten = (shanten: number) => shanten === -1 ? '和了' : shanten =
 export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds: string[]; melds: MahjongMeld[]; onClose: () => void; onResize: (width: number) => void }) => {
   const panelRef = useRef<HTMLElement>(null)
   const [discardSort, setDiscardSort] = useState<'efficiency' | 'tile'>('efficiency')
+  const [showGoodShapeOnly, setShowGoodShapeOnly] = useState(false)
   const [showExpectedValue, setShowExpectedValue] = useState(false)
   const [showVisibleTiles, setShowVisibleTiles] = useState(false)
   const [expectedValues, setExpectedValues] = useState<ReturnType<typeof calculateExpectedValues>>([])
@@ -71,6 +72,18 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
         || right.result.effectiveTileCount - left.result.effectiveTileCount
         || tileOrder(left.discardTileId) - tileOrder(right.discardTileId)
     })
+  const goodShapeFor = (hand: string[], shanten: number) => shanten === 1 ? getGoodShapeTenpaiTransitions(hand, fixedMeldCount) : []
+  const goodShapeTransitions = goodShapeFor(baseTileIds, result?.shanten ?? Number.MAX_SAFE_INTEGER)
+  const effectiveIdsFor = (hand: string[], shanten: number, effectiveTileIds: string[]) =>
+    showGoodShapeOnly && shanten === 1 ? goodShapeFor(hand, shanten).map((transition) => transition.drawTileId) : effectiveTileIds
+  const goodShapeSummary = (transitions: ReturnType<typeof getGoodShapeTenpaiTransitions>) => transitions.map((transition) => {
+    const best = Math.max(...transition.tenpaiOptions.map((option) => option.waitTileCount))
+    return `${TILE_MAP.get(transition.drawTileId)?.label ?? transition.drawTileId}で最大${best}枚待ち`
+  }).join('、')
+  const hasGoodShapeCandidates = goodShapeTransitions.length > 0 || sortedDiscards.some((discard) => {
+    const hand = baseTileIds.filter((tileId, index) => tileId !== discard.discardTileId || index !== baseTileIds.indexOf(discard.discardTileId))
+    return goodShapeFor(hand, discard.result.shanten).length > 0
+  })
   const isDiscardAnalysis = discards.length > 0
   const heading = <div className="efficiency-heading"><strong>牌理・受け入れ</strong><button type="button" onClick={onClose} aria-label="牌理・受け入れを隠す" title="隠す">×</button></div>
   const resizeHandle = <button type="button" className="efficiency-resize-handle" onPointerDown={startResize} aria-label="パネル幅を変更" />
@@ -79,8 +92,18 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   return (
     <aside ref={panelRef} className="efficiency-panel" aria-live="polite">
       {resizeHandle}{heading}
-      {!isDiscardAnalysis && <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b><span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>}
-      {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong><label>並び順<select value={discardSort} onChange={(event) => setDiscardSort(event.target.value as 'efficiency' | 'tile')}><option value="efficiency">受け入れ枚数順</option><option value="tile">牌の並び順</option></select></label></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>)}</div>}
+      {hasGoodShapeCandidates && <label className="good-shape-toggle"><input type="checkbox" checked={showGoodShapeOnly} onChange={(event) => setShowGoodShapeOnly(event.target.checked)} />一向聴：好形聴牌のみ（6枚以上待ち）</label>}
+      {!isDiscardAnalysis && (() => {
+        const visibleIds = effectiveIdsFor(baseTileIds, result.shanten, result.effectiveTileIds)
+        return <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b><span>{showGoodShapeOnly && result.shanten === 1 ? '好形聴牌へ' : '受け入れ'} <em>{visibleIds.length}種 {showGoodShapeOnly && result.shanten === 1 ? '（6枚以上待ち）' : `${result.effectiveTileCount}牌`}</em></span></div>{visibleIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{visibleIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}{showGoodShapeOnly && goodShapeTransitions.length > 0 && <small className="good-shape-note">{goodShapeSummary(goodShapeTransitions)}</small>}</>
+      })()}
+      {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong><label>並び順<select value={discardSort} onChange={(event) => setDiscardSort(event.target.value as 'efficiency' | 'tile')}><option value="efficiency">受け入れ枚数順</option><option value="tile">牌の並び順</option></select></label></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => {
+        const hand = baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId))
+        const transitions = goodShapeFor(hand, discardResult.shanten)
+        const visibleIds = effectiveIdsFor(hand, discardResult.shanten, discardResult.effectiveTileIds)
+        if (showGoodShapeOnly && discardResult.shanten === 1 && !visibleIds.length) return null
+        return <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{showGoodShapeOnly && discardResult.shanten === 1 ? `${visibleIds.length}種・好形聴牌へ` : `${discardResult.effectiveTileIds.length}種 ${discardResult.effectiveTileCount}牌`}</em></div>{visibleIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{visibleIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}{showGoodShapeOnly && transitions.length > 0 && <small className="good-shape-note">{goodShapeSummary(transitions)}</small>}</div>
+      })}</div>}
       {baseTileIds.length >= 2 && <section className="expected-value-section">
         <div className="meld-input">
           <strong>副露ブロック</strong>
