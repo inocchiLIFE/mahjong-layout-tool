@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './contextMenuItems'
+import { DEFAULT_WORKSPACE_HEIGHT, DEFAULT_WORKSPACE_WIDTH, MAX_WORKSPACE_HEIGHT, MAX_WORKSPACE_WIDTH, MIN_WORKSPACE_HEIGHT, MIN_WORKSPACE_WIDTH, clamp } from '../utils/layout'
 
 export interface AppPreferences {
   showGrid: boolean
@@ -11,6 +12,8 @@ export interface AppPreferences {
   uiScale: number
   popupFontScale: number
   contextMenuItems: ContextMenuItemId[]
+  defaultWorkspaceWidth: number
+  defaultWorkspaceHeight: number
 }
 
 interface SettingsDialogProps {
@@ -29,6 +32,8 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   uiScale: 1.1,
   popupFontScale: 1.2,
   contextMenuItems: DEFAULT_CONTEXT_MENU_ITEMS,
+  defaultWorkspaceWidth: DEFAULT_WORKSPACE_WIDTH,
+  defaultWorkspaceHeight: DEFAULT_WORKSPACE_HEIGHT,
 }
 
 export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogProps) => {
@@ -56,6 +61,8 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
             <label>画面・文字サイズ <input type="range" min="0.9" max="1.3" step="0.05" value={draft.uiScale} onChange={(event) => setDraft((current) => ({ ...current, uiScale: Number(event.target.value) }))} /><output>{Math.round(draft.uiScale * 100)}%</output></label>
             <label><input type="checkbox" checked={draft.showGrid} onChange={(event) => setDraft((current) => ({ ...current, showGrid: event.target.checked }))} /> グリッドを表示する</label>
             <label>ポップアップ・文字サイズ <input type="range" min="1" max="1.5" step="0.05" value={draft.popupFontScale} onChange={(event) => setDraft((current) => ({ ...current, popupFontScale: Number(event.target.value) }))} /><output>{Math.round(draft.popupFontScale * 100)}%</output></label>
+            <label>新規作業領域の幅（px）<input type="number" min={MIN_WORKSPACE_WIDTH} max={MAX_WORKSPACE_WIDTH} value={draft.defaultWorkspaceWidth} onChange={(event) => setDraft((current) => ({ ...current, defaultWorkspaceWidth: clamp(Number(event.target.value) || MIN_WORKSPACE_WIDTH, MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH) }))} /></label>
+            <label>新規作業領域の高さ（px）<input type="number" min={MIN_WORKSPACE_HEIGHT} max={MAX_WORKSPACE_HEIGHT} value={draft.defaultWorkspaceHeight} onChange={(event) => setDraft((current) => ({ ...current, defaultWorkspaceHeight: clamp(Number(event.target.value) || MIN_WORKSPACE_HEIGHT, MIN_WORKSPACE_HEIGHT, MAX_WORKSPACE_HEIGHT) }))} /></label>
           </fieldset>
 
           <fieldset>

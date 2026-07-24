@@ -7,6 +7,7 @@ interface ContextMenuProps {
   visibleItems: ContextMenuItemId[]; onClose: () => void; onDuplicate: () => void; onDelete: () => void; onCopy: () => void; onPaste: () => void; onRotate: () => void
   onAddRectangle: () => void; onAddTriangle: () => void; onAddCircle: () => void; onAddCross: () => void; onDrawMode: () => void; onLineMode: () => void; onCurveMode: () => void; onArrowMode: () => void; onAddImage: () => void; onSelectMode: () => void; onTextMode: () => void
   onToggleFace: () => void; onToggleLock: () => void; onEditProperties: () => void; onBringFront: () => void; onSendBack: () => void; onAlign: () => void; onClear: () => void; onUndo: () => void; onRedo: () => void
+  onEditWorkspace: () => void
 }
 const MenuButton = ({ label, shortcut, onClick, disabled }: { label: string; shortcut?: string; onClick: () => void; disabled?: boolean }) => <button type="button" role="menuitem" disabled={disabled} onClick={onClick}><span>{label}</span>{shortcut && <kbd>{shortcut}</kbd>}</button>
 
@@ -25,6 +26,7 @@ export const ContextMenu = (props: ContextMenuProps) => {
     {show('rotate') && props.element?.kind === 'tile' && <MenuButton label="牌を90度回転" shortcut="R" onClick={() => run(props.onRotate)} disabled={locked} />}
     {additions.some(([id]) => show(id)) && <><div className="context-menu-separator" /><div className="context-menu-heading">この位置に追加</div>{additions.map(([id, label, action]) => show(id) && <MenuButton key={id} label={label} onClick={() => run(action)} />)}</>}
     {props.element && <><div className="context-menu-separator" />{props.element.kind === 'tile' && show('face') && <MenuButton label={props.element.faceDown ? '表向きにする' : '裏向きにする'} onClick={() => run(props.onToggleFace)} disabled={locked} />}{show('lock') && <MenuButton label={locked ? 'ロック解除' : 'ロック'} onClick={() => run(props.onToggleLock)} />}{props.element.kind !== 'tile' && show('properties') && <MenuButton label="プロパティ編集" onClick={() => run(props.onEditProperties)} disabled={locked} />}{show('front') && <MenuButton label="最前面へ" onClick={() => run(props.onBringFront)} disabled={locked} />}{show('back') && <MenuButton label="最背面へ" onClick={() => run(props.onSendBack)} disabled={locked} />}</>}
+    {!props.element && <><div className="context-menu-separator" /><MenuButton label="作業領域を設定" onClick={() => run(props.onEditWorkspace)} /></>}
     {workspaceActions.some(([id]) => show(id)) && <><div className="context-menu-separator" />{workspaceActions.map(([id, label, action]) => show(id) && <MenuButton key={id} label={label} onClick={() => run(action)} disabled={id === 'align' && !props.hasSelection} />)}</>}
     {(show('undo') || show('redo')) && <><div className="context-menu-separator" />{show('undo') && <MenuButton label="元に戻す" shortcut="Ctrl+Z" onClick={() => run(props.onUndo)} disabled={!props.canUndo} />}{show('redo') && <MenuButton label="やり直す" shortcut="Ctrl+Y" onClick={() => run(props.onRedo)} disabled={!props.canRedo} />}</>}
   </div>

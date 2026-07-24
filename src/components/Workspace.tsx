@@ -848,6 +848,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       onContextMenu={openWorkspaceContextMenu}
       aria-label="麻雀牌・文字・記号・画像・線の作業エリア"
     >
+      <div className="workspace-boundary export-hidden" style={{ left: camera.x, top: camera.y, width: props.scene.width, height: props.scene.height }} aria-hidden="true"><span>(0, 0)</span></div>
       {props.scene.elements.length === 0 && !editor && (
         <div className="empty-canvas" aria-hidden="true">
           <div className="empty-tile-stack"><span>東</span><span>一</span><span>●</span></div>

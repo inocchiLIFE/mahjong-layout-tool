@@ -14,6 +14,7 @@ import { DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './com
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
+import { WorkspaceSizeDialog } from './components/WorkspaceSizeDialog'
 import { EfficiencyPanel } from './components/EfficiencyPanel'
 import { TILE_MAP } from './data/tiles'
 import { useSceneHistory } from './hooks/useSceneHistory'
@@ -89,6 +90,8 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   uiScale: 1.1,
   popupFontScale: 1.2,
   contextMenuItems: DEFAULT_CONTEXT_MENU_ITEMS,
+  defaultWorkspaceWidth: DEFAULT_WORKSPACE_WIDTH,
+  defaultWorkspaceHeight: DEFAULT_WORKSPACE_HEIGHT,
 }
 const SYNC_CHANNEL = 'mahjong-layout-tool:tab-sync-v1'
 const EMPTY_SCENE: Scene = {
@@ -355,6 +358,8 @@ const readPreferences = (): AppPreferences => {
       uiScale: typeof saved.uiScale === 'number' ? clamp(saved.uiScale, 0.9, 1.3) : DEFAULT_PREFERENCES.uiScale,
       popupFontScale: typeof saved.popupFontScale === 'number' ? clamp(saved.popupFontScale, 1, 1.5) : DEFAULT_PREFERENCES.popupFontScale,
       contextMenuItems: Array.isArray(saved.contextMenuItems) ? saved.contextMenuItems.filter((item): item is ContextMenuItemId => typeof item === 'string' && CONTEXT_MENU_ITEMS.some(([id]) => id === item)) : DEFAULT_PREFERENCES.contextMenuItems,
+      defaultWorkspaceWidth: typeof saved.defaultWorkspaceWidth === 'number' ? clamp(saved.defaultWorkspaceWidth, MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH) : DEFAULT_PREFERENCES.defaultWorkspaceWidth,
+      defaultWorkspaceHeight: typeof saved.defaultWorkspaceHeight === 'number' ? clamp(saved.defaultWorkspaceHeight, MIN_WORKSPACE_HEIGHT, MAX_WORKSPACE_HEIGHT) : DEFAULT_PREFERENCES.defaultWorkspaceHeight,
     }
   } catch {
     return DEFAULT_PREFERENCES
@@ -450,7 +455,8 @@ const App = () => {
     return `${AUTO_SAVE_KEY}:${tabId}`
   })
   const [initialLayout] = useState(() => sharedLayout)
-  const history = useSceneHistory(initialLayout?.scene ?? EMPTY_SCENE)
+  const defaultScene = { ...EMPTY_SCENE, width: preferences.defaultWorkspaceWidth, height: preferences.defaultWorkspaceHeight }
+  const history = useSceneHistory(initialLayout?.scene ?? defaultScene)
   const scene = history.scene
   const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
   const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? preferences.showGrid)
@@ -492,7 +498,7 @@ const App = () => {
       const saved = JSON.parse(localStorage.getItem(PAGE_DECK_KEY) ?? '[]') as Array<{ id?: string; name?: string; scene?: Scene }>
       if (saved.length && saved.every((page) => page.scene)) return saved.map((page, index) => ({ id: page.id ?? createId('page'), name: page.name?.slice(0, 40) || String(index + 1), scene: page.scene! }))
     } catch { /* use a new deck */ }
-    return [{ id: createId('page'), name: '1', scene: initialLayout?.scene ?? EMPTY_SCENE }]
+    return [{ id: createId('page'), name: '1', scene: initialLayout?.scene ?? defaultScene }]
   })
   const [activePageIndex, setActivePageIndex] = useState(0)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
@@ -500,6 +506,7 @@ const App = () => {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [isExporting, setIsExporting] = useState(false)
+  const [workspaceSizeOpen, setWorkspaceSizeOpen] = useState(false)
   const workspaceRef = useRef<HTMLDivElement>(null)
   const pagesRef = useRef(pages)
   const switchPageRef = useRef<(index: number) => void>(() => {})
@@ -1926,8 +1933,11 @@ const App = () => {
           onClear={() => { history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height }); setRulerCount(0) }}
           onUndo={history.undo}
           onRedo={history.redo}
+          onEditWorkspace={() => setWorkspaceSizeOpen(true)}
         />
       )}
+
+      {workspaceSizeOpen && <WorkspaceSizeDialog width={scene.width} height={scene.height} onSave={(width, height) => { updateWorkspaceSize(width, height); setWorkspaceSizeOpen(false) }} onClose={() => setWorkspaceSizeOpen(false)} />}
 
       {propertyElement && (
         <PropertyEditor
