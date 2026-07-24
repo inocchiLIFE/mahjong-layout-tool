@@ -62,6 +62,7 @@ import {
 } from './utils/layout'
 import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 import { generateIishanten, IISHANTEN_LABELS, type IishantenType } from './utils/iishanten'
+import { detectOpenMelds } from './utils/detectMelds'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const PAGE_DECK_KEY = 'mahjong-layout-tool:page-deck-v1'
@@ -1601,9 +1602,13 @@ const App = () => {
   const selectedText = selected.length === 1 && selected[0].kind === 'text' && !selected[0].locked ? selected[0] : null
   const selectedColoredElement = selected.length === 1 && (selected[0].kind === 'symbol' || selected[0].kind === 'drawing') && !selected[0].locked ? selected[0] : null
   const selectedEditable = selected.length === 1 && selected[0].kind !== 'tile' && !selected[0].locked ? selected[0] : null
-  const selectedHandTileIds = selected
+  const selectedHandTiles = selected
     .filter((element): element is TileElement => element.kind === 'tile' && !element.faceDown)
-    .map((element) => element.tileId)
+  const detectedMelds = detectOpenMelds(selectedHandTiles)
+  const detectedMeldTileIds = new Set(detectedMelds.flatMap((meld) => meld.elementIds))
+  const selectedHandTileIds = selectedHandTiles
+    .filter((tile) => !detectedMeldTileIds.has(tile.id))
+    .map((tile) => tile.tileId)
   const tileCount = scene.elements.filter((element) => element.kind === 'tile').length
   const contextElement = contextMenu ? scene.elements.find((element) => element.id === contextMenu.elementId) ?? null : null
   const propertyElement = propertyElementId
@@ -1781,7 +1786,7 @@ const App = () => {
             />
           </div>
         </section>
-        <EfficiencyPanel tileIds={selectedHandTileIds} onClose={() => setEfficiencyPanelVisible(false)} onResize={(width) => setEfficiencyPanelWidth(clamp(width, 190, 460))} />
+        <EfficiencyPanel tileIds={selectedHandTileIds} melds={detectedMelds} onClose={() => setEfficiencyPanelVisible(false)} onResize={(width) => setEfficiencyPanelWidth(clamp(width, 190, 460))} />
         <button type="button" className="efficiency-toggle" onClick={() => setEfficiencyPanelVisible((visible) => !visible)} aria-pressed={efficiencyPanelVisible}>{efficiencyPanelVisible ? '牌理を隠す' : '牌理・受け入れ'}</button>
       </main>
 

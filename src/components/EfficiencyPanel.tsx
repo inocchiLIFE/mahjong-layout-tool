@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { TILE_MAP } from '../data/tiles'
 import { getEfficiency } from '../utils/mahjongEfficiency'
 import { calculateExpectedValues, EXPECTED_VALUE_TILE_IDS, type ExpectedValueSettings, type Wind } from '../utils/expectedValue'
-import { MELD_KIND_LABELS, concealedTileCountForMelds, createMeldChoices, isValidMeld, type MeldKind } from '../utils/mahjongMelds'
+import { MELD_KIND_LABELS, concealedTileCountForMelds, type MahjongMeld, type MeldKind } from '../utils/mahjongMelds'
 
 const Tile = ({ tileId, className = '' }: { tileId: string; className?: string }) => {
   const tile = TILE_MAP.get(tileId)
@@ -17,7 +17,7 @@ const MeldTiles = ({ kind, tileIds }: { kind: MeldKind; tileIds: string[] }) => 
 
 const formatShanten = (shanten: number) => shanten === -1 ? '和了' : shanten === 0 ? '聴牌' : `${shanten}シャンテン`
 
-export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: string[]; onClose: () => void; onResize: (width: number) => void }) => {
+export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds: string[]; melds: MahjongMeld[]; onClose: () => void; onResize: (width: number) => void }) => {
   const panelRef = useRef<HTMLElement>(null)
   const [discardSort, setDiscardSort] = useState<'efficiency' | 'tile'>('efficiency')
   const [showExpectedValue, setShowExpectedValue] = useState(false)
@@ -25,10 +25,9 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
   const [expectedValues, setExpectedValues] = useState<ReturnType<typeof calculateExpectedValues>>([])
   const [expectedError, setExpectedError] = useState('')
   const [isCalculatingExpectedValue, setIsCalculatingExpectedValue] = useState(false)
-  const [meldKind, setMeldKind] = useState<MeldKind>('open-sequence')
   const [expectedSettings, setExpectedSettings] = useState<ExpectedValueSettings>(() => ({
     roundWind: 'ton', seatWind: 'ton', turn: 3, doraIndicator: null, visibleCounts: {},
-    includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true, melds: [],
+    includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true,
   }))
   const startResize = (event: PointerEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -40,21 +39,21 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
     window.addEventListener('pointerup', end)
   }
   const baseTileIds = tileIds.map((id) => TILE_MAP.get(id)?.baseId ?? id)
-  const melds = expectedSettings.melds ?? []
   const fixedMeldCount = melds.length
   const concealedTileCount = concealedTileCountForMelds(melds)
   const result = getEfficiency(baseTileIds, fixedMeldCount)
   const discards = baseTileIds.length === concealedTileCount
     ? [...new Set(baseTileIds)].map((discardTileId) => ({ discardTileId, result: getEfficiency(baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId)), fixedMeldCount) }))
     : []
-  useEffect(() => { setExpectedValues([]); setExpectedError('') }, [tileIds, expectedSettings])
+  const meldKey = melds.map((meld) => `${meld.kind}:${meld.tileIds.join(',')}`).join('|')
+  useEffect(() => { setExpectedValues([]); setExpectedError('') }, [tileIds, expectedSettings, meldKey])
   const runExpectedValueCalculation = () => {
     setIsCalculatingExpectedValue(true)
     setExpectedError('')
     window.setTimeout(() => {
       try {
         if (tileIds.length !== concealedTileCount) throw new Error(`副露${melds.length}組では、手牌は${concealedTileCount}枚を選択してください。`)
-        setExpectedValues(calculateExpectedValues(tileIds, expectedSettings))
+        setExpectedValues(calculateExpectedValues(tileIds, { ...expectedSettings, melds }))
       } catch (error) {
         setExpectedValues([])
         setExpectedError(error instanceof Error ? error.message : '期待値を計算できませんでした。')
@@ -85,14 +84,8 @@ export const EfficiencyPanel = ({ tileIds, onClose, onResize }: { tileIds: strin
       {baseTileIds.length >= 2 && <section className="expected-value-section">
         <div className="meld-input">
           <strong>副露ブロック</strong>
-          <label>種類<select value={meldKind} onChange={(event) => setMeldKind(event.target.value as MeldKind)}>{(Object.keys(MELD_KIND_LABELS) as MeldKind[]).map((kind) => <option key={kind} value={kind}>{MELD_KIND_LABELS[kind]}</option>)}</select></label>
-          <div className="meld-choice-grid">{createMeldChoices(meldKind).map((choice) => <button type="button" key={`${meldKind}-${choice.join(',')}`} onClick={() => {
-            const next = [...melds, { id: `${Date.now()}-${choice.join('-')}`, kind: meldKind, tileIds: choice }]
-            if (next.length > 4 || !next.every(isValidMeld)) return
-            setExpectedSettings({ ...expectedSettings, melds: next })
-          }}><MeldTiles kind={meldKind} tileIds={choice} /></button>)}</div>
-          {melds.length > 0 && <div className="meld-list">{melds.map((meld, index) => <div key={meld.id}><span>{MELD_KIND_LABELS[meld.kind]}</span><MeldTiles kind={meld.kind} tileIds={meld.tileIds} /><button type="button" onClick={() => setExpectedSettings({ ...expectedSettings, melds: melds.filter((_, meldIndex) => meldIndex !== index) })}>×</button></div>)}</div>}
-          <small>副露{melds.length}組：手牌は{concealedTileCount}枚を選択します。副露牌は手牌へ重ねて選択しません。</small>
+          {melds.length > 0 ? <div className="meld-list">{melds.map((meld) => <div key={meld.id}><span>{MELD_KIND_LABELS[meld.kind]}</span><MeldTiles kind={meld.kind} tileIds={meld.tileIds} /></div>)}</div> : <small>横向きにした牌を含む副露形は、選択すると自動で認識します。</small>}
+          <small>副露{melds.length}組：横向きの牌を1枚含む、連続または同一牌の3〜4枚を副露として扱います。副露牌は打牌候補に入りません。</small>
         </div>
         <button type="button" className="expected-value-toggle" disabled={tileIds.length !== concealedTileCount} onClick={() => setShowExpectedValue((value) => !value)}>{showExpectedValue ? '期待値を閉じる' : '一人麻雀の期待値を計算'}</button>
         {showExpectedValue && <>
