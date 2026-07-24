@@ -37,7 +37,7 @@ interface ToolbarProps {
   onEditProperties: () => void
   onBringFront: () => void
   onSendBack: () => void
-  onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | IishantenType) => void
+  onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | 'iishanten-random' | 'iishanten-question' | IishantenType) => void
   handSuits: Array<'man' | 'pin' | 'sou'>
   onToggleHandSuit: (suit: 'man' | 'pin' | 'sou') => void
   onShuffle: () => void
@@ -338,6 +338,8 @@ export const Toolbar = (props: ToolbarProps) => {
 
         {activeTab === 'hand' && <div className="tool-group iishanten-generator-group">
           <span className="tool-group-label">1シャンテン形</span>
+          <ToolButton label="ランダム" icon="🎲" className="iishanten-button" onClick={() => props.onRandomHand('iishanten-random')} />
+          <ToolButton label="何切る問題" icon="14" className="iishanten-button" onClick={() => props.onRandomHand('iishanten-question')} />
           <ToolButton label="余剰牌型" icon="" className="iishanten-button" onClick={() => props.onRandomHand('surplus')} />
           <ToolButton label="完全形" icon="" className="iishanten-button" onClick={() => props.onRandomHand('complete')} />
           <ToolButton label="ヘッドレス1" icon="" className="iishanten-button" onClick={() => props.onRandomHand('headless1')} />

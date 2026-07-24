@@ -1,9 +1,11 @@
-import { sortTileIds } from './layout'
+import { buildWall, sortTileIds } from './layout'
+import { TILE_MAP } from '../data/tiles'
 import { getEfficiency } from './mahjongEfficiency'
 
 export type IishantenType = 'surplus' | 'complete' | 'headless1' | 'headless2' | 'kuttsuki'
 export type CompleteFollowType = 'vertical' | 'kanchan'
 export const IISHANTEN_LABELS: Record<IishantenType, string> = { surplus: '余剰牌型', complete: '完全形', headless1: 'ヘッドレス1型', headless2: 'ヘッドレス2型', kuttsuki: 'くっつき' }
+export const IISHANTEN_TYPES: IishantenType[] = ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki']
 const suits = ['man', 'pin', 'sou'] as const
 const honor = ['ton', 'nan', 'sha', 'pei', 'haku', 'hatsu', 'chun']
 const pick = <T,>(items: readonly T[]) => items[Math.floor(Math.random() * items.length)]
@@ -122,10 +124,28 @@ export const generateIishanten = (type: IishantenType, maxAttempts = 500) => {
   throw new Error(`${IISHANTEN_LABELS[type]}を生成できませんでした。もう一度お試しください。`)
 }
 
+export const generateRandomIishanten = () => {
+  const type = pick(IISHANTEN_TYPES)
+  return { type, tileIds: generateIishanten(type) }
+}
+
+/** Generates a 14-tile what-to-discard question. The drawn tile deliberately
+ * stays at the far right so the original 13-tile iishanten shape is visible. */
+export const generateIishantenQuestion = () => {
+  const { type, tileIds } = generateRandomIishanten()
+  const wall = buildWall()
+  for (const tileId of tileIds) {
+    const baseId = TILE_MAP.get(tileId)?.baseId ?? tileId
+    const index = wall.findIndex((candidate) => (TILE_MAP.get(candidate)?.baseId ?? candidate) === baseId)
+    if (index >= 0) wall.splice(index, 1)
+  }
+  const drawnTileId = pick(wall)
+  return { type, tileIds: [...tileIds, drawnTileId], drawnTileId }
+}
+
 /** Lightweight test hook used by the development test runner. */
 export const runIishantenGenerationChecks = (iterations = 20) => {
-  const types: IishantenType[] = ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki']
-  for (const type of types) for (let index = 0; index < iterations; index += 1) {
+  for (const type of IISHANTEN_TYPES) for (let index = 0; index < iterations; index += 1) {
     const tiles = generateIishanten(type)
     if (!verifyIishantenCandidate(type, tiles)) throw new Error(`${type} validation failed`)
   }

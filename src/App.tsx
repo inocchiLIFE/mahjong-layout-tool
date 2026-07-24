@@ -61,7 +61,7 @@ import {
   snap,
 } from './utils/layout'
 import { readLargeValue, writeLargeValue } from './utils/largeStorage'
-import { generateIishanten, IISHANTEN_LABELS, type IishantenType } from './utils/iishanten'
+import { generateIishanten, generateIishantenQuestion, generateRandomIishanten, IISHANTEN_LABELS, type IishantenType } from './utils/iishanten'
 import { detectOpenMelds } from './utils/detectMelds'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
@@ -918,11 +918,18 @@ const App = () => {
     notify(selectedTiles.length ? `${selectedTiles.length}枚を等間隔で整列しました` : 'すべての牌を等間隔で整列しました')
   }
 
-  const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | IishantenType) => {
-    const isIishanten = typeof type === 'string' && ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki'].includes(type)
-    const count: number = isIishanten ? 13 : type === '6-triplet' ? 6 : type === 'continuous' ? 5 : type as number
+  const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | 'iishanten-random' | 'iishanten-question' | IishantenType) => {
+    const isIishanten = typeof type === 'string' && ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki', 'iishanten-random', 'iishanten-question'].includes(type)
+    const isIishantenQuestion = type === 'iishanten-question'
+    const count: number = isIishantenQuestion ? 14 : isIishanten ? 13 : type === '6-triplet' ? 6 : type === 'continuous' ? 5 : type as number
     let tileIds: string[]
-    try { tileIds = isIishanten ? generateIishanten(type as IishantenType) : type === 'continuous' ? randomContinuousHand(handSuits) : type === '6-triplet' ? randomShapeHand(6, true, handSuits) : type === 6 || type === 7 ? randomShapeHand(type, false, handSuits) : handSuits.length ? randomSingleSuitHand(type as 13 | 14, handSuits) : randomHand(type as 13 | 14)
+    let generatedIishantenType: IishantenType | null = null
+    try {
+      if (type === 'iishanten-question') {
+        const question = generateIishantenQuestion(); tileIds = question.tileIds; generatedIishantenType = question.type
+      } else if (type === 'iishanten-random') {
+        const hand = generateRandomIishanten(); tileIds = hand.tileIds; generatedIishantenType = hand.type
+      } else tileIds = isIishanten ? generateIishanten(type as IishantenType) : type === 'continuous' ? randomContinuousHand(handSuits) : type === '6-triplet' ? randomShapeHand(6, true, handSuits) : type === 6 || type === 7 ? randomShapeHand(type, false, handSuits) : handSuits.length ? randomSingleSuitHand(type as 13 | 14, handSuits) : randomHand(type as 13 | 14)
     } catch (error) { notify(error instanceof Error ? error.message : '生成に失敗しました'); return }
     const totalWidth = count * TILE_WIDTH + (count - 1) * TILE_GAP
     const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
@@ -945,7 +952,8 @@ const App = () => {
     })
     setRulerCount(count)
     setPlacementMode('select')
-    notify(`${isIishanten ? IISHANTEN_LABELS[type as IishantenType] : type === 'continuous' ? '連続形' : type === '6-triplet' ? '6枚形暗刻含み' : `${count}枚${count === 6 || count === 7 ? '形' : 'の配牌'}`}を生成し、理牌しました`)
+    const generatedLabel = generatedIishantenType ? IISHANTEN_LABELS[generatedIishantenType] : isIishanten ? IISHANTEN_LABELS[type as IishantenType] : type === 'continuous' ? '連続形' : type === '6-triplet' ? '6枚形暗刻含み' : `${count}枚${count === 6 || count === 7 ? '形' : 'の配牌'}`
+    notify(`${generatedLabel}${isIishantenQuestion ? 'の何切る問題' : ''}を生成し、理牌しました`)
   }
 
   const shuffleTiles = () => {

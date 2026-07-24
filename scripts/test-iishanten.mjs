@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { classifyIishantenCandidate, createCompleteFollow, generateIishanten, hasLegalTileCounts, verifyIishantenCandidate } from '../.tmp-iishanten-test/iishanten.js'
+import { classifyIishantenCandidate, createCompleteFollow, generateIishanten, generateIishantenQuestion, generateRandomIishanten, hasLegalTileCounts, verifyIishantenCandidate } from '../.tmp-iishanten-test/iishanten.js'
 
 for (const type of ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki']) {
   for (let index = 0; index < 10; index += 1) {
@@ -8,6 +8,21 @@ for (const type of ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki']
     assert.ok(hasLegalTileCounts(hand), `${type}: max four copies`)
     assert.ok(verifyIishantenCandidate(type, hand), `${type}: decomposition`)
   }
+}
+
+for (let index = 0; index < 20; index += 1) {
+  const random = generateRandomIishanten()
+  assert.equal(random.tileIds.length, 13, 'random iishanten has 13 tiles')
+  assert.ok(verifyIishantenCandidate(random.type, random.tileIds), 'random iishanten preserves its generated type')
+
+  const question = generateIishantenQuestion()
+  assert.equal(question.tileIds.length, 14, 'what-to-discard question has 14 tiles')
+  assert.equal(question.tileIds.at(-1), question.drawnTileId, 'drawn tile stays at the far right')
+  assert.ok(question.tileIds.every((tile) => {
+    const base = tile.replace('aka-', '')
+    return question.tileIds.filter((candidate) => candidate.replace('aka-', '') === base).length <= 4
+  }), 'what-to-discard question never has five copies')
+  assert.ok(verifyIishantenCandidate(question.type, question.tileIds.slice(0, 13)), 'question begins with a valid iishanten shape')
 }
 assert.equal(hasLegalTileCounts(['man1', 'man1', 'man1', 'man1', 'man1']), false, 'five identical tiles are invalid')
 assert.equal(verifyIishantenCandidate('headless2', ['man1', 'man1', 'man1', 'man2', 'man2', 'man2', 'man3', 'man3', 'man3', 'pin1', 'pin2', 'pin3', 'ton']), false, 'headless2 must have two taatsu')
