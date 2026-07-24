@@ -506,6 +506,9 @@ const App = () => {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [isExporting, setIsExporting] = useState(false)
+  const [showWorkspaceBoundary, setShowWorkspaceBoundary] = useState(false)
+  const [pngTransparent, setPngTransparent] = useState(false)
+  const [exportingTransparent, setExportingTransparent] = useState(false)
   const [workspaceSizeOpen, setWorkspaceSizeOpen] = useState(false)
   const workspaceRef = useRef<HTMLDivElement>(null)
   const pagesRef = useRef(pages)
@@ -1520,7 +1523,7 @@ const App = () => {
     history.commit({ ...scene, width: nextWidth, height: nextHeight })
   }
 
-  const exportWorkspace = async (format: 'png' | 'pdf') => {
+  const exportWorkspace = async (format: 'png' | 'pdf', transparent = false) => {
     const workspace = workspaceRef.current
     if (!workspace || isExporting) return
     const pixelRatio = 2
@@ -1528,6 +1531,7 @@ const App = () => {
       notify('作業領域が大きすぎるため出力できません。サイズを小さくしてからお試しください。')
       return
     }
+    setExportingTransparent(format === 'png' && transparent)
     setIsExporting(true)
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
@@ -1536,6 +1540,7 @@ const App = () => {
         pixelRatio,
         width: scene.width,
         height: scene.height,
+        backgroundColor: format === 'png' && transparent ? 'transparent' : '#ffffff',
       })
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
       if (format === 'png') {
@@ -1559,6 +1564,7 @@ const App = () => {
       notify(`${format.toUpperCase()}の出力に失敗しました。画像の読み込み状態を確認して、もう一度お試しください。`)
     } finally {
       setIsExporting(false)
+      setExportingTransparent(false)
     }
   }
 
@@ -1785,7 +1791,11 @@ const App = () => {
         workspaceWidth={scene.width}
         workspaceHeight={scene.height}
         onChangeWorkspaceSize={updateWorkspaceSize}
-        onExportPng={() => { void exportWorkspace('png') }}
+        showWorkspaceBoundary={showWorkspaceBoundary}
+        onToggleWorkspaceBoundary={() => setShowWorkspaceBoundary((visible) => !visible)}
+        onExportPng={() => { void exportWorkspace('png', pngTransparent) }}
+        pngTransparent={pngTransparent}
+        onTogglePngTransparent={() => setPngTransparent((transparent) => !transparent)}
         onExportPdf={() => { void exportWorkspace('pdf') }}
         isExporting={isExporting}
         pages={pages}
@@ -1862,6 +1872,8 @@ const App = () => {
               onResizeElement={resizeElement}
               onCropImage={cropImage}
               captureMode={isExporting}
+              transparentBackground={exportingTransparent}
+              showWorkspaceBoundary={showWorkspaceBoundary}
               onBeginDrag={history.beginTransaction}
               onEndDrag={history.endTransaction}
             />

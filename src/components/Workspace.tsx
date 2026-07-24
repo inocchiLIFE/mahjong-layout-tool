@@ -66,6 +66,8 @@ interface WorkspaceProps {
   onResizeElement: (id: string, width: number, height: number) => void
   onCropImage: (id: string, crop: { x: number; y: number; width: number; height: number }, width: number, height: number, x: number, y: number) => void
   captureMode?: boolean
+  transparentBackground?: boolean
+  showWorkspaceBoundary?: boolean
   onBeginDrag: () => void
   onEndDrag: () => void
 }
@@ -122,16 +124,18 @@ interface ElementResizeState {
   startHeight: number
 }
 
-interface ImageCropState {
+type ImageCropEdge = 'left' | 'right' | 'top' | 'bottom'
+
+interface ImageCropEdgeState {
   pointerId: number
   id: string
-  startX: number
-  startY: number
+  edge: ImageCropEdge
+  startClientX: number
+  startClientY: number
   width: number
   height: number
   x: number
   y: number
-  bounds: DOMRect
   crop: { x: number; y: number; width: number; height: number }
 }
 
@@ -228,12 +232,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const drawingRef = useRef<DrawingState | null>(null)
   const eraserRef = useRef<EraserState | null>(null)
   const elementResizeRef = useRef<ElementResizeState | null>(null)
-  const imageCropRef = useRef<ImageCropState | null>(null)
-  const imageCropPreviewRef = useRef<{ id: string; x: number; y: number; width: number; height: number } | null>(null)
+  const imageCropEdgeRef = useRef<ImageCropEdgeState | null>(null)
   const panRef = useRef<PanState | null>(null)
   const spaceDownRef = useRef(false)
   const [marquee, setMarquee] = useState<MarqueeState | null>(null)
-  const [imageCropPreview, setImageCropPreview] = useState<{ id: string; x: number; y: number; width: number; height: number } | null>(null)
   const [editor, setEditor] = useState<TextEditorState | null>(null)
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
   const [curveDraft, setCurveDraft] = useState<CurveDraftState | null>(null)
@@ -471,56 +473,52 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
   }, [])
 
-  const beginImageCrop = (event: ReactPointerEvent<HTMLButtonElement>, element: Extract<CanvasElement, { kind: 'image' }>) => {
+  const beginImageCropEdge = (event: ReactPointerEvent<HTMLButtonElement>, element: Extract<CanvasElement, { kind: 'image' }>, edge: ImageCropEdge) => {
     if (event.button !== 0 || element.locked || props.placementMode !== 'select') return
     event.preventDefault()
     event.stopPropagation()
-    props.onSelectElement(element.id, false)
-    const bounds = event.currentTarget.getBoundingClientRect()
-    const startX = Math.max(0, Math.min(element.width, (event.clientX - bounds.left) / bounds.width * element.width))
-    const startY = Math.max(0, Math.min(element.height, (event.clientY - bounds.top) / bounds.height * element.height))
     event.currentTarget.setPointerCapture(event.pointerId)
-    imageCropRef.current = { pointerId: event.pointerId, id: element.id, startX, startY, width: element.width, height: element.height, x: element.x, y: element.y, bounds, crop: element.crop ?? { x: 0, y: 0, width: 1, height: 1 } }
-    const preview = { id: element.id, x: startX, y: startY, width: 0, height: 0 }
-    imageCropPreviewRef.current = preview
-    setImageCropPreview(preview)
+    imageCropEdgeRef.current = { pointerId: event.pointerId, id: element.id, edge, startClientX: event.clientX, startClientY: event.clientY, width: element.width, height: element.height, x: element.x, y: element.y, crop: element.crop ?? { x: 0, y: 0, width: 1, height: 1 } }
     props.onBeginDrag()
   }
 
   useEffect(() => {
-    const updateCrop = (event: PointerEvent) => {
-      const state = imageCropRef.current
+    const updateCropEdge = (event: PointerEvent) => {
+      const state = imageCropEdgeRef.current
       if (!state || state.pointerId !== event.pointerId) return
-      const currentX = Math.max(0, Math.min(state.width, (event.clientX - state.bounds.left) / state.bounds.width * state.width))
-      const currentY = Math.max(0, Math.min(state.height, (event.clientY - state.bounds.top) / state.bounds.height * state.height))
-      const preview = { id: state.id, x: Math.min(state.startX, currentX), y: Math.min(state.startY, currentY), width: Math.abs(currentX - state.startX), height: Math.abs(currentY - state.startY) }
-      imageCropPreviewRef.current = preview
-      setImageCropPreview(preview)
+      const minSize = 24
+      const delta = state.edge === 'left' || state.edge === 'right'
+        ? toLogicalDelta(event.clientX - state.startClientX)
+        : toLogicalDelta(event.clientY - state.startClientY)
+      const inset = state.edge === 'left' || state.edge === 'top'
+        ? Math.max(0, Math.min((state.edge === 'left' ? state.width : state.height) - minSize, delta))
+        : Math.max(0, Math.min((state.edge === 'right' ? state.width : state.height) - minSize, -delta))
+      const horizontal = state.edge === 'left' || state.edge === 'right'
+      const nextWidth = horizontal ? state.width - inset : state.width
+      const nextHeight = horizontal ? state.height : state.height - inset
+      const nextX = state.x + (state.edge === 'left' ? inset : 0)
+      const nextY = state.y + (state.edge === 'top' ? inset : 0)
+      const cropInset = horizontal ? inset / state.width * state.crop.width : inset / state.height * state.crop.height
+      propsRef.current.onCropImage(state.id, {
+        x: state.crop.x + (state.edge === 'left' ? cropInset : 0),
+        y: state.crop.y + (state.edge === 'top' ? cropInset : 0),
+        width: horizontal ? state.crop.width - cropInset : state.crop.width,
+        height: horizontal ? state.crop.height : state.crop.height - cropInset,
+      }, nextWidth, nextHeight, nextX, nextY)
     }
-    const finishCrop = (event: PointerEvent) => {
-      const state = imageCropRef.current
+    const finishCropEdge = (event: PointerEvent) => {
+      const state = imageCropEdgeRef.current
       if (!state || state.pointerId !== event.pointerId) return
-      const preview = imageCropPreviewRef.current
-      imageCropRef.current = null
-      imageCropPreviewRef.current = null
-      setImageCropPreview(null)
-      if (preview && preview.id === state.id && preview.width >= 12 && preview.height >= 12) {
-        propsRef.current.onCropImage(state.id, {
-          x: state.crop.x + preview.x / state.width * state.crop.width,
-          y: state.crop.y + preview.y / state.height * state.crop.height,
-          width: preview.width / state.width * state.crop.width,
-          height: preview.height / state.height * state.crop.height,
-        }, preview.width, preview.height, state.x + preview.x, state.y + preview.y)
-      }
+      imageCropEdgeRef.current = null
       propsRef.current.onEndDrag()
     }
-    window.addEventListener('pointermove', updateCrop)
-    window.addEventListener('pointerup', finishCrop)
-    window.addEventListener('pointercancel', finishCrop)
+    window.addEventListener('pointermove', updateCropEdge)
+    window.addEventListener('pointerup', finishCropEdge)
+    window.addEventListener('pointercancel', finishCropEdge)
     return () => {
-      window.removeEventListener('pointermove', updateCrop)
-      window.removeEventListener('pointerup', finishCrop)
-      window.removeEventListener('pointercancel', finishCrop)
+      window.removeEventListener('pointermove', updateCropEdge)
+      window.removeEventListener('pointerup', finishCropEdge)
+      window.removeEventListener('pointercancel', finishCropEdge)
     }
   }, [])
 
@@ -789,12 +787,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     width: Math.abs(marquee.currentX - marquee.startX),
     height: Math.abs(marquee.currentY - marquee.startY),
   } : undefined
-  const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || element.kind === 'image' || (element.kind === 'drawing' && element.drawingType !== 'freehand')) && element.selected && !element.locked) ?? null
+  const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || (element.kind === 'drawing' && element.drawingType !== 'freehand')) && element.selected && !element.locked) ?? null
+  const selectedImage = props.scene.elements.find((element): element is Extract<CanvasElement, { kind: 'image' }> => element.kind === 'image' && element.selected && !element.locked) ?? null
 
   return (
     <div
       ref={ref}
-      className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.captureMode ? ' capture-hide-grid is-capturing' : ''}${props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? ' drawing-mode' : ''}${props.placementMode === 'eraser' ? ' eraser-mode' : ''}`}
+      className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.captureMode ? ' capture-hide-grid is-capturing' : ''}${props.transparentBackground ? ' capture-transparent' : ''}${props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? ' drawing-mode' : ''}${props.placementMode === 'eraser' ? ' eraser-mode' : ''}`}
       style={{ width: props.scene.width, height: props.scene.height }}
       onPointerDown={beginCanvasPointer}
       onPointerMove={moveCanvasPointer}
@@ -848,7 +847,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       onContextMenu={openWorkspaceContextMenu}
       aria-label="麻雀牌・文字・記号・画像・線の作業エリア"
     >
-      <div className="workspace-boundary export-hidden" style={{ left: camera.x, top: camera.y, width: props.scene.width, height: props.scene.height }} aria-hidden="true"><span>(0, 0)</span></div>
+      {props.showWorkspaceBoundary && <div className="workspace-boundary export-hidden" style={{ left: camera.x, top: camera.y, width: props.scene.width, height: props.scene.height }} aria-hidden="true"><span>(0, 0)</span></div>}
       {props.scene.elements.length === 0 && !editor && (
         <div className="empty-canvas" aria-hidden="true">
           <div className="empty-tile-stack"><span>東</span><span>一</span><span>●</span></div>
@@ -880,10 +879,6 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               event.preventDefault()
               event.stopPropagation()
               if (!element.locked) props.onDeleteDragged([element.id])
-              return
-            }
-            if (element.kind === 'image' && event.altKey) {
-              beginImageCrop(event, element)
               return
             }
             if (props.placementMode !== 'draw' && props.placementMode !== 'line' && props.placementMode !== 'curve' && props.placementMode !== 'arrow') beginElementDrag(event, element)
@@ -951,13 +946,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
         if (element.kind === 'image') {
           const crop = element.crop ?? { x: 0, y: 0, width: 1, height: 1 }
-          const preview = imageCropPreview?.id === element.id ? imageCropPreview : null
           return (
             <button key={element.id} {...commonProps} aria-label={`画像「${element.name}」${element.selected ? '、選択中' : ''}${lockedLabel}`}>
               <span className="image-crop-frame" style={{ width: element.width, height: element.height, opacity: element.opacity, transform: `translate(-50%, -50%) rotate(${element.rotation}deg)` }}>
                 <img className="image-crop-source" src={element.src} alt="" draggable={false} style={{ width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `${-crop.x / crop.width * 100}%`, top: `${-crop.y / crop.height * 100}%` }} />
               </span>
-              {preview && <span className="image-crop-preview" style={{ left: `${preview.x / element.width * 100}%`, top: `${preview.y / element.height * 100}%`, width: `${preview.width / element.width * 100}%`, height: `${preview.height / element.height * 100}%` }} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1132,6 +1125,18 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           onPointerDown={(event) => beginElementResize(event, selectedResizable)}
         />
       })()}
+
+      {selectedImage && <>
+        <div className="image-crop-selection export-hidden" style={{ left: selectedImage.x + camera.x, top: selectedImage.y + camera.y, width: selectedImage.width, height: selectedImage.height }} aria-hidden="true" />
+        {(['left', 'right', 'top', 'bottom'] as ImageCropEdge[]).map((edge) => <button
+          key={edge}
+          type="button"
+          className={`image-crop-handle image-crop-handle-${edge} export-hidden`}
+          aria-label={`画像を${edge === 'left' ? '左' : edge === 'right' ? '右' : edge === 'top' ? '上' : '下'}からトリミング`}
+          style={{ left: selectedImage.x + camera.x + (edge === 'left' ? -10 : edge === 'right' ? selectedImage.width - 10 : selectedImage.width / 2 - 10), top: selectedImage.y + camera.y + (edge === 'top' ? -10 : edge === 'bottom' ? selectedImage.height - 10 : selectedImage.height / 2 - 10) }}
+          onPointerDown={(event) => beginImageCropEdge(event, selectedImage, edge)}
+        />)}
+      </>}
 
     </div>
   )

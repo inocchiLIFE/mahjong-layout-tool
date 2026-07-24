@@ -321,7 +321,10 @@
   background-size: 16px 16px;
 }
 .workspace-canvas.capture-hide-grid { background-image: none !important; }
+.workspace-canvas.capture-transparent { background-color: transparent !important; }
 .workspace-boundary { position: absolute; z-index: 0; box-sizing: border-box; border: 2px solid rgba(37, 116, 91, .7); outline: 1px dashed rgba(37, 116, 91, .28); outline-offset: -6px; pointer-events: none; }
+.export-option { display: flex; align-items: center; gap: 4px; color: #536b64; font-size: 10px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.export-option input { accent-color: #27745b; }
 .workspace-boundary span { position: absolute; top: 7px; left: 8px; padding: 2px 5px; border-radius: 3px; color: #225d4c; background: rgba(255, 255, 255, .88); font: 700 10px ui-monospace, monospace; }
 
 .empty-canvas { position: absolute; left: 50%; top: 50%; display: flex; align-items: center; justify-content: center; gap: 22px; color: #738b83; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; }
@@ -352,6 +355,10 @@
 .image-crop-frame { position: absolute; left: 50%; top: 50%; display: block; overflow: hidden; border-radius: 4px; transform-origin: center; pointer-events: none; }
 .image-crop-source { position: absolute; display: block; max-width: none; max-height: none; pointer-events: none; }
 .image-crop-preview { position: absolute; z-index: 3; box-sizing: border-box; border: 2px solid #277fbd; background: rgba(39, 127, 189, .18); pointer-events: none; }
+.image-crop-selection { position: absolute; z-index: 10002; box-sizing: border-box; border: 2px solid #18745d; pointer-events: none; }
+.image-crop-handle { position: absolute; z-index: 10003; width: 20px; height: 20px; padding: 0; border: 2px solid #fff; border-radius: 4px; background: #18745d; box-shadow: 0 0 0 1px #0d5746, 0 2px 5px rgba(0,0,0,.2); touch-action: none; }
+.image-crop-handle-left, .image-crop-handle-right { cursor: ew-resize; }
+.image-crop-handle-top, .image-crop-handle-bottom { cursor: ns-resize; }
 .drawing-visual { overflow: visible; }
 .workspace-canvas.drawing-mode, .workspace-canvas.drawing-mode .placed-item { cursor: crosshair; }
 .workspace-canvas.eraser-mode, .workspace-canvas.eraser-mode .placed-item { cursor: cell; }

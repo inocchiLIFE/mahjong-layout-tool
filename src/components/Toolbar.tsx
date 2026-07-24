@@ -56,7 +56,11 @@ interface ToolbarProps {
   workspaceWidth: number
   workspaceHeight: number
   onChangeWorkspaceSize: (width: number, height: number) => void
+  showWorkspaceBoundary: boolean
+  onToggleWorkspaceBoundary: () => void
   onExportPng: () => void
+  pngTransparent: boolean
+  onTogglePngTransparent: () => void
   onExportPdf: () => void
   isExporting: boolean
   pages: Array<{ id: string; name: string }>
@@ -372,10 +376,12 @@ export const Toolbar = (props: ToolbarProps) => {
           <div className="tool-group workspace-output-tools">
             <span className="tool-group-label">作業領域</span>
             <WorkspaceSizeControls width={props.workspaceWidth} height={props.workspaceHeight} onChange={props.onChangeWorkspaceSize} />
+            <ToolButton label="範囲表示" icon="□" onClick={props.onToggleWorkspaceBoundary} active={props.showWorkspaceBoundary} />
           </div>
           <div className="tool-group">
             <span className="tool-group-label">画像・PDF出力</span>
             <ToolButton label="PNG保存" icon="▧" onClick={props.onExportPng} disabled={props.isExporting} />
+            <label className="export-option"><input type="checkbox" checked={props.pngTransparent} onChange={props.onTogglePngTransparent} /> PNG背景を透過</label>
             <ToolButton label="PDF保存" icon="PDF" onClick={props.onExportPdf} disabled={props.isExporting} />
           </div>
         </>}
