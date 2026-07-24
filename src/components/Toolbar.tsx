@@ -3,6 +3,7 @@ import type { PlacementMode, SymbolType } from '../types'
 import type { DrawingTool } from './DrawingPresetDialog'
 import type { IishantenType } from '../utils/iishanten'
 import { TEXT_COLOR_PALETTE, readCustomColors, saveCustomColors } from '../utils/colors'
+import { WorkspaceSizeControls } from './WorkspaceSizeControls'
 
 interface ToolbarProps {
   canUndo: boolean
@@ -52,6 +53,12 @@ interface ToolbarProps {
   onOpenSettings: () => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   onOpenDrawingPreset: (tool: DrawingTool) => void
+  workspaceWidth: number
+  workspaceHeight: number
+  onChangeWorkspaceSize: (width: number, height: number) => void
+  onExportPng: () => void
+  onExportPdf: () => void
+  isExporting: boolean
   pages: Array<{ id: string; name: string }>
   activePageIndex: number
   onSwitchPage: (index: number) => void
@@ -361,6 +368,15 @@ export const Toolbar = (props: ToolbarProps) => {
             <ToolButton label="保存" icon="↓" onClick={props.onSaveLocal} />
             <ToolButton label="保存ページ" icon="▤" onClick={props.onOpenSavedLayouts} />
             <ToolButton label="共有ファイル読込" icon="↥" onClick={props.onImportSharedLayout} />
+          </div>
+          <div className="tool-group workspace-output-tools">
+            <span className="tool-group-label">作業領域</span>
+            <WorkspaceSizeControls width={props.workspaceWidth} height={props.workspaceHeight} onChange={props.onChangeWorkspaceSize} />
+          </div>
+          <div className="tool-group">
+            <span className="tool-group-label">画像・PDF出力</span>
+            <ToolButton label="PNG保存" icon="▧" onClick={props.onExportPng} disabled={props.isExporting} />
+            <ToolButton label="PDF保存" icon="PDF" onClick={props.onExportPdf} disabled={props.isExporting} />
           </div>
         </>}
       </div>

@@ -65,6 +65,7 @@ interface WorkspaceProps {
   onOpenContextMenu: (state: ContextMenuState) => void
   onResizeElement: (id: string, width: number, height: number) => void
   onCropImage: (id: string, crop: { x: number; y: number; width: number; height: number }, width: number, height: number, x: number, y: number) => void
+  captureMode?: boolean
   onBeginDrag: () => void
   onEndDrag: () => void
 }
@@ -241,6 +242,21 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const [draggingIds, setDraggingIds] = useState<Set<string>>(() => new Set())
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null)
   const [placementPreview, setPlacementPreview] = useState<DropPreview | null>(null)
+
+  // Exporting always starts from the top-left of the logical workspace, not
+  // from the user's current panned viewport. Restore the viewport afterwards.
+  const cameraBeforeCaptureRef = useRef<{ x: number; y: number } | null>(null)
+  useEffect(() => {
+    if (props.captureMode) {
+      if (!cameraBeforeCaptureRef.current) {
+        cameraBeforeCaptureRef.current = camera
+        setCamera({ x: 0, y: 0 })
+      }
+    } else if (cameraBeforeCaptureRef.current) {
+      setCamera(cameraBeforeCaptureRef.current)
+      cameraBeforeCaptureRef.current = null
+    }
+  }, [props.captureMode, camera])
 
   useEffect(() => {
     const down = (event: KeyboardEvent) => { if (event.code === 'Space') spaceDownRef.current = true }
@@ -778,7 +794,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   return (
     <div
       ref={ref}
-      className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? ' drawing-mode' : ''}${props.placementMode === 'eraser' ? ' eraser-mode' : ''}`}
+      className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.captureMode ? ' capture-hide-grid is-capturing' : ''}${props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? ' drawing-mode' : ''}${props.placementMode === 'eraser' ? ' eraser-mode' : ''}`}
       style={{ width: props.scene.width, height: props.scene.height }}
       onPointerDown={beginCanvasPointer}
       onPointerMove={moveCanvasPointer}

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { toPng } from 'html-to-image'
+import { jsPDF } from 'jspdf'
 import './App.css'
 import { ContextMenu } from './components/ContextMenu'
 import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './components/contextMenuItems'
@@ -497,6 +499,7 @@ const App = () => {
   const [referencesOpen, setReferencesOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
+  const [isExporting, setIsExporting] = useState(false)
   const workspaceRef = useRef<HTMLDivElement>(null)
   const pagesRef = useRef(pages)
   const switchPageRef = useRef<(index: number) => void>(() => {})
@@ -1503,6 +1506,55 @@ const App = () => {
     setSavedLayoutsOpen(true)
   }
 
+  const updateWorkspaceSize = (width: number, height: number) => {
+    const nextWidth = clamp(Math.round(width), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
+    const nextHeight = clamp(Math.round(height), MIN_WORKSPACE_HEIGHT, MAX_WORKSPACE_HEIGHT)
+    if (nextWidth === scene.width && nextHeight === scene.height) return
+    history.commit({ ...scene, width: nextWidth, height: nextHeight })
+  }
+
+  const exportWorkspace = async (format: 'png' | 'pdf') => {
+    const workspace = workspaceRef.current
+    if (!workspace || isExporting) return
+    const pixelRatio = 2
+    if (scene.width * scene.height * pixelRatio * pixelRatio > 48_000_000) {
+      notify('作業領域が大きすぎるため出力できません。サイズを小さくしてからお試しください。')
+      return
+    }
+    setIsExporting(true)
+    try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+      const image = await toPng(workspace, {
+        cacheBust: true,
+        pixelRatio,
+        width: scene.width,
+        height: scene.height,
+      })
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+      if (format === 'png') {
+        const link = document.createElement('a')
+        link.href = image
+        link.download = `mahjong-workspace-${timestamp}.png`
+        link.click()
+        notify('PNGを保存しました')
+        return
+      }
+      const pdf = new jsPDF({ orientation: scene.width >= scene.height ? 'landscape' : 'portrait', unit: 'pt', format: 'a4', compress: true })
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const scale = Math.min(pageWidth / scene.width, pageHeight / scene.height)
+      const width = scene.width * scale
+      const height = scene.height * scale
+      pdf.addImage(image, 'PNG', (pageWidth - width) / 2, (pageHeight - height) / 2, width, height)
+      pdf.save(`mahjong-workspace-${timestamp}.pdf`)
+      notify('PDFを保存しました')
+    } catch {
+      notify(`${format.toUpperCase()}の出力に失敗しました。画像の読み込み状態を確認して、もう一度お試しください。`)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const keyboardActions = useRef({
     deleteSelected,
     rotateSelected,
@@ -1723,6 +1775,12 @@ const App = () => {
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenSymbolPreset={setSymbolPresetTarget}
         onOpenDrawingPreset={setDrawingPresetTarget}
+        workspaceWidth={scene.width}
+        workspaceHeight={scene.height}
+        onChangeWorkspaceSize={updateWorkspaceSize}
+        onExportPng={() => { void exportWorkspace('png') }}
+        onExportPdf={() => { void exportWorkspace('pdf') }}
+        isExporting={isExporting}
         pages={pages}
         activePageIndex={activePageIndex}
         onSwitchPage={switchPage}
@@ -1796,6 +1854,7 @@ const App = () => {
               onOpenContextMenu={openContextMenu}
               onResizeElement={resizeElement}
               onCropImage={cropImage}
+              captureMode={isExporting}
               onBeginDrag={history.beginTransaction}
               onEndDrag={history.endTransaction}
             />
