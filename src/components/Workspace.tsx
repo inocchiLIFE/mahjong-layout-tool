@@ -122,6 +122,7 @@ interface ElementResizeState {
   startClientY: number
   startWidth: number
   startHeight: number
+  lockAspectRatio: boolean
 }
 
 type ImageCropEdge = 'left' | 'right' | 'top' | 'bottom'
@@ -436,6 +437,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       startClientY: event.clientY,
       startWidth: dimensions.width,
       startHeight: dimensions.height,
+      // Pasted images should never be stretched by the resize handle.
+      lockAspectRatio: element.kind === 'image',
     }
     props.onBeginDrag()
   }
@@ -448,7 +451,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       const deltaY = toLogicalDelta(event.clientY - resize.startClientY)
       let width = Math.max(resize.startWidth + deltaX, 24)
       let height = Math.max(resize.startHeight + deltaY, 24)
-      if (event.shiftKey) {
+      if (resize.lockAspectRatio || event.shiftKey) {
         const xScale = width / resize.startWidth
         const yScale = height / resize.startHeight
         const factor = Math.abs(xScale - 1) >= Math.abs(yScale - 1) ? xScale : yScale
