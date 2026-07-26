@@ -107,7 +107,7 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
 
           <fieldset>
             <legend>右クリックメニュー</legend>
-            <p>表示する項目を選べます。後から右クリックしても、この設定を変更できます。</p>
+            <p className="context-menu-settings-note">表示する項目を選べます。後から右クリックしても、この設定を変更できます。</p>
             <div className="context-menu-settings">
               {CONTEXT_MENU_ITEMS.map(([id, label]) => <label key={id}><input type="checkbox" checked={draft.contextMenuItems.includes(id)} onChange={(event) => setDraft((current) => ({ ...current, contextMenuItems: event.target.checked ? [...current.contextMenuItems, id] : current.contextMenuItems.filter((item) => item !== id) }))} /> {label}</label>)}
             </div>
