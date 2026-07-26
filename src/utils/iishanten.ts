@@ -71,8 +71,7 @@ const classifyRemainder = (tiles: string[]): Omit<IishantenDecomposition, 'melds
 }
 
 
-/** Returns the strongest named iishanten type, following the lecture's order:
- * surplus < complete < headless < kuttsuki. */
+/** Returns one of the five named iishanten types. */
 export const classifyIishantenCandidate = (tiles: string[]): IishantenType | null => {
   if (!hasLegalTileCounts(tiles)) return null
   const efficiency = getEfficiency(tiles)
@@ -80,7 +79,16 @@ export const classifyIishantenCandidate = (tiles: string[]): IishantenType | nul
   const decompositions = findMeldFirstDecompositions(tiles)
   const maxMelds = Math.max(...decompositions.map((item) => item.melds))
   const matches = (melds: number, pairs: number, taatsu: number, isolated: number) => maxMelds === melds && decompositions.some((item) => item.melds === melds && item.pairs === pairs && item.taatsu === taatsu && item.isolated === isolated)
-  const candidates: IishantenType[] = []
+  if (maxMelds >= 3) {
+    const maxMeldDecompositions = decompositions.filter((item) => item.melds === maxMelds)
+    const maxTaatsu = Math.max(...maxMeldDecompositions.map((item) => item.taatsu))
+    const hasHead = maxMeldDecompositions.some((item) => item.pairs > 0)
+    // A possible head makes the hand kuttsuki. Otherwise, two or more
+    // taatsu are headless2; the remaining 3-meld one-shanten shapes are
+    // headless1.
+    if (hasHead) return 'kuttsuki'
+    return maxTaatsu >= 2 ? 'headless2' : 'headless1'
+  }
 
   if (matches(2, 1, 2, 1)) {
     const isolateComparisons = [...new Set(tiles)].flatMap((tile) => {
@@ -91,22 +99,13 @@ export const classifyIishantenCandidate = (tiles: string[]): IishantenType | nul
     })
     // In a complete shape the single tile supports a taatsu (vertical or
     // ryan-kan) and increases acceptance. Otherwise it is surplus.
-    if (isolateComparisons.some(Boolean)) candidates.push('complete')
-    else if (isolateComparisons.some((value) => !value)) candidates.push('surplus')
+    if (isolateComparisons.some(Boolean)) return 'complete'
+    return 'surplus'
   }
 
-  if (maxMelds === 3) {
-    const maxMeldDecompositions = decompositions.filter((item) => item.melds === maxMelds)
-    const maxTaatsu = Math.max(...maxMeldDecompositions.map((item) => item.taatsu))
-    const hasHead = maxMeldDecompositions.some((item) => item.pairs > 0)
-    // A possible head makes the hand kuttsuki. It wins over headless even if
-    // another, weaker decomposition can turn that pair into taatsu/singles.
-    if (matches(3, 1, 0, 2)) candidates.push('kuttsuki')
-    if (!hasHead && maxTaatsu === 1 && matches(3, 0, 1, 2)) candidates.push('headless1')
-    if (!hasHead && maxTaatsu === 2 && matches(3, 0, 2, 0)) candidates.push('headless2')
-  }
-
-  return (['kuttsuki', 'headless2', 'headless1', 'complete', 'surplus'] as IishantenType[]).find((type) => candidates.includes(type)) ?? null
+  // Any remaining standard one-shanten form is treated as surplus shape.
+  // This keeps every valid one-shanten hand within the five-type display.
+  return 'surplus'
 }
 
 /** Verify a generated candidate against the lecture's strongest-type rule. */

@@ -105,7 +105,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   const iishantenType = (hand: string[], shanten: number) => {
     if (shanten !== 1) return null
     const type = classifyIishantenCandidate(hand)
-    return type ? IISHANTEN_LABELS[type] : '5分類対象外'
+    return type ? IISHANTEN_LABELS[type] : null
   }
   const isDiscardAnalysis = discards.length > 0
   const heading = <div className="efficiency-heading"><strong>牌理・受け入れ</strong><button type="button" onClick={onClose} aria-label="牌理・受け入れを隠す" title="隠す">×</button></div>
@@ -118,7 +118,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
       {hasTenpaiShapeBreakdown && <label className="good-shape-toggle tenpai-breakdown-toggle"><input type="checkbox" checked={showTenpaiShapeBreakdown} onChange={(event) => setShowTenpaiShapeBreakdown(event.target.checked)} />打牌ごとの好形・愚形聴牌内訳を表示</label>}
       {!isDiscardAnalysis && (() => {
         const type = iishantenType(baseTileIds, result.shanten)
-        return <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b>{type && <small className="iishanten-type">1シャンテン形：{type}</small>}<span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>
+        return <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary">{tileIds.length >= 13 && <b>{formatShanten(result.shanten)}</b>}{type && <small className="iishanten-type">1シャンテン形：{type}</small>}<span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>
       })()}
       {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => {
         const hand = baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId))
