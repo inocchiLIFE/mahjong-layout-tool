@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { TILE_MAP } from '../data/tiles'
 import { getEfficiency, getTenpaiTransitions } from '../utils/mahjongEfficiency'
+import { classifyIishantenCandidate, IISHANTEN_LABELS } from '../utils/iishanten'
 import { calculateExpectedValues, EXPECTED_VALUE_TILE_IDS, type ExpectedValueSettings, type Wind } from '../utils/expectedValue'
 import { MELD_KIND_LABELS, concealedTileCountForMelds, type MahjongMeld, type MeldKind } from '../utils/mahjongMelds'
 
@@ -101,6 +102,11 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
     const hand = baseTileIds.filter((tileId, index) => tileId !== discard.discardTileId || index !== baseTileIds.indexOf(discard.discardTileId))
     return getTenpaiTransitions(hand, fixedMeldCount).length > 0
   })
+  const iishantenType = (hand: string[], shanten: number) => {
+    if (shanten !== 1) return null
+    const type = classifyIishantenCandidate(hand)
+    return type ? IISHANTEN_LABELS[type] : '5分類対象外'
+  }
   const isDiscardAnalysis = discards.length > 0
   const heading = <div className="efficiency-heading"><strong>牌理・受け入れ</strong><button type="button" onClick={onClose} aria-label="牌理・受け入れを隠す" title="隠す">×</button></div>
   const resizeHandle = <button type="button" className="efficiency-resize-handle" onPointerDown={startResize} aria-label="パネル幅を変更" />
@@ -111,11 +117,13 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
       {resizeHandle}{heading}
       {hasTenpaiShapeBreakdown && <label className="good-shape-toggle tenpai-breakdown-toggle"><input type="checkbox" checked={showTenpaiShapeBreakdown} onChange={(event) => setShowTenpaiShapeBreakdown(event.target.checked)} />打牌ごとの好形・愚形聴牌内訳を表示</label>}
       {!isDiscardAnalysis && (() => {
-        return <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b><span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>
+        const type = iishantenType(baseTileIds, result.shanten)
+        return <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b>{type && <small className="iishanten-type">1シャンテン形：{type}</small>}<span>受け入れ <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</>
       })()}
       {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => {
         const hand = baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId))
-        return <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{showTenpaiShapeBreakdown ? tenpaiShapeSummary(hand, discardResult.shanten) : discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>
+        const type = iishantenType(hand, discardResult.shanten)
+        return <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{type && <small className="iishanten-type discard">1シャンテン形：{type}</small>}{showTenpaiShapeBreakdown ? tenpaiShapeSummary(hand, discardResult.shanten) : discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>
       })}</div>}
       {baseTileIds.length >= 2 && <section className="expected-value-section">
         <div className="meld-input">
