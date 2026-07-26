@@ -92,6 +92,8 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   contextMenuItems: DEFAULT_CONTEXT_MENU_ITEMS,
   defaultWorkspaceWidth: DEFAULT_WORKSPACE_WIDTH,
   defaultWorkspaceHeight: DEFAULT_WORKSPACE_HEIGHT,
+  headerColor: '#0d3a31',
+  appIconSrc: null,
 }
 const SYNC_CHANNEL = 'mahjong-layout-tool:tab-sync-v1'
 const EMPTY_SCENE: Scene = {
@@ -360,6 +362,8 @@ const readPreferences = (): AppPreferences => {
       contextMenuItems: Array.isArray(saved.contextMenuItems) ? saved.contextMenuItems.filter((item): item is ContextMenuItemId => typeof item === 'string' && CONTEXT_MENU_ITEMS.some(([id]) => id === item)) : DEFAULT_PREFERENCES.contextMenuItems,
       defaultWorkspaceWidth: typeof saved.defaultWorkspaceWidth === 'number' ? clamp(saved.defaultWorkspaceWidth, MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH) : DEFAULT_PREFERENCES.defaultWorkspaceWidth,
       defaultWorkspaceHeight: typeof saved.defaultWorkspaceHeight === 'number' ? clamp(saved.defaultWorkspaceHeight, MIN_WORKSPACE_HEIGHT, MAX_WORKSPACE_HEIGHT) : DEFAULT_PREFERENCES.defaultWorkspaceHeight,
+      headerColor: typeof saved.headerColor === 'string' && /^#[0-9a-f]{6}$/i.test(saved.headerColor) ? saved.headerColor : DEFAULT_PREFERENCES.headerColor,
+      appIconSrc: typeof saved.appIconSrc === 'string' && saved.appIconSrc.startsWith('data:image/') ? saved.appIconSrc : null,
     }
   } catch {
     return DEFAULT_PREFERENCES
@@ -550,6 +554,8 @@ const App = () => {
     setDefaultShapeColor(next.defaultShapeColor)
     setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
     localStorage.setItem(PREFERENCES_KEY, JSON.stringify(next))
+    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    if (icon) icon.href = next.appIconSrc || `${import.meta.env.BASE_URL}favicon.svg`
   }
 
   const savePreferences = (next: AppPreferences) => {
@@ -634,6 +640,8 @@ const App = () => {
         setDefaultTextStyle({ fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, color: next.defaultTextColor })
         setDefaultShapeColor(next.defaultShapeColor)
         setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
+        const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+        if (icon) icon.href = next.appIconSrc || `${import.meta.env.BASE_URL}favicon.svg`
       } else if (event.key === SYMBOL_PRESETS_KEY) {
         setSymbolPresets(readSymbolPresets())
       } else if (event.key === DRAWING_PRESETS_KEY) {
@@ -662,6 +670,10 @@ const App = () => {
 
   useEffect(() => { localStorage.setItem(EFFICIENCY_PANEL_VISIBLE_KEY, String(efficiencyPanelVisible)) }, [efficiencyPanelVisible])
   useEffect(() => { localStorage.setItem(EFFICIENCY_PANEL_WIDTH_KEY, String(efficiencyPanelWidth)) }, [efficiencyPanelWidth])
+  useEffect(() => {
+    const icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+    if (icon) icon.href = preferences.appIconSrc || `${import.meta.env.BASE_URL}favicon.svg`
+  }, [preferences.appIconSrc])
 
   const switchPage = (index: number) => {
     if (index === activePageIndex || !pagesRef.current[index]) return
@@ -1696,9 +1708,9 @@ const App = () => {
     : null
 
   return (
-    <div className="app-shell" style={{ '--app-scale': preferences.uiScale, '--popup-scale': preferences.popupFontScale } as CSSProperties}>
+    <div className="app-shell" style={{ '--app-scale': preferences.uiScale, '--popup-scale': preferences.popupFontScale, '--header-color': preferences.headerColor } as CSSProperties}>
       <header className="app-header">
-        <div className="brand-mark" aria-hidden="true"><span>牌</span></div>
+        <div className="brand-mark" aria-hidden="true">{preferences.appIconSrc ? <img src={preferences.appIconSrc} alt="" /> : <span>牌</span>}</div>
         <div className="brand-copy">
           <span className="eyebrow">MAHJONG CANVAS</span>
           <h1>麻雀牌レイアウトツール</h1>

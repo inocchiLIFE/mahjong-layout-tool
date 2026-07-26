@@ -40,7 +40,7 @@
   gap: 11px;
   padding: 0 18px;
   color: #f9f6ea;
-  background: linear-gradient(115deg, #072923 0%, #0d3a31 58%, #13493d 100%);
+  background: linear-gradient(115deg, color-mix(in srgb, var(--header-color, #0d3a31), #000 28%) 0%, var(--header-color, #0d3a31) 58%, color-mix(in srgb, var(--header-color, #0d3a31), #fff 14%) 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow: 0 8px 30px rgba(6, 35, 29, 0.22);
   position: relative;
@@ -79,6 +79,7 @@
   font-weight: 800;
   font-size: 19px;
 }
+.brand-mark img { width: 100%; height: 100%; border-radius: 9px; object-fit: cover; }
 
 .brand-copy { min-width: 0; }
 .eyebrow { display: block; color: #dcae5e; font-size: 8px; letter-spacing: .18em; font-weight: 800; }
@@ -414,6 +415,10 @@
 .settings-dialog input[type="number"] { width: 66px; height: 30px; box-sizing: border-box; border: 1px solid #c8d5ce; border-radius: 5px; padding: 0 6px; color: #173c32; background: #fff; font: 600 12px ui-monospace, monospace; }
 .settings-dialog input[type="checkbox"] { accent-color: #1b765e; }
 .settings-dialog input[type="color"] { width: 38px; height: 28px; padding: 2px; border: 1px solid #c8d5ce; border-radius: 5px; background: #fff; }
+.settings-icon-control { display: flex; align-items: center; gap: 8px; }
+.settings-icon-control img, .settings-icon-control b { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #c8d5ce; border-radius: 7px; object-fit: cover; background: #edf3ef; color: #174f40; }
+.settings-icon-control input[type="file"] { max-width: 175px; font-size: 10px; }
+.settings-icon-control button { height: 27px; border: 1px solid #c8d5ce; border-radius: 5px; background: #fff; color: #49655d; cursor: pointer; font-size: 10px; }
 .settings-dialog input[type="range"] { flex: 1; accent-color: #1b765e; }
 .settings-dialog output { min-width: 18px; color: #315b50; font: 800 11px ui-monospace, monospace; text-align: right; }
 .settings-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 34px 24px; border-top: 1px solid #d8e2dc; background: #fbfaf4; box-shadow: 0 -8px 16px rgba(31, 66, 54, .05); }

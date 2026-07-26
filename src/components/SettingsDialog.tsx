@@ -14,6 +14,8 @@ export interface AppPreferences {
   contextMenuItems: ContextMenuItemId[]
   defaultWorkspaceWidth: number
   defaultWorkspaceHeight: number
+  headerColor: string
+  appIconSrc: string | null
 }
 
 interface SettingsDialogProps {
@@ -34,6 +36,8 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   contextMenuItems: DEFAULT_CONTEXT_MENU_ITEMS,
   defaultWorkspaceWidth: DEFAULT_WORKSPACE_WIDTH,
   defaultWorkspaceHeight: DEFAULT_WORKSPACE_HEIGHT,
+  headerColor: '#0d3a31',
+  appIconSrc: null,
 }
 
 export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogProps) => {
@@ -46,6 +50,12 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
   }, [onClose])
 
   const submit = (event: FormEvent) => { event.preventDefault(); onSave(draft) }
+  const chooseAppIcon = (file: File | undefined) => {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => setDraft((current) => ({ ...current, appIconSrc: typeof reader.result === 'string' ? reader.result : null }))
+    reader.readAsDataURL(file)
+  }
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
@@ -63,6 +73,14 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
             <label>ポップアップ・文字サイズ <input type="range" min="1" max="1.5" step="0.05" value={draft.popupFontScale} onChange={(event) => setDraft((current) => ({ ...current, popupFontScale: Number(event.target.value) }))} /><output>{Math.round(draft.popupFontScale * 100)}%</output></label>
             <label>新規作業領域の幅（px）<input type="number" min={MIN_WORKSPACE_WIDTH} max={MAX_WORKSPACE_WIDTH} value={draft.defaultWorkspaceWidth} onChange={(event) => setDraft((current) => ({ ...current, defaultWorkspaceWidth: clamp(Number(event.target.value) || MIN_WORKSPACE_WIDTH, MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH) }))} /></label>
             <label>新規作業領域の高さ（px）<input type="number" min={MIN_WORKSPACE_HEIGHT} max={MAX_WORKSPACE_HEIGHT} value={draft.defaultWorkspaceHeight} onChange={(event) => setDraft((current) => ({ ...current, defaultWorkspaceHeight: clamp(Number(event.target.value) || MIN_WORKSPACE_HEIGHT, MIN_WORKSPACE_HEIGHT, MAX_WORKSPACE_HEIGHT) }))} /></label>
+            <label>上部バーの色 <input type="color" value={draft.headerColor} onChange={(event) => setDraft((current) => ({ ...current, headerColor: event.target.value }))} /></label>
+            <label>アプリアイコン
+              <span className="settings-icon-control">
+                {draft.appIconSrc ? <img src={draft.appIconSrc} alt="設定したアイコン" /> : <b>牌</b>}
+                <input type="file" accept="image/*" onChange={(event) => chooseAppIcon(event.target.files?.[0])} />
+                {draft.appIconSrc && <button type="button" onClick={() => setDraft((current) => ({ ...current, appIconSrc: null }))}>削除</button>}
+              </span>
+            </label>
           </fieldset>
 
           <fieldset>
