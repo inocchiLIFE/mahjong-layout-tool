@@ -981,23 +981,19 @@ const App = () => {
     notify(`${generatedLabel}${isIishantenQuestion ? 'の何切る問題' : ''}を生成し、理牌しました`)
   }
 
-  const shuffleTiles = () => {
-    const tileIds = scene.elements
-      .filter((element): element is TileElement => element.kind === 'tile' && !element.locked)
-      .map((tile) => tile.tileId)
-    if (!tileIds.length) return
-    for (let index = tileIds.length - 1; index > 0; index -= 1) {
-      const target = Math.floor(Math.random() * (index + 1))
-      ;[tileIds[index], tileIds[target]] = [tileIds[target], tileIds[index]]
-    }
-    let tileIndex = 0
+  const sortSelectedTiles = () => {
+    const selectedTiles = scene.elements.filter((element): element is TileElement => element.kind === 'tile' && element.selected && !element.locked)
+    if (!selectedTiles.length) return
+    const targetIds = [...selectedTiles].sort((left, right) => left.y - right.y || left.x - right.x || left.zIndex - right.zIndex).map((tile) => tile.id)
+    const sortedTileIds = [...selectedTiles].sort((left, right) => (TILE_MAP.get(left.tileId)?.order ?? Number.MAX_SAFE_INTEGER) - (TILE_MAP.get(right.tileId)?.order ?? Number.MAX_SAFE_INTEGER)).map((tile) => tile.tileId)
+    const tileIdsByTarget = new Map(targetIds.map((id, index) => [id, sortedTileIds[index]]))
     history.commit({
       ...scene,
-      elements: scene.elements.map((element) => element.kind === 'tile' && !element.locked
-        ? { ...element, tileId: tileIds[tileIndex++] }
+      elements: scene.elements.map((element) => element.kind === 'tile' && tileIdsByTarget.has(element.id)
+        ? { ...element, tileId: tileIdsByTarget.get(element.id)! }
         : element),
     })
-    notify('配置位置を保ったまま牌をシャッフルしました')
+    notify(`${selectedTiles.length}枚を理牌しました`)
   }
 
   const commitText = (text: string, x = 40, y?: number, id?: string) => {
@@ -1788,7 +1784,8 @@ const App = () => {
           localStorage.setItem(HAND_SUITS_KEY, JSON.stringify(next))
           return next
         })}
-        onShuffle={shuffleTiles}
+        canSortSelectedTiles={selected.some((element) => element.kind === 'tile' && !element.locked)}
+        onSortSelectedTiles={sortSelectedTiles}
         onSetPlacementMode={setPlacementMode}
         onSaveLocal={saveQuickLayout}
         onOpenSavedLayouts={() => setSavedLayoutsOpen(true)}

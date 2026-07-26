@@ -70,7 +70,7 @@ export const HelpModal = ({ onClose }: HelpModalProps) => {
           <section className="help-section" id="help-hand">
             <div className="help-section-heading"><span>04</span><h3>ランダム牌姿</h3></div>
             <div className="help-feature-list">
-              <div><strong>基本のランダム生成</strong><span>手牌タブから連続形、6枚形、6枚形・複合形、7枚形、13枚、14枚を生成できます。シャッフルは配置済みの牌をランダムに並べ替えます。</span></div>
+              <div><strong>基本のランダム生成</strong><span>手牌タブから連続形、6枚形、6枚形・複合形、7枚形、13枚、14枚を生成できます。選択した牌は「選択牌を理牌」で萬子・筒子・索子・字牌の順に並べ替えられます。</span></div>
               <div><strong>1シャンテン形</strong><span>「余剰牌型」「完全形」「ヘッドレス1型」「ヘッドレス2型」「くっつき」を選ぶと、条件を検証した13枚の牌姿を生成します。同一牌は最大4枚です。</span></div>
               <div><strong>完全形のフォロー</strong><span>完全形は、ターツの構成牌を重ねる縦のフォローと、カンチャン形の外側・構成牌を使うフォローを含めて生成します。</span></div>
               <div><strong>使用する牌種</strong><span>1シャンテン形は萬子・筒子・索子・字牌を含む全34種から生成します。通常のランダム生成では、手牌タブの使用する牌種フィルターを利用できます。</span></div>

@@ -41,7 +41,8 @@ interface ToolbarProps {
   onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | 'iishanten-random' | 'iishanten-question' | IishantenType) => void
   handSuits: Array<'man' | 'pin' | 'sou'>
   onToggleHandSuit: (suit: 'man' | 'pin' | 'sou') => void
-  onShuffle: () => void
+  canSortSelectedTiles: boolean
+  onSortSelectedTiles: () => void
   onSetPlacementMode: (mode: PlacementMode) => void
   onSaveLocal: () => void
   onOpenSavedLayouts: () => void
@@ -345,7 +346,7 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="13枚" icon="13" onClick={() => props.onRandomHand(13)} />
           <ToolButton label="14枚" icon="14" onClick={() => props.onRandomHand(14)} />
           <ToolButton label="何切る問題" icon="?" onClick={() => props.onRandomHand('iishanten-question')} />
-          <ToolButton label="シャッフル" icon="⤨" onClick={props.onShuffle} disabled={!props.hasItems} />
+          <ToolButton label="選択牌を理牌" icon="≡" onClick={props.onSortSelectedTiles} disabled={!props.canSortSelectedTiles} />
         </div>}
 
         {activeTab === 'hand' && <div className="tool-group iishanten-generator-group">
