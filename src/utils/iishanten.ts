@@ -97,8 +97,10 @@ export const classifyIishantenCandidate = (tiles: string[]): IishantenType | nul
       const without = getEfficiency(hand)
       return remainsBaseShape && without ? [efficiency.effectiveTileIds.length > without.effectiveTileIds.length || efficiency.effectiveTileCount > without.effectiveTileCount] : []
     })
-    // In a complete shape the single tile supports a taatsu (vertical or
-    // ryan-kan) and increases acceptance. Otherwise it is surplus.
+    // A hand is surplus if any valid decomposition has a single tile that
+    // does not increase acceptance.  Complete only applies when every
+    // possible single-tile decomposition contributes extra acceptance.
+    if (isolateComparisons.some((value) => !value)) return 'surplus'
     if (isolateComparisons.some(Boolean)) return 'complete'
     return 'surplus'
   }

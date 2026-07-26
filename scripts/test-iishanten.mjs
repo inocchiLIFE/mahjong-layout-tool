@@ -46,6 +46,11 @@ assert.equal(
   'surplus',
   'a second pair can be treated as taatsu while the other pair is the head',
 )
+assert.equal(
+  classifyIishantenCandidate(['pin2', 'pin3', 'pin4', 'pin5', 'pin6', 'pin8', 'sou2', 'sou2', 'sou5', 'sou6', 'sou6', 'sou7', 'sou8']),
+  'surplus',
+  'a hand with an 8p surplus decomposition must not be promoted to complete',
+)
 
 for (let index = 0; index < 20; index += 1) {
   const vertical = createCompleteFollow('vertical')
