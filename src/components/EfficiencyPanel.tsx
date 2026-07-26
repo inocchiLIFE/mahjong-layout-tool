@@ -12,6 +12,15 @@ const Tile = ({ tileId, className = '' }: { tileId: string; className?: string }
   return tile ? <img className={`efficiency-tile ${className}`} src={tile.asset} alt={tile.label} title={tile.label} width="48" height="66" draggable={false} /> : null
 }
 
+const tileNotation = (tileId: string) => {
+  const tile = TILE_MAP.get(tileId)
+  if (!tile) return tileId
+  if (tile.suit === 'man') return `${tile.rank}m`
+  if (tile.suit === 'pin') return `${tile.rank}p`
+  if (tile.suit === 'sou') return `${tile.rank}s`
+  return `${tile.rank}z`
+}
+
 const MeldTiles = ({ kind, tileIds }: { kind: MeldKind; tileIds: string[] }) => {
   // Open calls are identified by one sideways tile. Closed kans stay upright.
   const sidewaysIndex = kind === 'closed-kan' ? -1 : kind === 'added-kan' ? tileIds.length - 1 : 0
@@ -81,8 +90,8 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
     showGoodShapeOnly && shanten === 1 ? goodShapeFor(hand, shanten).map((transition) => transition.drawTileId) : effectiveTileIds
   const goodShapeSummary = (transitions: ReturnType<typeof getGoodShapeTenpaiTransitions>) => transitions.map((transition) => {
     const best = Math.max(...transition.tenpaiOptions.map((option) => option.waitTileCount))
-    return `${TILE_MAP.get(transition.drawTileId)?.label ?? transition.drawTileId}で最大${best}枚待ち`
-  }).join('、')
+    return `${tileNotation(transition.drawTileId)}:${best}枚待ち`
+  }).join(' / ')
   const hasGoodShapeCandidates = goodShapeTransitions.length > 0 || sortedDiscards.some((discard) => {
     const hand = baseTileIds.filter((tileId, index) => tileId !== discard.discardTileId || index !== baseTileIds.indexOf(discard.discardTileId))
     return goodShapeFor(hand, discard.result.shanten).length > 0
