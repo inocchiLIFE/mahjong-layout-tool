@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { TILE_MAP } from '../data/tiles'
-import { getEfficiency, getGoodShapeTenpaiTransitions } from '../utils/mahjongEfficiency'
+import { getEfficiency, getGoodShapeTenpaiTransitions, getTenpaiTransitions } from '../utils/mahjongEfficiency'
 import { calculateExpectedValues, EXPECTED_VALUE_TILE_IDS, type ExpectedValueSettings, type Wind } from '../utils/expectedValue'
 import { MELD_KIND_LABELS, concealedTileCountForMelds, type MahjongMeld, type MeldKind } from '../utils/mahjongMelds'
 
@@ -92,6 +92,19 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
     const best = Math.max(...transition.tenpaiOptions.map((option) => option.waitTileCount))
     return `${tileNotation(transition.drawTileId)}:${best}枚待ち`
   }).join(' / ')
+  const tenpaiShapeSummary = result?.shanten === 1 ? (() => {
+    const groups = getTenpaiTransitions(baseTileIds, fixedMeldCount).reduce((result, transition) => {
+      const waitCount = Math.max(...transition.tenpaiOptions.map((option) => option.waitTileCount))
+      const kind = waitCount >= 6 ? 'good' : 'bad'
+      const remaining = 4 - baseTileIds.filter((tileId) => tileId === transition.drawTileId).length
+      result[kind].push({ tileId: transition.drawTileId, waitCount, remaining })
+      return result
+    }, { good: [] as Array<{ tileId: string; waitCount: number; remaining: number }>, bad: [] as Array<{ tileId: string; waitCount: number; remaining: number }> })
+    const render = (label: string, items: Array<{ tileId: string; waitCount: number; remaining: number }>) => items.length
+      ? <div className={`tenpai-shape-summary ${label === '好形聴牌' ? 'good' : 'bad'}`}><strong>{label}</strong><span>{items.length}種 {items.reduce((sum, item) => sum + item.remaining, 0)}枚</span><small>{items.map((item) => `${tileNotation(item.tileId)}:${item.waitCount}枚待ち`).join(' / ')}</small></div>
+      : null
+    return <section className="tenpai-shape-summaries" aria-label="好形・愚形聴牌の受け入れ">{render('好形聴牌', groups.good)}{render('愚形聴牌', groups.bad)}</section>
+  })() : null
   const hasGoodShapeCandidates = goodShapeTransitions.length > 0 || sortedDiscards.some((discard) => {
     const hand = baseTileIds.filter((tileId, index) => tileId !== discard.discardTileId || index !== baseTileIds.indexOf(discard.discardTileId))
     return goodShapeFor(hand, discard.result.shanten).length > 0
@@ -105,6 +118,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
     <aside ref={panelRef} className="efficiency-panel" aria-live="polite">
       {resizeHandle}{heading}
       {hasGoodShapeCandidates && <label className="good-shape-toggle"><input type="checkbox" checked={showGoodShapeOnly} onChange={(event) => setShowGoodShapeOnly(event.target.checked)} />一向聴：好形聴牌のみ（6枚以上待ち）</label>}
+      {tenpaiShapeSummary}
       {!isDiscardAnalysis && (() => {
         const visibleIds = effectiveIdsFor(baseTileIds, result.shanten, result.effectiveTileIds)
         return <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b><span>{showGoodShapeOnly && result.shanten === 1 ? '好形聴牌へ' : '受け入れ'} <em>{visibleIds.length}種 {showGoodShapeOnly && result.shanten === 1 ? '（6枚以上待ち）' : `${result.effectiveTileCount}牌`}</em></span></div>{visibleIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{visibleIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}{showGoodShapeOnly && goodShapeTransitions.length > 0 && <small className="good-shape-note">{goodShapeSummary(goodShapeTransitions)}</small>}</>

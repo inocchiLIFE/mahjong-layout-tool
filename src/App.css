@@ -636,6 +636,12 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
 .good-shape-toggle { display: flex; align-items: center; gap: 5px; margin: 8px 0; color: #176250; font-size: 11px; font-weight: 800; cursor: pointer; }
 .good-shape-toggle input { accent-color: #23826a; }
 .good-shape-note { display: block; margin-top: 4px; color: #4d7669; font-size: 10px; line-height: 1.45; }
+.tenpai-shape-summaries { display: grid; gap: 5px; margin: 7px 0 10px; }
+.tenpai-shape-summary { display: grid; grid-template-columns: auto 1fr; gap: 2px 6px; padding: 6px 7px; border-left: 3px solid #9a7d45; border-radius: 4px; background: #f6f2e8; color: #695938; font-size: 10px; }
+.tenpai-shape-summary.good { border-left-color: #23826a; background: #edf7f1; color: #176250; }
+.tenpai-shape-summary strong { font-size: 11px; }
+.tenpai-shape-summary span { font-weight: 800; }
+.tenpai-shape-summary small { grid-column: 1 / -1; color: inherit; line-height: 1.45; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation-duration: .01ms !important; }

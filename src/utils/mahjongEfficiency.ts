@@ -121,8 +121,8 @@ export const getDiscardEfficiencies = (tileIds: string[]) => [...new Set(tileIds
   result: getEfficiency(tileIds.filter((tileId, index) => tileId !== discardTileId || index !== tileIds.indexOf(discardTileId))),
 }))
 
-/** Finds 1-shanten draws that can become tenpai with six or more waits. */
-export const getGoodShapeTenpaiTransitions = (tileIds: string[], fixedMelds = 0): GoodShapeTenpaiTransition[] => {
+/** Finds 1-shanten draws that can become tenpai, including every discard option. */
+export const getTenpaiTransitions = (tileIds: string[], fixedMelds = 0): GoodShapeTenpaiTransition[] => {
   const current = getEfficiency(tileIds, fixedMelds)
   if (!current || current.shanten !== 1) return []
   return current.effectiveTileIds.flatMap((drawTileId) => {
@@ -130,9 +130,16 @@ export const getGoodShapeTenpaiTransitions = (tileIds: string[], fixedMelds = 0)
     const tenpaiOptions = [...new Set(drawn)].flatMap((discardTileId) => {
       const afterDiscard = drawn.filter((tileId, index) => tileId !== discardTileId || index !== drawn.indexOf(discardTileId))
       const tenpai = getEfficiency(afterDiscard, fixedMelds)
-      if (!tenpai || tenpai.shanten !== 0 || tenpai.effectiveTileCount < 6) return []
+      if (!tenpai || tenpai.shanten !== 0) return []
       return [{ discardTileId, waitTileIds: tenpai.effectiveTileIds, waitTileCount: tenpai.effectiveTileCount }]
     })
     return tenpaiOptions.length ? [{ drawTileId, tenpaiOptions }] : []
   })
 }
+
+/** Finds 1-shanten draws that can become tenpai with six or more waits. */
+export const getGoodShapeTenpaiTransitions = (tileIds: string[], fixedMelds = 0) => getTenpaiTransitions(tileIds, fixedMelds)
+  .flatMap((transition) => {
+    const tenpaiOptions = transition.tenpaiOptions.filter((option) => option.waitTileCount >= 6)
+    return tenpaiOptions.length ? [{ ...transition, tenpaiOptions }] : []
+  })
