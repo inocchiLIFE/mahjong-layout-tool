@@ -5,8 +5,11 @@ import { calculateExpectedValues, EXPECTED_VALUE_TILE_IDS, type ExpectedValueSet
 import { MELD_KIND_LABELS, concealedTileCountForMelds, type MahjongMeld, type MeldKind } from '../utils/mahjongMelds'
 
 const Tile = ({ tileId, className = '' }: { tileId: string; className?: string }) => {
+  // Results use base tile IDs, while inputs can contain red fives. The shared
+  // tile map contains both variants. Reserve dimensions before the image finishes
+  // loading so panel resizing never collapses or reflows the tile row.
   const tile = TILE_MAP.get(tileId)
-  return tile ? <img className={`efficiency-tile ${className}`} src={tile.asset} alt={tile.label} title={tile.label} /> : null
+  return tile ? <img className={`efficiency-tile ${className}`} src={tile.asset} alt={tile.label} title={tile.label} width="48" height="66" draggable={false} /> : null
 }
 
 const MeldTiles = ({ kind, tileIds }: { kind: MeldKind; tileIds: string[] }) => {
