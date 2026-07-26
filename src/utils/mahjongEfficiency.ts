@@ -3,7 +3,12 @@ const TILE_IDS = [
   'ton', 'nan', 'sha', 'pei', 'haku', 'hatsu', 'chun',
 ]
 
-const TERMINAL_OR_HONOR = new Set([...TILE_IDS.slice(0, 9).filter((_, index) => index === 0 || index === 8), ...TILE_IDS.slice(9, 18).filter((_, index) => index === 0 || index === 8), ...TILE_IDS.slice(18)])
+const TERMINAL_OR_HONOR = new Set([
+  ...TILE_IDS.slice(0, 9).filter((_, index) => index === 0 || index === 8),
+  ...TILE_IDS.slice(9, 18).filter((_, index) => index === 0 || index === 8),
+  ...TILE_IDS.slice(18, 27).filter((_, index) => index === 0 || index === 8),
+  ...TILE_IDS.slice(27),
+])
 
 export interface EfficiencyResult {
   shanten: number
