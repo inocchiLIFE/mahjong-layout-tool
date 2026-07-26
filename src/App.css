@@ -553,19 +553,6 @@
 .references-footer .primary-button { height: 40px; }
 kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; border-radius: 4px; background: #fff; color: #36564d; font: 600 9px ui-monospace, monospace; }
 .primary-button { width: 100%; height: 43px; border: 0; border-radius: 8px; background: linear-gradient(135deg, #134d40, #0c372f); color: #fff8e8; cursor: pointer; font-weight: 700; letter-spacing: .06em; box-shadow: 0 6px 16px rgba(12, 55, 47, .22); }
-.tile-recognition-dialog { position: relative; width: min(680px, 100%); max-height: min(720px, calc(100vh - 32px)); overflow: auto; box-sizing: border-box; padding: 30px 38px 28px; border-radius: 16px; background: #fbfaf4; box-shadow: 0 25px 80px rgba(0, 0, 0, .38); }
-.tile-recognition-dialog h2 { margin: 6px 0; color: #143c32; font: 700 24px "Yu Mincho", serif; }
-.tile-recognition-dialog > p { color: #617870; font-size: 12px; line-height: 1.65; }
-.recognition-loading, .recognition-error { margin: 20px 0; padding: 18px; border-radius: 9px; background: #eef5f0; color: #285f50; font-weight: 700; text-align: center; }
-.recognition-error { background: #fff0ed; color: #a04438; }
-.recognition-hint { padding: 9px 11px; border-left: 3px solid #c3913d; border-radius: 0 6px 6px 0; background: #fff8e9; color: #78633b !important; }
-.recognition-results { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 18px 0; }
-.recognition-candidate { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 5px 7px; align-items: center; padding: 8px; border: 1px solid #d4e1da; border-radius: 8px; background: #fff; color: #285f50; font-size: 11px; font-weight: 800; }
-.recognition-candidate span { grid-row: span 2; display: grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: #e8f1eb; }
-.recognition-candidate select { min-width: 0; height: 28px; border: 1px solid #b7cbc1; border-radius: 5px; background: #fff; color: #244c41; font: inherit; }
-.recognition-candidate small { color: #71867e; font-size: 9px; }
-.tile-recognition-dialog .property-actions { display: grid; grid-template-columns: 1fr 1.5fr; gap: 9px; }
-.tile-recognition-dialog .property-actions button:not(.primary-button) { border: 1px solid #b7cbc1; border-radius: 8px; background: #f6faf7; color: #285f50; font-weight: 700; cursor: pointer; }
 
 .toast { position: fixed; z-index: 120; right: 24px; bottom: 22px; padding: 12px 17px; border: 1px solid rgba(248, 226, 177, .32); border-radius: 9px; background: #0b382f; color: #fff7e7; box-shadow: 0 10px 35px rgba(4, 30, 25, .28); font-size: 12px; animation: toast-in .25s ease-out; }
 .visually-hidden { position: fixed !important; width: 1px; height: 1px; opacity: 0; pointer-events: none; }

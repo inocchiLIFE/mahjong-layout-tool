@@ -16,7 +16,6 @@ import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
 import { WorkspaceSizeDialog } from './components/WorkspaceSizeDialog'
 import { EfficiencyPanel } from './components/EfficiencyPanel'
-import { TileRecognitionDialog } from './components/TileRecognitionDialog'
 import { TILE_MAP } from './data/tiles'
 import { useSceneHistory } from './hooks/useSceneHistory'
 import type {
@@ -511,7 +510,6 @@ const App = () => {
   const [pngTransparent, setPngTransparent] = useState(false)
   const [exportingTransparent, setExportingTransparent] = useState(false)
   const [workspaceSizeOpen, setWorkspaceSizeOpen] = useState(false)
-  const [tileRecognitionImageId, setTileRecognitionImageId] = useState<string | null>(null)
   const workspaceRef = useRef<HTMLDivElement>(null)
   const pagesRef = useRef(pages)
   const switchPageRef = useRef<(index: number) => void>(() => {})
@@ -1341,16 +1339,6 @@ const App = () => {
     history.updateLive({ ...scene, elements })
   }
 
-  const applyRecognisedTiles = (image: ImageElement, tileIds: string[]) => {
-    const startX = image.x
-    const startY = image.y + image.height + 12
-    const tiles = tileIds.map((tileId, index) => makeTile(tileId, startX + index * (TILE_WIDTH + TILE_GAP), startY, nextZIndex() + index))
-    history.commit({ ...scene, elements: [...scene.elements.map((element) => ({ ...element, selected: false })), ...tiles] })
-    setRulerCount((count) => count + tiles.length)
-    setTileRecognitionImageId(null)
-    notify(`${tiles.length}牌を画像から配置しました`)
-  }
-
   const openContextMenu = (state: ContextMenuState) => {
     if (state.elementId === null) {
       setContextMenu(state)
@@ -1694,8 +1682,6 @@ const App = () => {
   const selectedText = selected.length === 1 && selected[0].kind === 'text' && !selected[0].locked ? selected[0] : null
   const selectedColoredElement = selected.length === 1 && (selected[0].kind === 'symbol' || selected[0].kind === 'drawing') && !selected[0].locked ? selected[0] : null
   const selectedEditable = selected.length === 1 && selected[0].kind !== 'tile' && !selected[0].locked ? selected[0] : null
-  const selectedImage = selected.length === 1 && selected[0].kind === 'image' && !selected[0].locked ? selected[0] : null
-  const tileRecognitionImage = tileRecognitionImageId ? scene.elements.find((element): element is ImageElement => element.id === tileRecognitionImageId && element.kind === 'image') ?? null : null
   const selectedHandTiles = selected
     .filter((element): element is TileElement => element.kind === 'tile' && !element.faceDown)
   const detectedMelds = detectOpenMelds(selectedHandTiles)
@@ -1796,8 +1782,6 @@ const App = () => {
         onOpenSavedLayouts={() => setSavedLayoutsOpen(true)}
         onImportSharedLayout={() => shareInputRef.current?.click()}
         onAddImage={() => requestImage()}
-        canReadSelectedImage={Boolean(selectedImage)}
-        onReadSelectedImage={() => selectedImage && setTileRecognitionImageId(selectedImage.id)}
         onAddText={(text) => commitText(text)}
         onHelp={() => setHelpOpen(true)}
         onOpenReferences={() => setReferencesOpen(true)}
@@ -1975,8 +1959,6 @@ const App = () => {
           onClose={() => setPropertyElementId(null)}
         />
       )}
-
-      {tileRecognitionImage && <TileRecognitionDialog image={tileRecognitionImage} onApply={(tileIds) => applyRecognisedTiles(tileRecognitionImage, tileIds)} onClose={() => setTileRecognitionImageId(null)} />}
 
       {savedLayoutsOpen && (
         <SavedLayoutsDialog

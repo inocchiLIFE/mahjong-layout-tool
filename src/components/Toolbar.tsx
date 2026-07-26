@@ -47,8 +47,6 @@ interface ToolbarProps {
   onOpenSavedLayouts: () => void
   onImportSharedLayout: () => void
   onAddImage: () => void
-  canReadSelectedImage: boolean
-  onReadSelectedImage: () => void
   onAddText: (text: string) => void
   onHelp: () => void
   onOpenReferences: () => void
@@ -335,7 +333,6 @@ export const Toolbar = (props: ToolbarProps) => {
           <div className="tool-group">
             <span className="tool-group-label">画像</span>
             <ToolButton label="画像追加" icon="▧" onClick={props.onAddImage} />
-            <ToolButton label="牌姿を読取" icon="牌" onClick={props.onReadSelectedImage} disabled={!props.canReadSelectedImage} />
           </div>
         </>}
 
