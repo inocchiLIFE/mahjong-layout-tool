@@ -33,6 +33,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   const panelRef = useRef<HTMLElement>(null)
   const [discardSort, setDiscardSort] = useState<'efficiency' | 'tile'>('efficiency')
   const [showGoodShapeOnly, setShowGoodShapeOnly] = useState(false)
+  const [showTenpaiShapeBreakdown, setShowTenpaiShapeBreakdown] = useState(false)
   const [showExpectedValue, setShowExpectedValue] = useState(false)
   const [showVisibleTiles, setShowVisibleTiles] = useState(false)
   const [expectedValues, setExpectedValues] = useState<ReturnType<typeof calculateExpectedValues>>([])
@@ -92,11 +93,11 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
     const best = Math.max(...transition.tenpaiOptions.map((option) => option.waitTileCount))
     return `${tileNotation(transition.drawTileId)}:${best}枚待ち`
   }).join(' / ')
-  const tenpaiShapeSummary = result?.shanten === 1 ? (() => {
-    const groups = getTenpaiTransitions(baseTileIds, fixedMeldCount).reduce((result, transition) => {
+  const tenpaiShapeSummary = (hand: string[], shanten: number) => shanten === 1 ? (() => {
+    const groups = getTenpaiTransitions(hand, fixedMeldCount).reduce((result, transition) => {
       const waitCount = Math.max(...transition.tenpaiOptions.map((option) => option.waitTileCount))
       const kind = waitCount >= 6 ? 'good' : 'bad'
-      const remaining = 4 - baseTileIds.filter((tileId) => tileId === transition.drawTileId).length
+      const remaining = 4 - hand.filter((tileId) => tileId === transition.drawTileId).length
       result[kind].push({ tileId: transition.drawTileId, waitCount, remaining })
       return result
     }, { good: [] as Array<{ tileId: string; waitCount: number; remaining: number }>, bad: [] as Array<{ tileId: string; waitCount: number; remaining: number }> })
@@ -109,6 +110,11 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
     const hand = baseTileIds.filter((tileId, index) => tileId !== discard.discardTileId || index !== baseTileIds.indexOf(discard.discardTileId))
     return goodShapeFor(hand, discard.result.shanten).length > 0
   })
+  const hasTenpaiShapeBreakdown = sortedDiscards.some((discard) => {
+    if (discard.result.shanten !== 1) return false
+    const hand = baseTileIds.filter((tileId, index) => tileId !== discard.discardTileId || index !== baseTileIds.indexOf(discard.discardTileId))
+    return getTenpaiTransitions(hand, fixedMeldCount).length > 0
+  })
   const isDiscardAnalysis = discards.length > 0
   const heading = <div className="efficiency-heading"><strong>牌理・受け入れ</strong><button type="button" onClick={onClose} aria-label="牌理・受け入れを隠す" title="隠す">×</button></div>
   const resizeHandle = <button type="button" className="efficiency-resize-handle" onPointerDown={startResize} aria-label="パネル幅を変更" />
@@ -118,7 +124,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
     <aside ref={panelRef} className="efficiency-panel" aria-live="polite">
       {resizeHandle}{heading}
       {hasGoodShapeCandidates && <label className="good-shape-toggle"><input type="checkbox" checked={showGoodShapeOnly} onChange={(event) => setShowGoodShapeOnly(event.target.checked)} />一向聴：好形聴牌のみ（6枚以上待ち）</label>}
-      {tenpaiShapeSummary}
+      {hasTenpaiShapeBreakdown && <label className="good-shape-toggle tenpai-breakdown-toggle"><input type="checkbox" checked={showTenpaiShapeBreakdown} onChange={(event) => setShowTenpaiShapeBreakdown(event.target.checked)} />打牌ごとの好形・愚形聴牌内訳を表示</label>}
       {!isDiscardAnalysis && (() => {
         const visibleIds = effectiveIdsFor(baseTileIds, result.shanten, result.effectiveTileIds)
         return <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary"><b>{formatShanten(result.shanten)}</b><span>{showGoodShapeOnly && result.shanten === 1 ? '好形聴牌へ' : '受け入れ'} <em>{visibleIds.length}種 {showGoodShapeOnly && result.shanten === 1 ? '（6枚以上待ち）' : `${result.effectiveTileCount}牌`}</em></span></div>{visibleIds.length > 0 && <div className="efficiency-waits" aria-label="有効牌">{visibleIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}{showGoodShapeOnly && goodShapeTransitions.length > 0 && <small className="good-shape-note">{goodShapeSummary(goodShapeTransitions)}</small>}</>
@@ -128,7 +134,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
         const transitions = goodShapeFor(hand, discardResult.shanten)
         const visibleIds = effectiveIdsFor(hand, discardResult.shanten, discardResult.effectiveTileIds)
         if (showGoodShapeOnly && discardResult.shanten === 1 && !visibleIds.length) return null
-        return <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{showGoodShapeOnly && discardResult.shanten === 1 ? `${visibleIds.length}種・好形聴牌へ` : `${discardResult.effectiveTileIds.length}種 ${discardResult.effectiveTileCount}牌`}</em></div>{visibleIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{visibleIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}{showGoodShapeOnly && transitions.length > 0 && <small className="good-shape-note">{goodShapeSummary(transitions)}</small>}</div>
+        return <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span>切り</span><b>{formatShanten(discardResult.shanten)}</b><em>{showGoodShapeOnly && discardResult.shanten === 1 ? `${visibleIds.length}種・好形聴牌へ` : `${discardResult.effectiveTileIds.length}種 ${discardResult.effectiveTileCount}牌`}</em></div>{showTenpaiShapeBreakdown && tenpaiShapeSummary(hand, discardResult.shanten)}{visibleIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの有効牌`}>{visibleIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}{showGoodShapeOnly && transitions.length > 0 && <small className="good-shape-note">{goodShapeSummary(transitions)}</small>}</div>
       })}</div>}
       {baseTileIds.length >= 2 && <section className="expected-value-section">
         <div className="meld-input">
