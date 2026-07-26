@@ -41,6 +41,11 @@ assert.equal(
   'headless2',
   'a shape with three melds and two taatsu is classified as headless2 instead of headless1',
 )
+assert.equal(
+  classifyIishantenCandidate(['man2', 'man3', 'man4', 'man7', 'man8', 'man9', 'pin3', 'pin3', 'pin5', 'pin6', 'sou4', 'sou4', 'sou9']),
+  'surplus',
+  'a second pair can be treated as taatsu while the other pair is the head',
+)
 
 for (let index = 0; index < 20; index += 1) {
   const vertical = createCompleteFollow('vertical')

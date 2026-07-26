@@ -60,6 +60,10 @@ const classifyRemainder = (tiles: string[]): Omit<IishantenDecomposition, 'melds
     const remove = (ids: string[]) => ids.forEach((key) => counts.set(key, counts.get(key)! - 1)); const restore = (ids: string[]) => ids.forEach((key) => counts.set(key, counts.get(key)! + 1))
     remove([id]); walk(pairs, taatsu, isolated + 1); restore([id])
     if ((counts.get(id) ?? 0) >= 2) { remove([id, id]); walk(pairs + 1, taatsu, isolated); restore([id, id]) }
+    // A second pair can be used as a taatsu while another pair is the head.
+    // Without this branch, shapes such as 234789m3356p449s lose the
+    // "head + two taatsu + one surplus" decomposition.
+    if ((counts.get(id) ?? 0) >= 2) { remove([id, id]); walk(pairs, taatsu + 1, isolated); restore([id, id]) }
     const match = /^(man|pin|sou)(\d)$/.exec(id)
     if (match) for (const delta of [1, 2]) { const other = `${match[1]}${Number(match[2]) + delta}`; if (Number(match[2]) + delta <= 9 && (counts.get(other) ?? 0) > 0) { remove([id, other]); walk(pairs, taatsu + 1, isolated); restore([id, other]) } }
   }
