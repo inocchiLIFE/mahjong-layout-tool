@@ -36,7 +36,7 @@ export const ReferencesModal = ({ onClose }: ReferencesModalProps) => {
               </a>
               <a href="https://mahjong.org/training/training_006/" target="_blank" rel="noreferrer">
                 <strong>麻雀トレーニング</strong>
-                <span>牌理・受け入れの要素で参考にしたサイト</span>
+                <span>牌理・受け入れで参考にしたサイト</span>
               </a>
             </div>
           </section>
