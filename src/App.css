@@ -14,11 +14,12 @@
 .meld-input { display: grid; gap: 5px; padding: 8px; border: 1px solid #bdd1c7; border-radius: 6px; background: #f7faf8; color: #31574d; font-size: 10px; }.meld-input > label { display: grid; grid-template-columns: 45px 1fr; align-items: center; gap: 5px; }.meld-input select { min-height: 27px; border: 1px solid #bdd1c7; border-radius: 4px; background: #fff; }.meld-choice-grid { display: flex; flex-wrap: wrap; gap: 3px; max-height: 116px; overflow-y: auto; }.meld-choice-grid button, .meld-list > div { display: inline-flex; align-items: center; gap: 1px; min-height: 34px; padding: 2px 4px; border: 1px solid #c8d8cf; border-radius: 4px; background: #fff; cursor: pointer; overflow: visible; }.meld-choice-grid button:hover { border-color: #23826a; background: #eef8f2; }.meld-choice-grid .efficiency-tile, .meld-list .efficiency-tile { width: 17px; }.meld-tiles { display: inline-flex; align-items: center; gap: 1px; height: 30px; }.meld-sideways-tile { transform: rotate(90deg); margin: 0 -3px; }.meld-list { display: grid; gap: 3px; }.meld-list > div { width: max-content; cursor: default; }.meld-list span { margin-right: 3px; font-weight: 700; }.meld-list button { border: 0; background: transparent; color: #8c2f24; font-weight: 800; cursor: pointer; }.meld-input small { color: #70867e; line-height: 1.35; }
 .efficiency-resize-handle { position: absolute; z-index: 2; top: 0; bottom: 0; left: -5px; width: 10px; padding: 0; border: 0; background: transparent; cursor: col-resize; }.efficiency-resize-handle:hover::after, .efficiency-resize-handle:focus-visible::after { position: absolute; top: 45%; left: 3px; width: 3px; height: 38px; border-radius: 4px; background: #23826a; content: ''; }.efficiency-toggle { position: absolute; z-index: 29; top: 10px; right: calc(var(--efficiency-panel-space, 260px) + 10px); height: 27px; padding: 0 9px; border: 1px solid #b8cfc4; border-radius: 6px; color: #31574d; background: #f8fbf8; box-shadow: 0 2px 8px rgba(20,58,48,.1); font-size: 10px; font-weight: 800; cursor: pointer; }.efficiency-toggle:hover { border-color: #23826a; color: #174f40; }.efficiency-panel-hidden .efficiency-panel { transform: translateX(100%); opacity: 0; pointer-events: none; }.efficiency-panel-hidden .efficiency-toggle { right: 10px; }
 @container (min-width: 620px) {
-  .efficiency-discards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
-  .efficiency-discard-heading { grid-column: 1 / -1; }
-  .efficiency-discard { min-width: 0; align-content: start; }
   .efficiency-discard-waits { margin-left: 0; }
 }
+.efficiency-discards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 9px; }
+.efficiency-discard-heading { grid-column: 1 / -1; }
+.efficiency-discard { min-width: 0; align-content: start; }
+
 .workspace-panel { right: var(--efficiency-panel-space, 260px); }
 
 /* Desktop uses an 80% density by default. The larger logical canvas keeps the
@@ -226,6 +227,7 @@
 
 .app-body {
   --palette-space: 258px;
+  --efficiency-panel-space: min(var(--efficiency-panel-requested-space, 260px), calc(100% - var(--palette-space)));
   position: relative;
   flex: 1 1 auto;
   min-height: 0;

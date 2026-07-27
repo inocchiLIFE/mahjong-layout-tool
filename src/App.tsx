@@ -477,7 +477,7 @@ const App = () => {
   const [efficiencyPanelVisible, setEfficiencyPanelVisible] = useState(() => localStorage.getItem(EFFICIENCY_PANEL_VISIBLE_KEY) !== 'false')
   const [efficiencyPanelWidth, setEfficiencyPanelWidth] = useState(() => {
     const value = Number(localStorage.getItem(EFFICIENCY_PANEL_WIDTH_KEY))
-    return Number.isFinite(value) ? clamp(value, 190, 760) : 260
+    return Number.isFinite(value) ? clamp(value, 190, 5000) : 260
   })
   const symbolColors = (Object.keys(symbolPresets) as SymbolType[]).reduce((colors, symbolType) => {
     colors[symbolType] = symbolPresets[symbolType].color ?? defaultShapeColor
@@ -1818,7 +1818,7 @@ const App = () => {
         drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />
 
-      <main className={`app-body${efficiencyPanelVisible ? '' : ' efficiency-panel-hidden'}`} style={{ '--efficiency-panel-space': efficiencyPanelVisible ? `${efficiencyPanelWidth}px` : '0px' } as CSSProperties}>
+      <main className={`app-body${efficiencyPanelVisible ? '' : ' efficiency-panel-hidden'}`} style={{ '--efficiency-panel-requested-space': efficiencyPanelVisible ? `${efficiencyPanelWidth}px` : '0px' } as CSSProperties}>
         <TilePalette
           onAddTile={addTile}
           placementMode={placementMode}
@@ -1888,7 +1888,7 @@ const App = () => {
             />
           </div>
         </section>
-        <EfficiencyPanel tileIds={selectedHandTileIds} melds={detectedMelds} onClose={() => setEfficiencyPanelVisible(false)} onResize={(width) => setEfficiencyPanelWidth(clamp(width, 190, 760))} />
+        <EfficiencyPanel tileIds={selectedHandTileIds} melds={detectedMelds} onClose={() => setEfficiencyPanelVisible(false)} onResize={(width) => setEfficiencyPanelWidth(clamp(width, 190, 5000))} />
         <button type="button" className="efficiency-toggle" onClick={() => setEfficiencyPanelVisible((visible) => !visible)} aria-pressed={efficiencyPanelVisible}>{efficiencyPanelVisible ? '牌理を隠す' : '牌理・受け入れ'}</button>
       </main>
 
