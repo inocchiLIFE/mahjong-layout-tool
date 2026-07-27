@@ -22,7 +22,8 @@ const candidateKind = (tileIds: string[]): MeldKind | null => {
 }
 
 /**
- * Treat a contiguous row containing exactly one sideways tile as an open meld.
+ * Treat a row containing exactly one sideways tile as an open meld. One tile
+ * of visual space between neighbours is allowed for manually spaced layouts.
  * The sideways tile is the visual call marker; only tiles selected for analysis
  * are inspected, so annotations elsewhere on the workspace are ignored.
  */
@@ -40,10 +41,10 @@ export const detectOpenMelds = (tiles: TileElement[]): DetectedMeld[] => {
       for (let start = Math.max(0, anchor - length + 1); start <= Math.min(anchor, row.length - length); start += 1) {
         const group = row.slice(start, start + length)
         if (group.filter(isSideways).length !== 1) continue
-        // A rotated tile is 66px wide (rather than 48px), so an open block
-        // legitimately has wider spacing than a concealed hand.
-        if (group.at(-1)!.x - group[0].x > (length - 1) * 80 + 16) continue
-        if (group.some((tile, index) => index > 0 && tile.x - group[index - 1].x > 80)) continue
+        // A rotated tile is 66px wide (rather than 48px). Allow one additional
+        // tile-sized gap so manually spaced open blocks are still recognized.
+        if (group.at(-1)!.x - group[0].x > (length - 1) * 128 + 16) continue
+        if (group.some((tile, index) => index > 0 && tile.x - group[index - 1].x > 128)) continue
         const tileIds = group.map((tile) => tile.tileId)
         const kind = candidateKind(tileIds)
         if (kind) candidates.push({ kind, tiles: group })

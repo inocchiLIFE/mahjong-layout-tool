@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test:iishanten": "vite build --ssr src/utils/iishanten.ts --outDir .tmp-iishanten-test && node scripts/test-iishanten.mjs",
     "test:melds": "vite build --ssr src/utils/detectMelds.ts --outDir .tmp-detect-melds-test && node scripts/test-detect-melds.mjs",
+    "test:efficiency": "vite build --ssr src/utils/mahjongEfficiency.ts --outDir .tmp-efficiency-test && node scripts/test-efficiency.mjs",
     "test:expected-value": "vite build --ssr src/utils/expectedValue.ts --outDir .tmp-expected-value-test && node scripts/test-expected-value.mjs"
   },
   "dependencies": {

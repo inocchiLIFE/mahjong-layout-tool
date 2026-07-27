@@ -23,4 +23,8 @@ assert.equal(separated.length, 0, 'separated tiles are not treated as one meld')
 const snappedChi = detectOpenMelds([tile('a', 'pin3', 0, 90, 32), tile('b', 'pin4', 66, 0), tile('c', 'pin5', 132, 0)])
 assert.equal(snappedChi[0].kind, 'open-sequence', 'a lower, rotated tile in a snapped meld layout is detected')
 
+const spacedChi = detectOpenMelds([tile('a', 'sou4', 0), tile('b', 'sou5', 96, 90), tile('c', 'sou6', 192)])
+assert.equal(spacedChi.length, 1, 'a one-tile gap inside an open meld is detected')
+assert.equal(spacedChi[0].kind, 'open-sequence')
+
 console.log('meld detection tests passed')

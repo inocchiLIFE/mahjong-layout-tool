@@ -98,12 +98,18 @@ export const getShanten = (tileIds: string[], fixedMelds = 0) => {
   return counts && fixedMelds >= 0 && fixedMelds <= 4 ? shanten(counts, fixedMelds) : null
 }
 
-export const getEfficiency = (tileIds: string[], fixedMelds = 0): EfficiencyResult | null => {
+export const getEfficiency = (tileIds: string[], fixedMelds = 0, knownTileIds: string[] = []): EfficiencyResult | null => {
   const counts = tileIdsToCounts(tileIds)
   if (!counts) return null
+  const knownCounts = Array(34).fill(0) as number[]
+  for (const tileId of knownTileIds) {
+    const index = tileIdToIndex(tileId)
+    if (index < 0) return null
+    knownCounts[index] += 1
+  }
   const currentShanten = shanten(counts, fixedMelds)
   const effectiveTileIds = TILE_IDS.filter((_, index) => {
-    if (counts[index] >= 4) return false
+    if (counts[index] + knownCounts[index] >= 4) return false
     counts[index] += 1
     const improves = shanten(counts, fixedMelds) < currentShanten
     counts[index] -= 1
@@ -112,7 +118,10 @@ export const getEfficiency = (tileIds: string[], fixedMelds = 0): EfficiencyResu
   return {
     shanten: currentShanten,
     effectiveTileIds,
-    effectiveTileCount: effectiveTileIds.reduce((sum, tileId) => sum + 4 - counts[tileIdToIndex(tileId)], 0),
+    effectiveTileCount: effectiveTileIds.reduce((sum, tileId) => {
+      const index = tileIdToIndex(tileId)
+      return sum + Math.max(0, 4 - counts[index] - knownCounts[index])
+    }, 0),
   }
 }
 
@@ -122,14 +131,14 @@ export const getDiscardEfficiencies = (tileIds: string[]) => [...new Set(tileIds
 }))
 
 /** Finds 1-shanten draws that can become tenpai, including every discard option. */
-export const getTenpaiTransitions = (tileIds: string[], fixedMelds = 0): GoodShapeTenpaiTransition[] => {
-  const current = getEfficiency(tileIds, fixedMelds)
+export const getTenpaiTransitions = (tileIds: string[], fixedMelds = 0, knownTileIds: string[] = []): GoodShapeTenpaiTransition[] => {
+  const current = getEfficiency(tileIds, fixedMelds, knownTileIds)
   if (!current || current.shanten !== 1) return []
   return current.effectiveTileIds.flatMap((drawTileId) => {
     const drawn = [...tileIds, drawTileId]
     const tenpaiOptions = [...new Set(drawn)].flatMap((discardTileId) => {
       const afterDiscard = drawn.filter((tileId, index) => tileId !== discardTileId || index !== drawn.indexOf(discardTileId))
-      const tenpai = getEfficiency(afterDiscard, fixedMelds)
+      const tenpai = getEfficiency(afterDiscard, fixedMelds, knownTileIds)
       if (!tenpai || tenpai.shanten !== 0) return []
       return [{ discardTileId, waitTileIds: tenpai.effectiveTileIds, waitTileCount: tenpai.effectiveTileCount }]
     })

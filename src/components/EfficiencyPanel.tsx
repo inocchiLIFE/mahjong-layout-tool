@@ -53,11 +53,12 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
     window.addEventListener('pointerup', end)
   }
   const baseTileIds = tileIds.map((id) => TILE_MAP.get(id)?.baseId ?? id)
+  const meldBaseTileIds = melds.flatMap((meld) => meld.tileIds).map((id) => TILE_MAP.get(id)?.baseId ?? id)
   const fixedMeldCount = melds.length
   const concealedTileCount = concealedTileCountForMelds(melds)
-  const result = getEfficiency(baseTileIds, fixedMeldCount)
+  const result = getEfficiency(baseTileIds, fixedMeldCount, meldBaseTileIds)
   const discards = baseTileIds.length === concealedTileCount
-    ? [...new Set(baseTileIds)].map((discardTileId) => ({ discardTileId, result: getEfficiency(baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId)), fixedMeldCount) }))
+    ? [...new Set(baseTileIds)].map((discardTileId) => ({ discardTileId, result: getEfficiency(baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId)), fixedMeldCount, meldBaseTileIds) }))
     : []
   const meldKey = melds.map((meld) => `${meld.kind}:${meld.tileIds.join(',')}`).join('|')
   useEffect(() => { setExpectedValues([]); setExpectedError('') }, [tileIds, expectedSettings, meldKey])
@@ -85,10 +86,10 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
         || tileOrder(left.discardTileId) - tileOrder(right.discardTileId)
     })
   const tenpaiShapeSummary = (hand: string[], shanten: number) => shanten === 1 ? (() => {
-    const groups = getTenpaiTransitions(hand, fixedMeldCount).reduce((result, transition) => {
+    const groups = getTenpaiTransitions(hand, fixedMeldCount, meldBaseTileIds).reduce((result, transition) => {
       const waitCount = Math.max(...transition.tenpaiOptions.map((option) => option.waitTileCount))
       const kind = waitCount >= 6 ? 'good' : 'bad'
-      const remaining = 4 - hand.filter((tileId) => tileId === transition.drawTileId).length
+      const remaining = Math.max(0, 4 - hand.filter((tileId) => tileId === transition.drawTileId).length - meldBaseTileIds.filter((tileId) => tileId === transition.drawTileId).length)
       result[kind].push({ tileId: transition.drawTileId, waitCount, remaining })
       return result
     }, { good: [] as Array<{ tileId: string; waitCount: number; remaining: number }>, bad: [] as Array<{ tileId: string; waitCount: number; remaining: number }> })
@@ -105,8 +106,8 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   const hasTenpaiShapeBreakdown = sortedDiscards.some((discard) => {
     if (discard.result.shanten !== 1) return false
     const hand = baseTileIds.filter((tileId, index) => tileId !== discard.discardTileId || index !== baseTileIds.indexOf(discard.discardTileId))
-    return getTenpaiTransitions(hand, fixedMeldCount).length > 0
-  }) || (!isDiscardAnalysis && result?.shanten === 1 && getTenpaiTransitions(baseTileIds, fixedMeldCount).length > 0)
+    return getTenpaiTransitions(hand, fixedMeldCount, meldBaseTileIds).length > 0
+  }) || (!isDiscardAnalysis && result?.shanten === 1 && getTenpaiTransitions(baseTileIds, fixedMeldCount, meldBaseTileIds).length > 0)
   const iishantenType = (hand: string[], shanten: number) => {
     if (shanten !== 1) return null
     const type = classifyIishantenCandidate(hand)
@@ -135,7 +136,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
         <div className="meld-input">
           <strong>副露ブロック</strong>
           {melds.length > 0 ? <div className="meld-list">{melds.map((meld) => <div key={meld.id}><span>{MELD_KIND_LABELS[meld.kind]}</span><MeldTiles kind={meld.kind} tileIds={meld.tileIds} /></div>)}</div> : <small>横向きにした牌を含む副露形は、選択すると自動で認識します。</small>}
-          <small>副露{melds.length}組：横向きの牌を1枚含む、連続または同一牌の3〜4枚を副露として扱います。副露牌は打牌候補に入りません。</small>
+          <small>副露{melds.length}組：横向きの牌を1枚含む、連続または同一牌の3〜4枚を副露として扱います。牌1枚分の空きも認識でき、副露牌は打牌候補から除外し、受け入れの残り枚数にも反映します。</small>
         </div>
         <button type="button" className="expected-value-toggle" disabled={tileIds.length !== concealedTileCount} onClick={() => setShowExpectedValue((value) => !value)}>{showExpectedValue ? '期待値を閉じる' : '一人麻雀の期待値を計算'}</button>
         {showExpectedValue && <>
