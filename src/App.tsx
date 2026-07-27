@@ -83,6 +83,7 @@ const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v
 const CONTEXT_MENU_WAVE_MIGRATION_KEY = 'mahjong-layout-tool:context-wave-migration-v1'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
+  allowTileOverlap: true,
   defaultFontFamily: 'sans-serif',
   defaultTextFontSize: 35,
   defaultTextColor: '#172c27',
@@ -358,6 +359,7 @@ const readPreferences = (): AppPreferences => {
     if (addWaveToExistingMenu) localStorage.setItem(CONTEXT_MENU_WAVE_MIGRATION_KEY, 'done')
     return {
       showGrid: typeof saved.showGrid === 'boolean' ? saved.showGrid : DEFAULT_PREFERENCES.showGrid,
+      allowTileOverlap: typeof saved.allowTileOverlap === 'boolean' ? saved.allowTileOverlap : DEFAULT_PREFERENCES.allowTileOverlap,
       defaultFontFamily: typeof saved.defaultFontFamily === 'string' ? saved.defaultFontFamily : DEFAULT_PREFERENCES.defaultFontFamily,
       defaultTextFontSize: typeof saved.defaultTextFontSize === 'number' ? clamp(saved.defaultTextFontSize, 12, 72) : DEFAULT_PREFERENCES.defaultTextFontSize,
       defaultTextColor: typeof saved.defaultTextColor === 'string' ? saved.defaultTextColor : DEFAULT_PREFERENCES.defaultTextColor,
@@ -747,23 +749,26 @@ const App = () => {
     const isDropped = dropX !== undefined || dropY !== undefined
     // 牌一覧からのクリック追加は、常に左上の初期位置から開始する。
     // 途中で牌を移動しても追加の開始位置は変えず、既存牌だけを避ける。
-    let x = dropX ?? 32
+    let x = isDropped ? snap(dropX ?? 32, snapToGrid) : 32
     // Align palette additions with the ruler's first tick, directly below it.
-    const y = dropY ?? 0
+    const y = isDropped ? snap(dropY ?? 0, snapToGrid) : 0
 
-    if (!isDropped) {
-      const overlapsTile = (candidateX: number) => scene.elements.some((element) => element.kind === 'tile'
-        && candidateX < element.x + TILE_WIDTH
-        && candidateX + TILE_WIDTH > element.x
-        && y < element.y + TILE_HEIGHT
-        && y + TILE_HEIGHT > element.y)
+    if (!preferences.allowTileOverlap || !isDropped) {
+      const overlapsTile = (candidateX: number) => scene.elements.some((element) => {
+        if (element.kind !== 'tile') return false
+        const dimensions = getElementDimensions(element)
+        return candidateX < element.x + dimensions.width
+          && candidateX + TILE_WIDTH > element.x
+          && y < element.y + dimensions.height
+          && y + TILE_HEIGHT > element.y
+      })
       while (overlapsTile(x)) x += TILE_WIDTH + TILE_GAP
     }
 
     const tile = makeTile(
       tileId,
-      isDropped ? snap(x, snapToGrid) : x,
-      isDropped ? snap(y, snapToGrid) : y,
+      x,
+      y,
       nextZIndex(),
     )
     if (isDropped) {
@@ -1879,6 +1884,7 @@ const App = () => {
               ref={workspaceRef}
               scene={scene}
               showGrid={showGrid}
+              allowTileOverlap={preferences.allowTileOverlap}
               placementMode={placementMode}
               eraserSize={eraserSize}
               textStyle={defaultTextStyle}

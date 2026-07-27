@@ -39,6 +39,7 @@ interface EditTextRequest {
 interface WorkspaceProps {
   scene: Scene
   showGrid: boolean
+  allowTileOverlap: boolean
   placementMode: PlacementMode
   eraserSize: number
   textStyle: { fontFamily: string; fontSize: number; color: string }
@@ -386,11 +387,28 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
     const deltaX = targetX - primary.x
     const deltaY = targetY - primary.y
-    currentProps.onMoveElements(drag.starts.map((item) => ({
+    const nextPositions = drag.starts.map((item) => ({
       id: item.id,
       x: Math.round(item.x + deltaX),
       y: Math.round(item.y + deltaY),
-    })))
+    }))
+    if (!currentProps.allowTileOverlap) {
+      const movingIds = new Set(nextPositions.map((position) => position.id))
+      const movingTiles = nextPositions.flatMap((position) => {
+        const element = currentProps.scene.elements.find((item) => item.id === position.id)
+        return element?.kind === 'tile' ? [{ ...position, dimensions: getElementDimensions(element) }] : []
+      })
+      const overlaps = movingTiles.some((moving) => currentProps.scene.elements.some((element) => {
+        if (element.kind !== 'tile' || movingIds.has(element.id)) return false
+        const dimensions = getElementDimensions(element)
+        return moving.x < element.x + dimensions.width
+          && moving.x + moving.dimensions.width > element.x
+          && moving.y < element.y + dimensions.height
+          && moving.y + moving.dimensions.height > element.y
+      }))
+      if (overlaps) return
+    }
+    currentProps.onMoveElements(nextPositions)
   }, [])
 
   const endElementDrag = useCallback((clientX: number, clientY: number) => {

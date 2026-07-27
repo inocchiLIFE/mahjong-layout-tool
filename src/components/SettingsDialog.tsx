@@ -4,6 +4,7 @@ import { DEFAULT_WORKSPACE_HEIGHT, DEFAULT_WORKSPACE_WIDTH, MAX_WORKSPACE_HEIGHT
 
 export interface AppPreferences {
   showGrid: boolean
+  allowTileOverlap: boolean
   defaultFontFamily: string
   defaultTextFontSize: number
   defaultTextColor: string
@@ -26,6 +27,7 @@ interface SettingsDialogProps {
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
+  allowTileOverlap: true,
   defaultFontFamily: 'sans-serif',
   defaultTextFontSize: 35,
   defaultTextColor: '#172c27',
@@ -70,6 +72,7 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
             <legend>表示と配置</legend>
             <label>画面・文字サイズ <input type="range" min="0.9" max="1.3" step="0.05" value={draft.uiScale} onChange={(event) => setDraft((current) => ({ ...current, uiScale: Number(event.target.value) }))} /><output>{Math.round(draft.uiScale * 100)}%</output></label>
             <label><input type="checkbox" checked={draft.showGrid} onChange={(event) => setDraft((current) => ({ ...current, showGrid: event.target.checked }))} /> グリッドを表示する</label>
+            <label><input type="checkbox" checked={draft.allowTileOverlap} onChange={(event) => setDraft((current) => ({ ...current, allowTileOverlap: event.target.checked }))} /> 牌の重なりを許可する</label>
             <label>ポップアップ・文字サイズ <input type="range" min="1" max="1.5" step="0.05" value={draft.popupFontScale} onChange={(event) => setDraft((current) => ({ ...current, popupFontScale: Number(event.target.value) }))} /><output>{Math.round(draft.popupFontScale * 100)}%</output></label>
             <label>新規作業領域の幅（px）<input type="number" min={MIN_WORKSPACE_WIDTH} max={MAX_WORKSPACE_WIDTH} value={draft.defaultWorkspaceWidth} onChange={(event) => setDraft((current) => ({ ...current, defaultWorkspaceWidth: clamp(Number(event.target.value) || MIN_WORKSPACE_WIDTH, MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH) }))} /></label>
             <label>新規作業領域の高さ（px）<input type="number" min={MIN_WORKSPACE_HEIGHT} max={MAX_WORKSPACE_HEIGHT} value={draft.defaultWorkspaceHeight} onChange={(event) => setDraft((current) => ({ ...current, defaultWorkspaceHeight: clamp(Number(event.target.value) || MIN_WORKSPACE_HEIGHT, MIN_WORKSPACE_HEIGHT, MAX_WORKSPACE_HEIGHT) }))} /></label>
