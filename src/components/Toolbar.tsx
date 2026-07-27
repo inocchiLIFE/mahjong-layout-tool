@@ -25,7 +25,6 @@ interface ToolbarProps {
   onClear: () => void
   onUndo: () => void
   onRedo: () => void
-  onAlign: () => void
   onDeleteSelected: () => void
   onDuplicate: () => void
   onRotate: () => void
@@ -35,7 +34,6 @@ interface ToolbarProps {
   onUpdateSelectedShapeColor: (color: string) => void
   onUpdateShapeStrokeWidth: (strokeWidth: number) => void
   onUpdateEraserSize: (size: number) => void
-  onEditProperties: () => void
   onBringFront: () => void
   onSendBack: () => void
   onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | 'iishanten-random' | 'iishanten-question' | IishantenType) => void
@@ -215,12 +213,11 @@ export const Toolbar = (props: ToolbarProps) => {
           <span className="tool-group-label">編集</span>
           <ToolButton label="元に戻す" icon="↶" onClick={props.onUndo} disabled={!props.canUndo} />
           <ToolButton label="やり直す" icon="↷" onClick={props.onRedo} disabled={!props.canRedo} />
-          <ToolButton label="牌を整列" icon="≡" onClick={props.onAlign} disabled={!props.hasItems} />
           <ToolButton label="複製" icon="⧉" onClick={props.onDuplicate} disabled={!props.canDuplicate} />
           <ToolButton label="表裏" icon="▣" onClick={props.onToggleTileFaces} disabled={!props.canToggleTileFaces} />
           <ToolButton label="回転" icon="↻" onClick={props.onRotate} disabled={!props.hasSelection} />
+          <ToolButton label="理牌" icon="≡" onClick={props.onSortSelectedTiles} disabled={!props.canSortSelectedTiles} />
           <ToolButton label="文字編集" icon="Aa" onClick={props.onEditSelectedText} disabled={!props.canEditText} />
-          <ToolButton label="スタイル" icon="🎨" onClick={props.onEditProperties} disabled={!props.canEditProperties} />
           <ToolButton label="選択を削除" icon="⌫" onClick={props.onDeleteSelected} disabled={!props.hasSelection} />
           <ToolButton label="すべて削除" icon="×" onClick={props.onClear} disabled={!props.hasItems} danger />
           <div className="font-ribbon" aria-label="フォント">
@@ -346,7 +343,6 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="13枚" icon="13" onClick={() => props.onRandomHand(13)} />
           <ToolButton label="14枚" icon="14" onClick={() => props.onRandomHand(14)} />
           <ToolButton label="何切る問題" icon="?" onClick={() => props.onRandomHand('iishanten-question')} />
-          <ToolButton label="選択牌を理牌" icon="≡" onClick={props.onSortSelectedTiles} disabled={!props.canSortSelectedTiles} />
         </div>}
 
         {activeTab === 'hand' && <div className="tool-group iishanten-generator-group">

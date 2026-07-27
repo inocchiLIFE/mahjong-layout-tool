@@ -80,6 +80,7 @@ const HAND_SUITS_KEY = 'mahjong-layout-tool:hand-suits-v1'
 const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, eraserSize: 24, arrowHeadSize: 30 }
 const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visible-v1'
 const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
+const CONTEXT_MENU_WAVE_MIGRATION_KEY = 'mahjong-layout-tool:context-wave-migration-v1'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   defaultFontFamily: 'sans-serif',
@@ -350,6 +351,11 @@ const readSharedLayout = (): SavedLayout | null => {
 const readPreferences = (): AppPreferences => {
   try {
     const saved = JSON.parse(localStorage.getItem(PREFERENCES_KEY) ?? '{}') as Partial<AppPreferences>
+    const savedContextMenuItems = Array.isArray(saved.contextMenuItems)
+      ? saved.contextMenuItems.filter((item): item is ContextMenuItemId => typeof item === 'string' && CONTEXT_MENU_ITEMS.some(([id]) => id === item))
+      : DEFAULT_PREFERENCES.contextMenuItems
+    const addWaveToExistingMenu = localStorage.getItem(CONTEXT_MENU_WAVE_MIGRATION_KEY) !== 'done'
+    if (addWaveToExistingMenu) localStorage.setItem(CONTEXT_MENU_WAVE_MIGRATION_KEY, 'done')
     return {
       showGrid: typeof saved.showGrid === 'boolean' ? saved.showGrid : DEFAULT_PREFERENCES.showGrid,
       defaultFontFamily: typeof saved.defaultFontFamily === 'string' ? saved.defaultFontFamily : DEFAULT_PREFERENCES.defaultFontFamily,
@@ -359,7 +365,7 @@ const readPreferences = (): AppPreferences => {
       defaultShapeStrokeWidth: typeof saved.defaultShapeStrokeWidth === 'number' ? clamp(saved.defaultShapeStrokeWidth, 1, 12) : DEFAULT_PREFERENCES.defaultShapeStrokeWidth,
       uiScale: typeof saved.uiScale === 'number' ? clamp(saved.uiScale, 0.9, 1.3) : DEFAULT_PREFERENCES.uiScale,
       popupFontScale: typeof saved.popupFontScale === 'number' ? clamp(saved.popupFontScale, 1, 1.5) : DEFAULT_PREFERENCES.popupFontScale,
-      contextMenuItems: Array.isArray(saved.contextMenuItems) ? saved.contextMenuItems.filter((item): item is ContextMenuItemId => typeof item === 'string' && CONTEXT_MENU_ITEMS.some(([id]) => id === item)) : DEFAULT_PREFERENCES.contextMenuItems,
+      contextMenuItems: addWaveToExistingMenu && !savedContextMenuItems.includes('wave') ? [...savedContextMenuItems, 'wave'] : savedContextMenuItems,
       defaultWorkspaceWidth: typeof saved.defaultWorkspaceWidth === 'number' ? clamp(saved.defaultWorkspaceWidth, MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH) : DEFAULT_PREFERENCES.defaultWorkspaceWidth,
       defaultWorkspaceHeight: typeof saved.defaultWorkspaceHeight === 'number' ? clamp(saved.defaultWorkspaceHeight, MIN_WORKSPACE_HEIGHT, MAX_WORKSPACE_HEIGHT) : DEFAULT_PREFERENCES.defaultWorkspaceHeight,
       headerColor: typeof saved.headerColor === 'string' && /^#[0-9a-f]{6}$/i.test(saved.headerColor) ? saved.headerColor : DEFAULT_PREFERENCES.headerColor,
@@ -947,29 +953,6 @@ const App = () => {
         return element
       }),
     })
-  }
-
-  const alignTiles = () => {
-    const tiles = scene.elements.filter((element) => element.kind === 'tile' && !element.locked)
-    if (!tiles.length) return
-    const selectedTiles = tiles.filter((tile) => tile.selected)
-    const targets = selectedTiles.length ? selectedTiles : tiles
-    const targetIds = new Set(targets.map((tile) => tile.id))
-    const totalWidth = targets.length * TILE_WIDTH + Math.max(0, targets.length - 1) * TILE_GAP
-    const width = clamp(Math.max(scene.width, totalWidth + 40), MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH)
-    const startX = clamp(Math.min(...targets.map((tile) => tile.x)), 20, width - totalWidth - 20)
-    const y = clamp(Math.min(...targets.map((tile) => tile.y)), 20, scene.height - TILE_HEIGHT)
-    history.commit({
-      ...scene,
-      width,
-      elements: scene.elements.map((element) => {
-        const index = targets.findIndex((target) => target.id === element.id)
-        return targetIds.has(element.id)
-          ? { ...element, x: startX + index * (TILE_WIDTH + TILE_GAP), y, rotation: 0 as Rotation }
-          : element
-      }),
-    })
-    notify(selectedTiles.length ? `${selectedTiles.length}枚を等間隔で整列しました` : 'すべての牌を等間隔で整列しました')
   }
 
   const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | 'iishanten-random' | 'iishanten-question' | IishantenType) => {
@@ -1769,7 +1752,6 @@ const App = () => {
         }}
         onUndo={history.undo}
         onRedo={history.redo}
-        onAlign={alignTiles}
         onDeleteSelected={deleteSelected}
         onDuplicate={duplicateSelected}
         onRotate={rotateSelected}
@@ -1803,7 +1785,6 @@ const App = () => {
           setDrawingPresets(next)
           localStorage.setItem(DRAWING_PRESETS_KEY, JSON.stringify(next))
         }}
-        onEditProperties={() => selectedEditable && setPropertyElementId(selectedEditable.id)}
         onBringFront={() => moveSelectedLayers('front')}
         onSendBack={() => moveSelectedLayers('back')}
         onRandomHand={generateHand}
@@ -1969,6 +1950,7 @@ const App = () => {
           onAddTriangle={() => placeSymbol('triangle', contextMenu.canvasX, contextMenu.canvasY)}
           onAddCircle={() => placeSymbol('circle', contextMenu.canvasX, contextMenu.canvasY)}
           onAddCross={() => placeSymbol('cross', contextMenu.canvasX, contextMenu.canvasY)}
+          onAddWave={() => placeSymbol('wave', contextMenu.canvasX, contextMenu.canvasY)}
           onDrawMode={() => setPlacementMode('draw')}
           onLineMode={() => setPlacementMode('line')}
           onCurveMode={() => setPlacementMode('curve')}
@@ -1981,7 +1963,6 @@ const App = () => {
           onEditProperties={() => contextElement && setPropertyElementId(contextElement.id)}
           onBringFront={() => moveSelectedLayers('front')}
           onSendBack={() => moveSelectedLayers('back')}
-          onAlign={alignTiles}
           onClear={() => { history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height }); setRulerCount(0) }}
           onUndo={history.undo}
           onRedo={history.redo}
