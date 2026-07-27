@@ -535,6 +535,7 @@ const App = () => {
   const imageAnchorRef = useRef<{ x: number; y: number } | null>(null)
   const pasteAnchorRef = useRef<CanvasPoint | null>(null)
   const autoSaveWarningShownRef = useRef(false)
+  const hasInteractedBeforeRestoreRef = useRef(false)
   const toastTimerRef = useRef<number | null>(null)
   const restoreHistoryLoadRef = useRef(history.load)
   const sharedLayoutRef = useRef(sharedLayout)
@@ -590,7 +591,7 @@ const App = () => {
 
         const storedAutoSave = await readLargeValue<unknown>(tabAutoSaveKey)
         const restored = storedAutoSave ? parseSavedLayout(JSON.stringify(storedAutoSave)) : null
-        if (!cancelled && !sharedLayoutRef.current && restored) {
+        if (!cancelled && !sharedLayoutRef.current && restored && !hasInteractedBeforeRestoreRef.current) {
           restoreHistoryLoadRef.current(restored.scene)
           setRulerCount(restored.scene.elements.filter((element) => element.kind === 'tile').length)
           setShowGrid(restored.settings.showGrid)
@@ -746,39 +747,38 @@ const App = () => {
   }, [activePageIndex])
 
   const addTile = (tileId: string, dropX?: number, dropY?: number) => {
+    hasInteractedBeforeRestoreRef.current = true
     const isDropped = dropX !== undefined || dropY !== undefined
     // 牌一覧からのクリック追加は、常に左上の初期位置から開始する。
     // 途中で牌を移動しても追加の開始位置は変えず、既存牌だけを避ける。
-    let x = isDropped ? snap(dropX ?? 32, snapToGrid) : 32
+    const requestedX = isDropped ? snap(dropX ?? 32, snapToGrid) : 32
     // Align palette additions with the ruler's first tick, directly below it.
     const y = isDropped ? snap(dropY ?? 0, snapToGrid) : 0
 
-    if (!preferences.allowTileOverlap || !isDropped) {
-      const overlapsTile = (candidateX: number) => scene.elements.some((element) => {
-        if (element.kind !== 'tile') return false
-        const dimensions = getElementDimensions(element)
-        return candidateX < element.x + dimensions.width
-          && candidateX + TILE_WIDTH > element.x
-          && y < element.y + dimensions.height
-          && y + TILE_HEIGHT > element.y
-      })
-      while (overlapsTile(x)) x += TILE_WIDTH + TILE_GAP
-    }
-
-    const tile = makeTile(
-      tileId,
-      x,
-      y,
-      nextZIndex(),
-    )
-    if (isDropped) {
-      delete tile.autoX
-      delete tile.autoY
-      delete tile.autoOrder
-    }
-    history.commit({
-      ...scene,
-      elements: [...scene.elements.map((element) => ({ ...element, selected: false })), tile],
+    history.commitLatest((currentScene) => {
+      let x = requestedX
+      if (!preferences.allowTileOverlap || !isDropped) {
+        const overlapsTile = (candidateX: number) => currentScene.elements.some((element) => {
+          if (element.kind !== 'tile') return false
+          const dimensions = getElementDimensions(element)
+          return candidateX < element.x + dimensions.width
+            && candidateX + TILE_WIDTH > element.x
+            && y < element.y + dimensions.height
+            && y + TILE_HEIGHT > element.y
+        })
+        while (overlapsTile(x)) x += TILE_WIDTH + TILE_GAP
+      }
+      const zIndex = Math.max(0, ...currentScene.elements.map((element) => element.zIndex)) + 1
+      const tile = makeTile(tileId, x, y, zIndex)
+      if (isDropped) {
+        delete tile.autoX
+        delete tile.autoY
+        delete tile.autoOrder
+      }
+      return {
+        ...currentScene,
+        elements: [...currentScene.elements.map((element) => ({ ...element, selected: false })), tile],
+      }
     })
     setRulerCount((count) => Math.min(13, count + 1))
     setPlacementMode('select')

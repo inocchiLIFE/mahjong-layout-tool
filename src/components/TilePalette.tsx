@@ -18,13 +18,21 @@ interface TilePaletteProps {
 
 const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void }) => {
   const pointerStart = useRef<{ x: number; y: number } | null>(null)
-  const suppressClick = useRef(false)
+  const addedForGesture = useRef(false)
+  const addOnce = () => {
+    if (addedForGesture.current) return
+    addedForGesture.current = true
+    onAdd()
+  }
   return <button
       className="palette-tile"
       type="button"
       draggable
-      onPointerDown={(event) => { pointerStart.current = { x: event.clientX, y: event.clientY } }}
-      onClick={() => { if (!suppressClick.current) onAdd(); suppressClick.current = false }}
+      onPointerDown={(event) => {
+        pointerStart.current = { x: event.clientX, y: event.clientY }
+        addedForGesture.current = false
+      }}
+      onClick={addOnce}
       onDragStart={(event) => {
         event.dataTransfer.setData('application/x-mahjong-tile', tile.id)
         event.dataTransfer.effectAllowed = 'copy'
@@ -35,9 +43,7 @@ const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void 
         if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 14) return
         // Browsers suppress click after a native drag. Treat a tiny drift as
         // a click so the palette remains easy to use with a trackpad or pen.
-        suppressClick.current = true
-        onAdd()
-        window.setTimeout(() => { suppressClick.current = false }, 0)
+        addOnce()
       }}
       title={`${tile.label}を追加（ドラッグもできます）`}
       aria-label={`${tile.label}を作業エリアに追加`}
