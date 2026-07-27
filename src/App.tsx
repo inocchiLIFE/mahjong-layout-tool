@@ -905,9 +905,19 @@ const App = () => {
 
   const rotateSelected = () => {
     if (!scene.elements.some((element) => element.selected && !element.locked)) return
+    const horizontalizingTiles = scene.elements.filter((element) => element.kind === 'tile' && element.selected && !element.locked && (element.rotation === 0 || element.rotation === 180))
     history.commit({
       ...scene,
       elements: scene.elements.map((element) => {
+        if (element.kind === 'tile') {
+          const rightShift = horizontalizingTiles
+            .filter((source) => source.id !== element.id && element.x >= source.x + TILE_WIDTH && Math.abs(element.y - source.y) < TILE_HEIGHT / 2)
+            .length * (TILE_HEIGHT - TILE_WIDTH)
+          if (element.locked) return element
+          if (!element.selected) return rightShift ? { ...element, x: element.x + rightShift } : element
+          const rotation = ((element.rotation + 90) % 360) as Rotation
+          return { ...element, x: element.x + rightShift, y: element.y + ((element.rotation === 0 || element.rotation === 180) ? TILE_HEIGHT - TILE_WIDTH : TILE_WIDTH - TILE_HEIGHT), rotation }
+        }
         if (!element.selected || element.locked) return element
         const rotation = ((element.rotation + 90) % 360) as Rotation
         const rotated = { ...element, rotation } as CanvasElement
@@ -917,7 +927,18 @@ const App = () => {
   }
 
   const rotateTile = (id: string) => {
-    history.commit({ ...scene, elements: scene.elements.map((element) => element.id === id && element.kind === 'tile' && !element.locked ? { ...element, rotation: ((element.rotation + 90) % 360) as Rotation } : element) })
+    const target = scene.elements.find((element) => element.id === id && element.kind === 'tile' && !element.locked)
+    if (!target || target.kind !== 'tile') return
+    const horizontalizing = target.rotation === 0 || target.rotation === 180
+    const shift = TILE_HEIGHT - TILE_WIDTH
+    history.commit({
+      ...scene,
+      elements: scene.elements.map((element) => {
+        if (element.id === target.id) return { ...element, y: element.y + (horizontalizing ? shift : -shift), rotation: ((element.rotation + 90) % 360) as Rotation }
+        if (horizontalizing && element.kind === 'tile' && element.x >= target.x + TILE_WIDTH && Math.abs(element.y - target.y) < TILE_HEIGHT / 2) return { ...element, x: element.x + shift }
+        return element
+      }),
+    })
   }
 
   const alignTiles = () => {

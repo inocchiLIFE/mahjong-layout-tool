@@ -1001,7 +1001,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             }}
             aria-label={`${SYMBOL_LABELS[element.symbolType]}${element.selected ? '、選択中' : ''}${lockedLabel}`}
           >
-            {element.symbolType === 'triangle' ? (
+            {element.symbolType === 'cross' ? (
+              <svg className="symbol-visual symbol-cross" viewBox="0 0 48 66" style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
+                <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" />
+              </svg>
+            ) : element.symbolType === 'triangle' ? (
               <svg
                 className="symbol-visual symbol-triangle"
                 viewBox="0 0 99 66"
@@ -1012,7 +1016,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               </svg>
             ) : element.symbolType === 'wave' ? (
               <svg className="symbol-visual symbol-wave" viewBox="0 0 240 16" style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
-                <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={element.color} strokeWidth={Math.min(element.strokeWidth, 4)} strokeLinecap="round" />
+                <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" />
               </svg>
             ) : (
               <span
@@ -1022,10 +1026,9 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   height: visualHeight,
                   transform: visualTransform,
                   color: element.color,
-                  borderWidth: element.symbolType === 'rectangle' || element.symbolType === 'circle' ? element.strokeWidth : undefined,
-                  fontSize: element.symbolType === 'cross' ? 49 * Math.min(element.scaleX ?? element.scale, element.scaleY ?? element.scale) : undefined,
+                  borderWidth: element.strokeWidth,
                 }}
-              >{element.symbolType === 'cross' ? '✕' : ''}</span>
+              />
             )}
             {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
           </button>
