@@ -563,6 +563,33 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
 .toast { position: fixed; z-index: 120; right: 24px; bottom: 22px; padding: 12px 17px; border: 1px solid rgba(248, 226, 177, .32); border-radius: 9px; background: #0b382f; color: #fff7e7; box-shadow: 0 10px 35px rgba(4, 30, 25, .28); font-size: 12px; animation: toast-in .25s ease-out; }
 .visually-hidden { position: fixed !important; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
+/* Readability: supporting copy and compact controls should remain legible at
+   the default app scale, especially in the analysis side panel. */
+.efficiency-count { font-size: 12px; }
+.iishanten-type { font-size: 12px; }
+.iishanten-type.discard { font-size: 11px; }
+.efficiency-discard-heading label, .efficiency-discard-heading select { font-size: 11px; }
+.efficiency-panel > small { font-size: 12px; line-height: 1.55; }
+.expected-value-settings label, .expected-value-options, .expected-value-error { font-size: 11px; }
+.expected-value-results article small, .expected-value-note { font-size: 11px; line-height: 1.55; }
+.meld-input { font-size: 12px; line-height: 1.45; }
+.meld-input small { font-size: 11px; line-height: 1.5; }
+.efficiency-toggle { font-size: 11px; }
+.good-shape-toggle { font-size: 12px; }
+.tenpai-shape-rate, .tenpai-shape-title, .tenpai-shape-summary { font-size: 11px; }
+.tenpai-shape-rate strong, .tenpai-shape-summary strong { font-size: 12px; }
+.tenpai-shape-rate small, .tenpai-shape-summary small { font-size: 11px; line-height: 1.5; }
+
+.panel-hint, .canvas-badge, .workspace-tile-ruler-title, .workspace-tile-ruler-title small { font-size: 10px; }
+.tile-group h3, .symbol-palette-button span, .workspace-size-controls label, .workspace-size-controls input { font-size: 11px; }
+.symbol-palette-button small { font-size: 10px; }
+.context-menu-heading { font-size: 10px; }
+.context-menu-settings label, .context-menu-settings-note { font-size: 11px; }
+
+.help-index a, .help-section-heading > span, .help-grid p, .help-tip, .help-feature-list span, .shortcut-list { font-size: 11px; }
+.help-grid strong, .help-feature-list strong { font-size: 12px; }
+.reference-links span, .license-notice dt, .license-notice dd, .license-links a { font-size: 11px; }
+
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } }
 
