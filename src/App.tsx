@@ -1023,7 +1023,7 @@ const App = () => {
     history.commit({ ...scene, elements: [...scene.elements, item] })
   }
 
-  const placeSymbol = (symbolType: SymbolType, x: number, y: number) => {
+  const placeSymbol = (symbolType: SymbolType, x: number, y: number, returnToSelect = false) => {
     const preset = symbolPresets[symbolType]
     const base = getSymbolBaseDimensions(symbolType)
     const item = {
@@ -1037,6 +1037,7 @@ const App = () => {
     item.x = snap(x - dimensions.width / 2, snapToGrid)
     item.y = snap(y - dimensions.height / 2, snapToGrid)
     history.commit({ ...scene, elements: [...scene.elements, item] })
+    if (returnToSelect) setPlacementMode('select')
   }
 
   const commitDrawing = (points: CanvasPoint[], drawingType: DrawingType = 'freehand') => {

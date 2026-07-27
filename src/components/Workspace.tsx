@@ -58,7 +58,7 @@ interface WorkspaceProps {
   onDeleteDragged: (ids: string[]) => void
   onEraseAt: (point: CanvasPoint, radius: number) => void
   onTrashHover: (active: boolean) => void
-  onPlaceSymbol: (symbolType: SymbolType, x: number, y: number) => void
+  onPlaceSymbol: (symbolType: SymbolType, x: number, y: number, returnToSelect?: boolean) => void
   onCommitDrawing: (points: CanvasPoint[], drawingType?: DrawingType) => void
   onCommitText: (text: string, x: number, y: number, id?: string) => void
   onFinishTextEditing: () => void
@@ -839,7 +839,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }
         const symbolType = event.dataTransfer.getData('application/x-mahjong-symbol')
         if (symbolType === 'rectangle' || symbolType === 'circle' || symbolType === 'triangle' || symbolType === 'cross' || symbolType === 'wave') {
-          props.onPlaceSymbol(symbolType, x, y)
+          props.onPlaceSymbol(symbolType, x, y, true)
           return
         }
         const files = [...event.dataTransfer.files].filter((file) => file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.mahjong-layout.json'))
