@@ -477,7 +477,7 @@ const App = () => {
   const [efficiencyPanelVisible, setEfficiencyPanelVisible] = useState(() => localStorage.getItem(EFFICIENCY_PANEL_VISIBLE_KEY) !== 'false')
   const [efficiencyPanelWidth, setEfficiencyPanelWidth] = useState(() => {
     const value = Number(localStorage.getItem(EFFICIENCY_PANEL_WIDTH_KEY))
-    return Number.isFinite(value) ? clamp(value, 190, 460) : 260
+    return Number.isFinite(value) ? clamp(value, 190, 760) : 260
   })
   const symbolColors = (Object.keys(symbolPresets) as SymbolType[]).reduce((colors, symbolType) => {
     colors[symbolType] = symbolPresets[symbolType].color ?? defaultShapeColor
@@ -1888,7 +1888,7 @@ const App = () => {
             />
           </div>
         </section>
-        <EfficiencyPanel tileIds={selectedHandTileIds} melds={detectedMelds} onClose={() => setEfficiencyPanelVisible(false)} onResize={(width) => setEfficiencyPanelWidth(clamp(width, 190, 460))} />
+        <EfficiencyPanel tileIds={selectedHandTileIds} melds={detectedMelds} onClose={() => setEfficiencyPanelVisible(false)} onResize={(width) => setEfficiencyPanelWidth(clamp(width, 190, 760))} />
         <button type="button" className="efficiency-toggle" onClick={() => setEfficiencyPanelVisible((visible) => !visible)} aria-pressed={efficiencyPanelVisible}>{efficiencyPanelVisible ? '牌理を隠す' : '牌理・受け入れ'}</button>
       </main>
 
