@@ -27,6 +27,13 @@ const spacedChi = detectOpenMelds([tile('a', 'sou4', 0), tile('b', 'sou5', 96, 9
 assert.equal(spacedChi.length, 1, 'a one-tile gap inside an open meld is detected')
 assert.equal(spacedChi[0].kind, 'open-sequence')
 
+const trailingOpenChi = detectOpenMelds([
+  tile('s4', 'sou4', 0), tile('s5', 'sou5', 48), tile('s6', 'sou6', 96),
+  tile('s7', 'sou7', 144, 90), tile('s8', 'sou8', 210), tile('s9', 'sou9', 258),
+])
+assert.equal(trailingOpenChi.length, 1, 'only the intended open block is selected from a continuous row')
+assert.deepEqual(trailingOpenChi[0].tileIds, ['sou7', 'sou8', 'sou9'], 'a sideways 7 starts the open 789 block instead of selecting 567')
+
 const fourOpenMelds = detectOpenMelds([
   tile('a1', 'man1', 0), tile('a2', 'man1', 48, 90), tile('a3', 'man1', 96),
   tile('b1', 'pin5', 180, 90), tile('b2', 'pin5', 228), tile('b3', 'pin5', 276), tile('b4', 'pin5', 324),

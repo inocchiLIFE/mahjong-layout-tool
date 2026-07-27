@@ -28,7 +28,7 @@ const candidateKind = (tileIds: string[]): MeldKind | null => {
  * are inspected, so annotations elsewhere on the workspace are ignored.
  */
 export const detectOpenMelds = (tiles: TileElement[]): DetectedMeld[] => {
-  const candidates: Array<{ kind: MeldKind; tiles: TileElement[] }> = []
+  const candidates: Array<{ kind: MeldKind; tiles: TileElement[]; sidewaysPosition: number }> = []
   for (const sideways of tiles.filter((tile) => !tile.faceDown && isSideways(tile))) {
     const row = tiles
       // A sideways tile is normally placed slightly lower than upright tiles.
@@ -47,14 +47,17 @@ export const detectOpenMelds = (tiles: TileElement[]): DetectedMeld[] => {
         if (group.some((tile, index) => index > 0 && tile.x - group[index - 1].x > 128)) continue
         const tileIds = group.map((tile) => tile.tileId)
         const kind = candidateKind(tileIds)
-        if (kind) candidates.push({ kind, tiles: group })
+        if (kind) candidates.push({ kind, tiles: group, sidewaysPosition: group.findIndex((tile) => tile.id === sideways.id) })
       }
     }
   }
 
   const used = new Set<string>()
   return candidates
-    .sort((left, right) => right.tiles.length - left.tiles.length || left.tiles[0].x - right.tiles[0].x)
+    // A sideways tile at the left edge starts an open block. Prefer that
+    // direction before the visual x order so a concealed 456 next to an open
+    // 789 (with its 7 rotated) is not mistaken for an open 567.
+    .sort((left, right) => right.tiles.length - left.tiles.length || left.sidewaysPosition - right.sidewaysPosition || left.tiles[0].x - right.tiles[0].x)
     .flatMap(({ kind, tiles }) => {
       if (tiles.some((tile) => used.has(tile.id))) return []
       tiles.forEach((tile) => used.add(tile.id))
