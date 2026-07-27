@@ -28,6 +28,20 @@ export const ReferencesModal = ({ onClose }: ReferencesModalProps) => {
 
         <div className="references-content">
           <section>
+            <h3>参考サイト</h3>
+            <div className="reference-links">
+              <a href="https://kachikachi.net/mahjong/" target="_blank" rel="noreferrer">
+                <strong>かちかち麻雀</strong>
+                <span>このページの基礎となった参考サイト</span>
+              </a>
+              <a href="https://mahjong.org/training/training_006/" target="_blank" rel="noreferrer">
+                <strong>麻雀トレーニング</strong>
+                <span>牌理・受け入れの要素で参考にしたサイト</span>
+              </a>
+            </div>
+          </section>
+
+          <section>
             <h3>期待値計算の参考資料</h3>
             <div className="reference-links">
               <a href="https://pystyle.info/apps/mahjong-nanikiru-simulator/" target="_blank" rel="noreferrer">
@@ -45,20 +59,6 @@ export const ReferencesModal = ({ onClose }: ReferencesModalProps) => {
               <a href="https://github.com/tomohxx/mahjong-win-prob" target="_blank" rel="noreferrer">
                 <strong>mahjong-win-prob</strong>
                 <span>計算アルゴリズムの基礎となった実装（GNU GPLv3）</span>
-              </a>
-            </div>
-          </section>
-
-          <section>
-            <h3>麻雀の学習に役立つ参考サイト</h3>
-            <div className="reference-links">
-              <a href="https://kachikachi.net/mahjong/" target="_blank" rel="noreferrer">
-                <strong>かちかち麻雀</strong>
-                <span>このページの基礎となった参考サイト</span>
-              </a>
-              <a href="https://mahjong.org/training/training_006/" target="_blank" rel="noreferrer">
-                <strong>麻雀トレーニング</strong>
-                <span>牌理・受け入れの要素で参考にしたサイト</span>
               </a>
             </div>
           </section>
