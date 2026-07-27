@@ -637,6 +637,10 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
 .good-shape-toggle { display: flex; align-items: center; gap: 5px; margin: 8px 0; color: #176250; font-size: 11px; font-weight: 800; cursor: pointer; }
 .good-shape-toggle input { accent-color: #23826a; }
 .tenpai-shape-summaries { display: grid; gap: 9px; margin: 7px 0 10px; }
+.tenpai-shape-rate { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 9px; padding: 6px 7px; border-radius: 4px; background: #edf3ef; color: #315f52; font-size: 10px; }
+.tenpai-shape-rate strong { color: #176250; font-size: 11px; }
+.tenpai-shape-rate span { color: #7b6333; font-weight: 800; }
+.tenpai-shape-rate small { width: 100%; color: #6b8078; line-height: 1.4; }
 .tenpai-shape-group { display: grid; gap: 4px; }
 .tenpai-shape-title { color: #695938; font-size: 10px; font-weight: 800; }
 .tenpai-shape-group.good .tenpai-shape-title { color: #176250; }

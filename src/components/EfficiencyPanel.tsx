@@ -92,10 +92,14 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
       result[kind].push({ tileId: transition.drawTileId, waitCount, remaining })
       return result
     }, { good: [] as Array<{ tileId: string; waitCount: number; remaining: number }>, bad: [] as Array<{ tileId: string; waitCount: number; remaining: number }> })
+    const totalRemaining = [...groups.good, ...groups.bad].reduce((sum, item) => sum + item.remaining, 0)
+    const formatRate = (items: Array<{ remaining: number }>) => totalRemaining > 0
+      ? `${Math.round(items.reduce((sum, item) => sum + item.remaining, 0) / totalRemaining * 1000) / 10}%`
+      : '0%'
     const render = (label: '好形聴牌' | '愚形聴牌', items: Array<{ tileId: string; waitCount: number; remaining: number }>) => items.length
-      ? <div className={`tenpai-shape-group ${label === '好形聴牌' ? 'good' : 'bad'}`}><span className="tenpai-shape-title">{label}する牌</span><div className="tenpai-shape-tiles">{items.map((item) => <Tile key={item.tileId} tileId={item.tileId} />)}</div><div className="tenpai-shape-summary"><strong>{label}</strong><span>{items.length}種 {items.reduce((sum, item) => sum + item.remaining, 0)}枚</span><small>{items.map((item) => `${tileNotation(item.tileId)}:${item.waitCount}枚待ち`).join(' / ')}</small></div></div>
+      ? <div className={`tenpai-shape-group ${label === '好形聴牌' ? 'good' : 'bad'}`}><span className="tenpai-shape-title">{label}する牌</span><div className="tenpai-shape-tiles">{items.map((item) => <Tile key={item.tileId} tileId={item.tileId} />)}</div><div className="tenpai-shape-summary"><strong>{label}</strong><span>{items.length}種 {items.reduce((sum, item) => sum + item.remaining, 0)}枚（{label === '好形聴牌' ? '好形率' : '愚形率'} {formatRate(items)}）</span><small>{items.map((item) => `${tileNotation(item.tileId)}:${item.waitCount}枚待ち`).join(' / ')}</small></div></div>
       : null
-    return <section className="tenpai-shape-summaries" aria-label="好形・愚形聴牌の受け入れ">{render('好形聴牌', groups.good)}{render('愚形聴牌', groups.bad)}</section>
+    return <section className="tenpai-shape-summaries" aria-label="好形・愚形聴牌の受け入れ"><div className="tenpai-shape-rate"><strong>好形率 {formatRate(groups.good)}</strong><span>愚形率 {formatRate(groups.bad)}</span><small>好形・愚形になる受け入れ牌の残り枚数に対する割合</small></div>{render('好形聴牌', groups.good)}{render('愚形聴牌', groups.bad)}</section>
   })() : null
   const hasTenpaiShapeBreakdown = sortedDiscards.some((discard) => {
     if (discard.result.shanten !== 1) return false
