@@ -46,6 +46,12 @@ export const ReferencesModal = ({ onClose }: ReferencesModalProps) => {
                 <strong>mahjong-win-prob</strong>
                 <span>計算アルゴリズムの基礎となった実装（GNU GPLv3）</span>
               </a>
+            </div>
+          </section>
+
+          <section>
+            <h3>麻雀の学習に役立つ参考サイト</h3>
+            <div className="reference-links">
               <a href="https://kachikachi.net/mahjong/" target="_blank" rel="noreferrer">
                 <strong>かちかち麻雀</strong>
                 <span>麻雀の基本・戦術を学ぶための参考サイト</span>
