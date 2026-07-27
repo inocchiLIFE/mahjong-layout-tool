@@ -1,4 +1,4 @@
-import type { DragEvent as ReactDragEvent } from 'react'
+import { useRef, type DragEvent as ReactDragEvent } from 'react'
 import { TILE_GROUPS } from '../data/tiles'
 import type { PlacementMode, SymbolType, TileDefinition } from '../types'
 import type { DrawingTool } from './DrawingPresetDialog'
@@ -16,22 +16,35 @@ interface TilePaletteProps {
   symbolSizes: Record<SymbolType, { width: number; height: number }>
 }
 
-const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void }) => (
-  <button
-    className="palette-tile"
-    type="button"
-    draggable
-    onClick={onAdd}
-    onDragStart={(event) => {
-      event.dataTransfer.setData('application/x-mahjong-tile', tile.id)
-      event.dataTransfer.effectAllowed = 'copy'
-    }}
-    title={`${tile.label}を追加（ドラッグもできます）`}
-    aria-label={`${tile.label}を作業エリアに追加`}
-  >
-    <img src={tile.asset} alt={tile.label} draggable={false} />
-  </button>
-)
+const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void }) => {
+  const pointerStart = useRef<{ x: number; y: number } | null>(null)
+  const suppressClick = useRef(false)
+  return <button
+      className="palette-tile"
+      type="button"
+      draggable
+      onPointerDown={(event) => { pointerStart.current = { x: event.clientX, y: event.clientY } }}
+      onClick={() => { if (!suppressClick.current) onAdd(); suppressClick.current = false }}
+      onDragStart={(event) => {
+        event.dataTransfer.setData('application/x-mahjong-tile', tile.id)
+        event.dataTransfer.effectAllowed = 'copy'
+      }}
+      onDragEnd={(event) => {
+        const start = pointerStart.current
+        pointerStart.current = null
+        if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 14) return
+        // Browsers suppress click after a native drag. Treat a tiny drift as
+        // a click so the palette remains easy to use with a trackpad or pen.
+        suppressClick.current = true
+        onAdd()
+        window.setTimeout(() => { suppressClick.current = false }, 0)
+      }}
+      title={`${tile.label}を追加（ドラッグもできます）`}
+      aria-label={`${tile.label}を作業エリアに追加`}
+    >
+      <img src={tile.asset} alt={tile.label} draggable={false} />
+    </button>
+}
 
 const symbolChoices: Array<{ mode: PlacementMode; icon: string; label: string; hint: string; dragOnly?: boolean }> = [
   { mode: 'rectangle', icon: '▭', label: '長方形', hint: 'ドラッグして配置', dragOnly: true },
