@@ -906,6 +906,7 @@ const App = () => {
   const rotateSelected = () => {
     if (!scene.elements.some((element) => element.selected && !element.locked)) return
     const horizontalizingTiles = scene.elements.filter((element) => element.kind === 'tile' && element.selected && !element.locked && (element.rotation === 0 || element.rotation === 180))
+    const verticalizingTiles = scene.elements.filter((element) => element.kind === 'tile' && element.selected && !element.locked && (element.rotation === 90 || element.rotation === 270))
     history.commit({
       ...scene,
       elements: scene.elements.map((element) => {
@@ -913,6 +914,9 @@ const App = () => {
           const rightShift = horizontalizingTiles
             .filter((source) => source.id !== element.id && element.x >= source.x + TILE_WIDTH && Math.abs(element.y - source.y) < TILE_HEIGHT / 2)
             .length * (TILE_HEIGHT - TILE_WIDTH)
+            - verticalizingTiles
+              .filter((source) => source.id !== element.id && element.x >= source.x + TILE_HEIGHT && Math.abs(element.y - source.y) < TILE_HEIGHT / 2)
+              .length * (TILE_HEIGHT - TILE_WIDTH)
           if (element.locked) return element
           if (!element.selected) return rightShift ? { ...element, x: element.x + rightShift } : element
           const rotation = ((element.rotation + 90) % 360) as Rotation
@@ -935,7 +939,7 @@ const App = () => {
       ...scene,
       elements: scene.elements.map((element) => {
         if (element.id === target.id) return { ...element, y: element.y + (horizontalizing ? shift : -shift), rotation: ((element.rotation + 90) % 360) as Rotation }
-        if (horizontalizing && element.kind === 'tile' && element.x >= target.x + TILE_WIDTH && Math.abs(element.y - target.y) < TILE_HEIGHT / 2) return { ...element, x: element.x + shift }
+        if (element.kind === 'tile' && element.x >= target.x + (horizontalizing ? TILE_WIDTH : TILE_HEIGHT) && Math.abs(element.y - target.y) < TILE_HEIGHT / 2 && !element.locked) return { ...element, x: element.x + (horizontalizing ? shift : -shift) }
         return element
       }),
     })
