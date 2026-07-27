@@ -29,7 +29,9 @@ export const createCompleteFollow = (type: CompleteFollowType = Math.random() < 
   const support = [start - 2, start, start + 2, start + 4].filter((rank) => rank >= 1 && rank <= 9)
   return [`${suit}${start}`, `${suit}${start + 2}`, `${suit}${pick(support)}`]
 }
-export const hasLegalTileCounts = (tiles: string[]) => tiles.length === 13 && tiles.every((tile) => tiles.filter((value) => value === tile).length <= 4)
+export const hasLegalTileCounts = (tiles: string[], fixedMelds = 0) => fixedMelds >= 0 && fixedMelds <= 4
+  && tiles.length === 13 - fixedMelds * 3
+  && tiles.every((tile) => tiles.filter((value) => value === tile).length <= 4)
 
 export interface IishantenDecomposition { melds: number; pairs: number; taatsu: number; isolated: number }
 /** Enumerates meld-first decompositions.  Each branch removes every possible
@@ -72,15 +74,16 @@ const classifyRemainder = (tiles: string[]): Omit<IishantenDecomposition, 'melds
 
 
 /** Returns one of the five named iishanten types. */
-export const classifyIishantenCandidate = (tiles: string[]): IishantenType | null => {
-  if (!hasLegalTileCounts(tiles)) return null
-  const efficiency = getEfficiency(tiles)
+export const classifyIishantenCandidate = (tiles: string[], fixedMelds = 0, knownTileIds: string[] = []): IishantenType | null => {
+  if (!hasLegalTileCounts(tiles, fixedMelds)) return null
+  const efficiency = getEfficiency(tiles, fixedMelds, knownTileIds)
   if (!efficiency || efficiency.shanten !== 1) return null
   const decompositions = findMeldFirstDecompositions(tiles)
-  const maxMelds = Math.max(...decompositions.map((item) => item.melds))
-  const matches = (melds: number, pairs: number, taatsu: number, isolated: number) => maxMelds === melds && decompositions.some((item) => item.melds === melds && item.pairs === pairs && item.taatsu === taatsu && item.isolated === isolated)
+  const maxConcealedMelds = Math.max(...decompositions.map((item) => item.melds))
+  const maxMelds = fixedMelds + maxConcealedMelds
+  const matches = (melds: number, pairs: number, taatsu: number, isolated: number) => maxMelds === melds && decompositions.some((item) => fixedMelds + item.melds === melds && item.pairs === pairs && item.taatsu === taatsu && item.isolated === isolated)
   if (maxMelds >= 3) {
-    const maxMeldDecompositions = decompositions.filter((item) => item.melds === maxMelds)
+    const maxMeldDecompositions = decompositions.filter((item) => fixedMelds + item.melds === maxMelds)
     const maxTaatsu = Math.max(...maxMeldDecompositions.map((item) => item.taatsu))
     const hasHead = maxMeldDecompositions.some((item) => item.pairs > 0)
     // A possible head makes the hand kuttsuki. Otherwise, two or more
@@ -94,7 +97,7 @@ export const classifyIishantenCandidate = (tiles: string[]): IishantenType | nul
     const isolateComparisons = [...new Set(tiles)].flatMap((tile) => {
       const index = tiles.indexOf(tile); const hand = [...tiles.slice(0, index), ...tiles.slice(index + 1)]
       const remainsBaseShape = findMeldFirstDecompositions(hand).some((item) => item.melds === 2 && item.pairs === 1 && item.taatsu === 2 && item.isolated === 0)
-      const without = getEfficiency(hand)
+      const without = getEfficiency(hand, fixedMelds, knownTileIds)
       return remainsBaseShape && without ? [efficiency.effectiveTileIds.length > without.effectiveTileIds.length || efficiency.effectiveTileCount > without.effectiveTileCount] : []
     })
     // A hand is surplus if any valid decomposition has a single tile that

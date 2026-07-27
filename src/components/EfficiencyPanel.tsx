@@ -110,7 +110,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   }) || (!isDiscardAnalysis && result?.shanten === 1 && getTenpaiTransitions(baseTileIds, fixedMeldCount, meldBaseTileIds).length > 0)
   const iishantenType = (hand: string[], shanten: number) => {
     if (shanten !== 1) return null
-    const type = classifyIishantenCandidate(hand)
+    const type = classifyIishantenCandidate(hand, fixedMeldCount, meldBaseTileIds)
     return type ? IISHANTEN_LABELS[type] : null
   }
   const heading = <div className="efficiency-heading"><strong>牌理・受け入れ</strong><button type="button" onClick={onClose} aria-label="牌理・受け入れを隠す" title="隠す">×</button></div>
