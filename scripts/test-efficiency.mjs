@@ -14,4 +14,15 @@ assert.deepEqual(withMeldTiles?.effectiveTileIds, ['sou3', 'sou6'], 'the same wi
 assert.equal(withoutMeldTiles?.effectiveTileCount, 8, 'both waits have four copies before known tiles are applied')
 assert.equal(withMeldTiles?.effectiveTileCount, 7, 'the visible 3s in the open meld is subtracted from remaining waits')
 
+const fourOpenMeldTiles = [
+  'man1', 'man1', 'man1',
+  'pin5', 'pin5', 'pin5', 'pin5',
+  'sou7', 'sou7', 'sou7',
+  'haku', 'haku', 'haku',
+]
+const fourOpenMeldHand = getEfficiency(['ton'], 4, fourOpenMeldTiles)
+assert.equal(fourOpenMeldHand?.shanten, 0, 'a four-open-meld hand with one concealed tile is correctly treated as tenpai')
+assert.deepEqual(fourOpenMeldHand?.effectiveTileIds, ['ton'], 'the remaining concealed tile determines the pair wait')
+assert.equal(fourOpenMeldHand?.effectiveTileCount, 3, 'the one selected honor is subtracted from the four possible copies')
+
 console.log('efficiency known-tile tests passed')

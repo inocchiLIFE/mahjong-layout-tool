@@ -27,4 +27,13 @@ const spacedChi = detectOpenMelds([tile('a', 'sou4', 0), tile('b', 'sou5', 96, 9
 assert.equal(spacedChi.length, 1, 'a one-tile gap inside an open meld is detected')
 assert.equal(spacedChi[0].kind, 'open-sequence')
 
+const fourOpenMelds = detectOpenMelds([
+  tile('a1', 'man1', 0), tile('a2', 'man1', 48, 90), tile('a3', 'man1', 96),
+  tile('b1', 'pin5', 180, 90), tile('b2', 'pin5', 228), tile('b3', 'pin5', 276), tile('b4', 'pin5', 324),
+  tile('c1', 'sou7', 420), tile('c2', 'sou7', 468, 90), tile('c3', 'sou7', 516),
+  tile('d1', 'haku', 620), tile('d2', 'haku', 668, 90), tile('d3', 'haku', 716),
+])
+assert.equal(fourOpenMelds.length, 4, 'four open melds are all detected together')
+assert.deepEqual([...fourOpenMelds.map((meld) => meld.kind)].sort(), ['open-kan', 'open-triplet', 'open-triplet', 'open-triplet'])
+
 console.log('meld detection tests passed')

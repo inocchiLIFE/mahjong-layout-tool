@@ -117,6 +117,11 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   const resizeHandle = <button type="button" className="efficiency-resize-handle" onPointerDown={startResize} aria-label="パネル幅を変更" />
   if (!tileIds.length) return <aside ref={panelRef} className="efficiency-panel empty">{resizeHandle}{heading}<span>表向きの牌を選択すると解析します</span></aside>
   if (!result) return <aside ref={panelRef} className="efficiency-panel invalid">{resizeHandle}{heading}<span>同一牌は4枚まで、解析できるのは14枚までです</span></aside>
+  const meldInput = <div className="meld-input">
+    <strong>副露ブロック</strong>
+    {melds.length > 0 ? <div className="meld-list">{melds.map((meld) => <div key={meld.id}><span>{MELD_KIND_LABELS[meld.kind]}</span><MeldTiles kind={meld.kind} tileIds={meld.tileIds} /></div>)}</div> : <small>横向きにした牌を含む副露形は、選択すると自動で認識します。</small>}
+    <small>副露{melds.length}組：横向きの牌を1枚含む、連続または同一牌の3〜4枚を副露として扱います。牌1枚分の空きも認識でき、副露牌は打牌候補から除外し、受け入れの残り枚数にも反映します。</small>
+  </div>
   return (
     <aside ref={panelRef} className="efficiency-panel" aria-live="polite">
       {resizeHandle}{heading}
@@ -132,6 +137,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
         const acceptanceLabel = discardResult.shanten === 0 ? '和了牌' : '受け入れ'
         return <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span className="efficiency-discard-status"><span>切り</span><b>{formatShanten(discardResult.shanten)}</b>{type && <strong className="iishanten-type discard">{type}</strong>}</span><em>{acceptanceLabel} {discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{showTenpaiShapeBreakdown && discardResult.shanten === 1 ? tenpaiShapeSummary(hand, discardResult.shanten) : discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの${acceptanceLabel}`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>
       })}</div>}
+      {melds.length > 0 && baseTileIds.length < 2 && <section className="expected-value-section">{meldInput}</section>}
       {baseTileIds.length >= 2 && <section className="expected-value-section">
         <div className="meld-input">
           <strong>副露ブロック</strong>
