@@ -54,11 +54,11 @@ export const ReferencesModal = ({ onClose }: ReferencesModalProps) => {
             <div className="reference-links">
               <a href="https://kachikachi.net/mahjong/" target="_blank" rel="noreferrer">
                 <strong>かちかち麻雀</strong>
-                <span>麻雀の基本・戦術を学ぶための参考サイト</span>
+                <span>このページの基礎となった参考サイト</span>
               </a>
               <a href="https://mahjong.org/training/training_006/" target="_blank" rel="noreferrer">
                 <strong>麻雀トレーニング</strong>
-                <span>麻雀の練習問題を学ぶための参考サイト</span>
+                <span>牌理・受け入れの要素で参考にしたサイト</span>
               </a>
             </div>
           </section>
