@@ -487,6 +487,10 @@ const App = () => {
     sizes[symbolType] = { width: symbolPresets[symbolType].width, height: symbolPresets[symbolType].height }
     return sizes
   }, {} as Record<SymbolType, { width: number; height: number }>)
+  const symbolStrokeWidths = (Object.keys(symbolPresets) as SymbolType[]).reduce((widths, symbolType) => {
+    widths[symbolType] = symbolPresets[symbolType].strokeWidth
+    return widths
+  }, {} as Record<SymbolType, number>)
   const [placementMode, setPlacementMode] = useState<PlacementMode>('select')
   const [editTextRequest, setEditTextRequest] = useState<{ id: string; token: number } | null>(null)
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
@@ -1852,6 +1856,7 @@ const App = () => {
           onOpenSymbolPreset={setSymbolPresetTarget}
           onOpenDrawingPreset={setDrawingPresetTarget}
           symbolColors={symbolColors}
+          symbolStrokeWidths={symbolStrokeWidths}
           drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
           symbolSizes={symbolSizes}
         />
@@ -1878,6 +1883,7 @@ const App = () => {
                 return { color: preset.color ?? defaultShapeColor, strokeWidth: preset.strokeWidth, arrowHeadSize: preset.arrowHeadSize ?? 30 }
               })()}
               symbolColors={symbolColors}
+              symbolStrokeWidths={symbolStrokeWidths}
               symbolSizes={symbolSizes}
               editTextRequest={editTextRequest}
               onDropTile={addTile}

@@ -44,6 +44,7 @@ interface WorkspaceProps {
   textStyle: { fontFamily: string; fontSize: number; color: string }
   drawingStyle: { color: string; strokeWidth: number; arrowHeadSize: number }
   symbolColors: Record<SymbolType, string>
+  symbolStrokeWidths: Record<SymbolType, number>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   editTextRequest: EditTextRequest | null
   onDropTile: (tileId: string, x: number, y: number) => void
@@ -157,6 +158,7 @@ interface DropPreview {
   height: number
   label: string
   color?: string
+  strokeWidth?: number
 }
 
 const isPalettePoint = (clientX: number, clientY: number) => {
@@ -768,6 +770,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         label: SYMBOL_LABELS[symbolType],
         symbolType,
         color: props.symbolColors[symbolType],
+        strokeWidth: props.symbolStrokeWidths[symbolType],
       })
       return
     }
@@ -1078,16 +1081,16 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }}
         aria-hidden="true"
       >
-        {preview.kind === 'symbol' && preview.symbolType === 'triangle' ? (
+        {preview.kind === 'symbol' && preview.symbolType === 'cross' ? (
+          <svg className="drop-symbol-preview drop-symbol-cross" viewBox="0 0 48 66" aria-hidden="true"><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
+        ) : preview.kind === 'symbol' && preview.symbolType === 'triangle' ? (
           <svg className="drop-symbol-preview drop-symbol-triangle" viewBox="0 0 99 66" aria-hidden="true">
             <polygon points="49.5,5 94,61 5,61" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round" />
           </svg>
         ) : preview.kind === 'symbol' && preview.symbolType === 'wave' ? (
-          <svg className="drop-symbol-preview drop-symbol-wave" viewBox="0 0 240 16" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+          <svg className="drop-symbol-preview drop-symbol-wave" viewBox="0 0 240 16" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
         ) : preview.kind === 'symbol' && preview.symbolType ? (
-          <span className={`drop-symbol-preview drop-symbol-${preview.symbolType}`} aria-hidden="true">
-            {preview.symbolType === 'cross' ? '✕' : ''}
-          </span>
+          <span className={`drop-symbol-preview drop-symbol-${preview.symbolType}`} aria-hidden="true" />
         ) : <span>{preview.label}</span>}
       </div>
       })()}
