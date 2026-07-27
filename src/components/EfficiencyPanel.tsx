@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type PointerEvent } from 'react'
 import { TILE_MAP } from '../data/tiles'
 import { getEfficiency, getTenpaiTransitions } from '../utils/mahjongEfficiency'
 import { classifyIishantenCandidate, IISHANTEN_LABELS } from '../utils/iishanten'
@@ -39,6 +39,9 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   const [expectedValues, setExpectedValues] = useState<ReturnType<typeof calculateExpectedValues>>([])
   const [expectedError, setExpectedError] = useState('')
   const [isCalculatingExpectedValue, setIsCalculatingExpectedValue] = useState(false)
+  const [discardOrder, setDiscardOrder] = useState<string[]>([])
+  const [hiddenDiscardIds, setHiddenDiscardIds] = useState<string[]>([])
+  const [draggedDiscardId, setDraggedDiscardId] = useState<string | null>(null)
   const [expectedSettings, setExpectedSettings] = useState<ExpectedValueSettings>(() => ({
     roundWind: 'ton', seatWind: 'ton', turn: 3, doraIndicator: null, visibleCounts: {},
     includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true,
@@ -85,6 +88,33 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
         || right.result.effectiveTileCount - left.result.effectiveTileCount
         || tileOrder(left.discardTileId) - tileOrder(right.discardTileId)
     })
+  const discardIds = sortedDiscards.map((discard) => discard.discardTileId)
+  const discardKey = discardIds.join('|')
+  useEffect(() => {
+    const activeDiscardIds = discardKey ? discardKey.split('|') : []
+    setDiscardOrder((current) => [...current.filter((id) => activeDiscardIds.includes(id)), ...activeDiscardIds.filter((id) => !current.includes(id))])
+    setHiddenDiscardIds((current) => current.filter((id) => activeDiscardIds.includes(id)))
+  }, [discardKey])
+  const orderedDiscards = [...sortedDiscards].sort((left, right) => {
+    const leftOrder = discardOrder.indexOf(left.discardTileId)
+    const rightOrder = discardOrder.indexOf(right.discardTileId)
+    return (leftOrder < 0 ? Number.MAX_SAFE_INTEGER : leftOrder) - (rightOrder < 0 ? Number.MAX_SAFE_INTEGER : rightOrder)
+  })
+  const visibleDiscards = orderedDiscards.filter((discard) => !hiddenDiscardIds.includes(discard.discardTileId))
+  const reorderDiscard = (targetId: string) => {
+    if (!draggedDiscardId || draggedDiscardId === targetId) return
+    setDiscardOrder((current) => {
+      const order = current.length ? current : discardIds
+      const next = order.filter((id) => id !== draggedDiscardId)
+      next.splice(Math.max(0, next.indexOf(targetId)), 0, draggedDiscardId)
+      return next
+    })
+  }
+  const startDiscardDrag = (event: DragEvent<HTMLDivElement>, discardTileId: string) => {
+    setDraggedDiscardId(discardTileId)
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', discardTileId)
+  }
   const tenpaiShapeSummary = (hand: string[], shanten: number) => shanten === 1 ? (() => {
     const groups = getTenpaiTransitions(hand, fixedMeldCount, meldBaseTileIds).reduce((result, transition) => {
       const waitCount = Math.max(...transition.tenpaiOptions.map((option) => option.waitTileCount))
@@ -131,11 +161,11 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
         const acceptanceLabel = result.shanten === 0 ? '和了牌' : '受け入れ'
         return <><span className="efficiency-count">{tileIds.length}枚を解析中</span><div className="efficiency-summary">{tileIds.length >= 13 && <b>{formatShanten(result.shanten)}</b>}{type && <small className="iishanten-type">1シャンテン形：{type}</small>}<span>{acceptanceLabel} <em>{result.effectiveTileIds.length}種 {result.effectiveTileCount}牌</em></span></div>{result.effectiveTileIds.length > 0 && <div className="efficiency-waits" aria-label={acceptanceLabel}>{result.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}{showTenpaiShapeBreakdown && tenpaiShapeSummary(baseTileIds, result.shanten)}</>
       })()}
-      {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong></div>{sortedDiscards.map(({ discardTileId, result: discardResult }) => {
+      {discards.length > 0 && <div className="efficiency-discards"><div className="efficiency-discard-heading"><strong>選択打牌ごとの受け入れ</strong><span>ドラッグで並べ替え・不要な候補は非表示にできます。</span>{hiddenDiscardIds.length > 0 && <button type="button" className="discard-restore-button" onClick={() => setHiddenDiscardIds([])}>非表示を戻す（{hiddenDiscardIds.length}）</button>}</div>{visibleDiscards.map(({ discardTileId, result: discardResult }) => {
         const hand = baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId))
         const type = iishantenType(hand, discardResult.shanten)
         const acceptanceLabel = discardResult.shanten === 0 ? '和了牌' : '受け入れ'
-        return <div className="efficiency-discard" key={discardTileId}><div className="efficiency-discard-summary"><Tile tileId={discardTileId} /><span className="efficiency-discard-status"><span>切り</span><b>{formatShanten(discardResult.shanten)}</b>{type && <strong className="iishanten-type discard">{type}</strong>}</span><em>{acceptanceLabel} {discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em></div>{showTenpaiShapeBreakdown && discardResult.shanten === 1 ? tenpaiShapeSummary(hand, discardResult.shanten) : discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの${acceptanceLabel}`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>
+        return <div className="efficiency-discard" key={discardTileId} draggable onDragStart={(event) => startDiscardDrag(event, discardTileId)} onDragOver={(event) => event.preventDefault()} onDrop={() => reorderDiscard(discardTileId)} onDragEnd={() => setDraggedDiscardId(null)}><div className="efficiency-discard-summary"><span className="discard-drag-handle" title="ドラッグして並べ替え" aria-hidden="true">⠿</span><Tile tileId={discardTileId} /><span className="efficiency-discard-status"><span>切り</span><b>{formatShanten(discardResult.shanten)}</b>{type && <strong className="iishanten-type discard">{type}</strong>}</span><em>{acceptanceLabel} {discardResult.effectiveTileIds.length}種 {discardResult.effectiveTileCount}牌</em><button type="button" className="discard-hide-button" onClick={() => setHiddenDiscardIds((current) => [...current, discardTileId])} aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りを非表示`} title="この候補を非表示">×</button></div>{showTenpaiShapeBreakdown && discardResult.shanten === 1 ? tenpaiShapeSummary(hand, discardResult.shanten) : discardResult.effectiveTileIds.length > 0 && <div className="efficiency-discard-waits" aria-label={`${TILE_MAP.get(discardTileId)?.label ?? ''}切りの${acceptanceLabel}`}>{discardResult.effectiveTileIds.map((tileId) => <Tile key={tileId} tileId={tileId} />)}</div>}</div>
       })}</div>}
       {melds.length > 0 && baseTileIds.length < 2 && <section className="expected-value-section">{meldInput}</section>}
       {baseTileIds.length >= 2 && <section className="expected-value-section">

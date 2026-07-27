@@ -19,6 +19,15 @@
 .efficiency-discards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 9px; }
 .efficiency-discard-heading { grid-column: 1 / -1; }
 .efficiency-discard { min-width: 0; align-content: start; }
+.efficiency-discard[draggable="true"] { cursor: grab; }
+.efficiency-discard[draggable="true"]:active { cursor: grabbing; }
+.efficiency-discard-summary { grid-template-columns: 13px 30px minmax(0, 1fr) auto 23px; }
+.discard-drag-handle { color: #8aa398; font-size: 16px; line-height: 1; cursor: grab; user-select: none; }
+.discard-hide-button, .discard-restore-button { border: 1px solid #b8cfc4; border-radius: 4px; color: #526d64; background: #fff; font: 800 11px "Yu Gothic UI", sans-serif; cursor: pointer; }
+.discard-hide-button { width: 23px; height: 23px; padding: 0; font-size: 16px; line-height: 1; }
+.discard-hide-button:hover, .discard-restore-button:hover { border-color: #23826a; color: #174f40; background: #eef8f2; }
+.efficiency-discard-heading > span { color: #70867e; font-size: 11px; }
+.discard-restore-button { justify-self: start; min-height: 25px; padding: 2px 7px; }
 
 .workspace-panel { right: var(--efficiency-panel-space, 260px); }
 
