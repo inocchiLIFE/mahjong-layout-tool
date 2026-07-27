@@ -913,31 +913,49 @@ const App = () => {
     })
   }
 
+  const resolveRotatedTileOverlaps = (elements: CanvasElement[], rotatedIds: Set<string>) => {
+    const positions = new Map(elements.map((element) => [element.id, element]))
+    const targets = elements.filter((element): element is TileElement => element.kind === 'tile' && rotatedIds.has(element.id)).sort((left, right) => left.x - right.x)
+    for (const target of targets) {
+      const currentTarget = positions.get(target.id)
+      if (!currentTarget || currentTarget.kind !== 'tile') continue
+      const targetBottom = currentTarget.y + getElementDimensions(currentTarget).height
+      let rightEdge = currentTarget.x + getElementDimensions(currentTarget).width
+      const rowTiles = [...positions.values()]
+        .filter((element): element is TileElement => element.kind === 'tile' && element.id !== currentTarget.id && !element.locked && element.x >= currentTarget.x && Math.abs(element.y + getElementDimensions(element).height - targetBottom) < TILE_HEIGHT / 2)
+        .sort((left, right) => left.x - right.x)
+      for (const tile of rowTiles) {
+        const resolved = positions.get(tile.id)
+        if (!resolved || resolved.kind !== 'tile') continue
+        if (resolved.x < rightEdge) positions.set(resolved.id, { ...resolved, x: rightEdge })
+        const current = positions.get(tile.id) as TileElement
+        rightEdge = current.x + getElementDimensions(current).width
+      }
+    }
+    return elements.map((element) => positions.get(element.id) ?? element)
+  }
+
   const rotateSelected = () => {
     if (!scene.elements.some((element) => element.selected && !element.locked)) return
     const horizontalizingTiles = scene.elements.filter((element) => element.kind === 'tile' && element.selected && !element.locked && (element.rotation === 0 || element.rotation === 180))
     const verticalizingTiles = scene.elements.filter((element) => element.kind === 'tile' && element.selected && !element.locked && (element.rotation === 90 || element.rotation === 270))
-    history.commit({
-      ...scene,
-      elements: scene.elements.map((element) => {
-        if (element.kind === 'tile') {
-          const rightShift = horizontalizingTiles
-            .filter((source) => source.id !== element.id && element.x >= source.x + TILE_WIDTH && Math.abs(element.y - source.y) < TILE_HEIGHT / 2)
+    const nextElements = scene.elements.map((element) => {
+      if (element.kind === 'tile') {
+        const rightShift = horizontalizingTiles
+          .filter((source) => source.id !== element.id && element.x >= source.x + TILE_WIDTH && Math.abs(element.y - source.y) < TILE_HEIGHT / 2)
+          .length * (TILE_HEIGHT - TILE_WIDTH)
+          - verticalizingTiles
+            .filter((source) => source.id !== element.id && element.x >= source.x + TILE_HEIGHT && Math.abs(element.y - source.y) < TILE_HEIGHT / 2)
             .length * (TILE_HEIGHT - TILE_WIDTH)
-            - verticalizingTiles
-              .filter((source) => source.id !== element.id && element.x >= source.x + TILE_HEIGHT && Math.abs(element.y - source.y) < TILE_HEIGHT / 2)
-              .length * (TILE_HEIGHT - TILE_WIDTH)
-          if (element.locked) return element
-          if (!element.selected) return rightShift ? { ...element, x: element.x + rightShift } : element
-          const rotation = ((element.rotation + 90) % 360) as Rotation
-          return { ...element, x: element.x + rightShift, y: element.y + ((element.rotation === 0 || element.rotation === 180) ? TILE_HEIGHT - TILE_WIDTH : TILE_WIDTH - TILE_HEIGHT), rotation }
-        }
-        if (!element.selected || element.locked) return element
+        if (element.locked) return element
+        if (!element.selected) return rightShift ? { ...element, x: element.x + rightShift } : element
         const rotation = ((element.rotation + 90) % 360) as Rotation
-        const rotated = { ...element, rotation } as CanvasElement
-        return rotated
-      }),
+        return { ...element, x: element.x + rightShift, y: element.y + ((element.rotation === 0 || element.rotation === 180) ? TILE_HEIGHT - TILE_WIDTH : TILE_WIDTH - TILE_HEIGHT), rotation }
+      }
+      if (!element.selected || element.locked) return element
+      return { ...element, rotation: ((element.rotation + 90) % 360) as Rotation } as CanvasElement
     })
+    history.commit({ ...scene, elements: resolveRotatedTileOverlaps(nextElements, new Set([...horizontalizingTiles, ...verticalizingTiles].map((tile) => tile.id))) })
   }
 
   const rotateTile = (id: string) => {
@@ -945,14 +963,12 @@ const App = () => {
     if (!target || target.kind !== 'tile') return
     const horizontalizing = target.rotation === 0 || target.rotation === 180
     const shift = TILE_HEIGHT - TILE_WIDTH
-    history.commit({
-      ...scene,
-      elements: scene.elements.map((element) => {
+    const nextElements = scene.elements.map((element) => {
         if (element.id === target.id) return { ...element, y: element.y + (horizontalizing ? shift : -shift), rotation: ((element.rotation + 90) % 360) as Rotation }
         if (element.kind === 'tile' && element.x >= target.x + (horizontalizing ? TILE_WIDTH : TILE_HEIGHT) && Math.abs(element.y - target.y) < TILE_HEIGHT / 2 && !element.locked) return { ...element, x: element.x + (horizontalizing ? shift : -shift) }
         return element
-      }),
-    })
+      })
+    history.commit({ ...scene, elements: resolveRotatedTileOverlaps(nextElements, new Set([target.id])) })
   }
 
   const generateHand = (type: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | 'iishanten-random' | 'iishanten-question' | IishantenType) => {
