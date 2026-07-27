@@ -1012,8 +1012,15 @@ const App = () => {
   const sortSelectedTiles = () => {
     const selectedTiles = scene.elements.filter((element): element is TileElement => element.kind === 'tile' && element.selected && !element.locked)
     if (!selectedTiles.length) return
-    const targetIds = [...selectedTiles].sort((left, right) => left.y - right.y || left.x - right.x || left.zIndex - right.zIndex).map((tile) => tile.id)
-    const sortedTileIds = [...selectedTiles].sort((left, right) => (TILE_MAP.get(left.tileId)?.order ?? Number.MAX_SAFE_INTEGER) - (TILE_MAP.get(right.tileId)?.order ?? Number.MAX_SAFE_INTEGER)).map((tile) => tile.tileId)
+    const detectedMelds = detectOpenMelds(selectedTiles)
+    const meldTileIds = new Set(detectedMelds.flatMap((meld) => meld.elementIds))
+    const sortableTiles = selectedTiles.filter((tile) => !meldTileIds.has(tile.id))
+    if (!sortableTiles.length) {
+      notify(`副露${detectedMelds.length}組を保持しました`)
+      return
+    }
+    const targetIds = [...sortableTiles].sort((left, right) => left.y - right.y || left.x - right.x || left.zIndex - right.zIndex).map((tile) => tile.id)
+    const sortedTileIds = [...sortableTiles].sort((left, right) => (TILE_MAP.get(left.tileId)?.order ?? Number.MAX_SAFE_INTEGER) - (TILE_MAP.get(right.tileId)?.order ?? Number.MAX_SAFE_INTEGER)).map((tile) => tile.tileId)
     const tileIdsByTarget = new Map(targetIds.map((id, index) => [id, sortedTileIds[index]]))
     history.commit({
       ...scene,
@@ -1021,7 +1028,7 @@ const App = () => {
         ? { ...element, tileId: tileIdsByTarget.get(element.id)! }
         : element),
     })
-    notify(`${selectedTiles.length}枚を理牌しました`)
+    notify(`${sortableTiles.length}枚を理牌しました${detectedMelds.length ? `（副露${detectedMelds.length}組を保持）` : ''}`)
   }
 
   const commitText = (text: string, x = 40, y?: number, id?: string) => {
