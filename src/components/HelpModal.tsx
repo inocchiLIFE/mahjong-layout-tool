@@ -22,67 +22,78 @@ export const HelpModal = ({ onClose }: HelpModalProps) => {
         <header className="help-header">
           <span className="eyebrow">OPERATION GUIDE</span>
           <h2 id="help-title">麻雀牌レイアウトツールの使い方</h2>
-          <p id="help-intro">牌姿の作成、牌理・受け入れの確認、図形や文字による解説画像づくりを、ひとつの画面で行えます。</p>
+          <p id="help-intro">牌姿の作成・牌理の確認・配牌の自動生成・画像出力までを、ひとつの画面で行えます。まずは牌を配置し、必要に応じて右側の牌理パネルを開いてください。</p>
         </header>
 
         <nav className="help-index" aria-label="操作ガイドの目次">
           <a href="#help-start">はじめに</a>
           <a href="#help-edit">配置・編集</a>
           <a href="#help-efficiency">牌理・受け入れ</a>
-          <a href="#help-hand">ランダム牌姿</a>
-          <a href="#help-save">保存・共有</a>
+          <a href="#help-hand">配牌作成</a>
+          <a href="#help-save">保存・出力</a>
+          <a href="#help-settings">設定</a>
         </nav>
 
         <div className="help-content">
           <section className="help-section" id="help-start">
             <div className="help-section-heading"><span>01</span><h3>はじめに</h3></div>
             <div className="help-steps">
-              <div><b>1</b><p><strong>牌を配置する</strong><span>左の牌一覧から牌をクリックすると、ワークスペースに追加されます。空いている場所をクリックして配置することもできます。</span></p></div>
-              <div><b>2</b><p><strong>選択して動かす</strong><span>牌や図形をクリックして選択し、ドラッグで移動します。複数選択は範囲選択または Ctrl / ⌘ を押しながらクリックで行えます。</span></p></div>
-              <div><b>3</b><p><strong>タブを切り替える</strong><span>上部の「ホーム」「挿入」「手牌」「保存・共有」「設定」から、目的の操作を選びます。右上の「参考サイト」では、期待値計算の参考資料とGPLv3ライセンスを確認できます。</span></p></div>
+              <div><b>1</b><p><strong>牌一覧から追加する</strong><span>左側の牌をクリックすると、作業領域へ追加されます。牌・図形・文字はドラッグでも配置できます。不要な要素は左上の削除エリアへドラッグするか、選択して Delete / Backspace で削除します。</span></p></div>
+              <div><b>2</b><p><strong>選択して操作する</strong><span>要素をクリックすると選択できます。複数選択は Ctrl / ⌘ を押しながらクリック、または空いている場所からドラッグして囲みます。選択中の牌は、牌理・受け入れの解析対象にもなります。</span></p></div>
+              <div><b>3</b><p><strong>ページは自動保存される</strong><span>編集内容はこのブラウザに自動保存されます。上部のページタブで複数ページを作り、ページ名の変更・並べ替え・削除もできます。</span></p></div>
             </div>
           </section>
 
           <section className="help-section" id="help-edit">
             <div className="help-section-heading"><span>02</span><h3>配置・編集</h3></div>
             <div className="help-grid">
-              <article><strong>移動・整列・重なり順</strong><p>選択中の要素はドラッグで移動できます。ホームタブの整列、最前面／最背面で見やすく配置できます。</p></article>
-              <article><strong>牌の表裏と回転</strong><p>牌を選択して表裏を切り替えられます。牌を右クリックして「牌を90度回転」を選ぶと、その牌だけを回転できます。</p></article>
-              <article><strong>右クリックメニュー</strong><p>選択した要素を右クリックすると、複製、コピー、貼り付け、削除、ロック、プロパティ編集などを実行できます。表示項目は設定で自由に変更できます。</p></article>
-              <article><strong>グリッドと吸着</strong><p>設定タブでグリッド表示を切り替えられます。要素の吸着は常に有効です。</p></article>
-              <article><strong>文字・図形・画像</strong><p>挿入タブから文字、ペン、消しゴム、線・曲線・矢印、各種図形、画像を追加できます。画像を選択すると四辺にトリミング用のハンドルが表示され、内側へドラッグして表示範囲を狭められます。図形や描画ツールは右クリックで初期設定も変更できます。</p></article>
-              <article><strong>コピー＆ペースト</strong><p>選択要素はコピーして貼り付けられます。牌姿表記をクリップボードから貼り付けた場合も、牌として配置できます。</p></article>
+              <article><strong>移動・複製・重なり順</strong><p>選択した要素をドラッグして移動します。ホームタブから複製、最前面・最背面への移動、ロック、削除を行えます。</p></article>
+              <article><strong>牌の向き・整列・理牌</strong><p>選択牌は表／裏を切り替え、90度回転、等間隔に整列できます。配牌タブの「選択牌を理牌」は選択した牌だけを種類・数字順に並べます。</p></article>
+              <article><strong>文字・図形・線</strong><p>挿入タブまたは左側の記号・文字から追加できます。ペン、直線、曲線、矢印、図形は右クリックメニューからも配置できます。</p></article>
+              <article><strong>画像の追加・トリミング</strong><p>画像は貼り付け・ファイル選択・ドラッグ＆ドロップで追加できます。選択すると表示されるハンドルで比率を保って拡大縮小でき、周囲のハンドルをドラッグするとトリミングできます。</p></article>
+              <article><strong>作業領域の範囲</strong><p>作業領域は自由に広く使えます。保存・出力タブの幅・高さで範囲を決め、「範囲表示」をオンにすると出力範囲の枠だけを表示します。</p></article>
+              <article><strong>右クリックメニュー</strong><p>作業領域を右クリックすると、選択・貼り付け・図形・文字などをすぐ実行できます。表示する項目は設定画面で選べます。</p></article>
             </div>
           </section>
 
           <section className="help-section" id="help-efficiency">
             <div className="help-section-heading"><span>03</span><h3>牌理・受け入れ</h3></div>
             <div className="help-feature-list">
-              <div><strong>表示する</strong><span>画面右上の「牌理・受け入れ」でパネルを表示／非表示にできます。パネル右上の×でも閉じられ、境界をドラッグすると大きさを変えられます。</span></div>
-              <div><strong>13枚を選択した場合</strong><span>選択中の13枚を解析し、シャンテン数、有効牌（受け入れ）の種類数・枚数と、実際の有効牌を表示します。0シャンテンは「聴牌」と表示されます。</span></div>
-              <div><strong>14枚を選択した場合</strong><span>選択した各牌を切ったときの受け入れだけを一覧で表示します。シャンテン数を優先し、同じシャンテン数では受け入れ枚数の多い順に表示します。</span></div>
-              <div><strong>一人麻雀の期待値</strong><span>門前手は14枚を選択して「一人麻雀の期待値を計算」を開きます。副露がある場合は、先に副露ブロックで明順子・明刻子・各カンを選び、表示された必要枚数だけ手牌を選択します。場風・自風・巡目・ドラ・見えている牌を設定すると、打牌ごとの期待値、和了率、聴牌率、平均和了点を表示します。</span></div>
-              <div><strong>計算するもの</strong><span>手牌変化のグラフを作り、18巡目から逆算する動的計画法で和了率と得点期待値を求めます。和了時は役・符・親子・ドラを計算し、放銃、鳴き、一発、海底など他家が必要な要素は計算しません。</span></div>
-              <div><strong>解析対象</strong><span>ワークスペース上の表向きの牌を選択して解析します。13枚または14枚を選択していない場合は結果を表示しません。</span></div>
+              <div><strong>解析を始める</strong><span>表向きの牌を選択して「牌理・受け入れ」を開きます。最大14枚までの選択牌を解析し、通常形・七対子・国士無双を含むシャンテン数と有効牌を表示します。</span></div>
+              <div><strong>13枚のとき</strong><span>シャンテン数、有効牌の種類数・残り枚数を確認できます。1シャンテンなら、余剰牌型・完全形・ヘッドレス1型・ヘッドレス2型・くっつき型も表示されます。</span></div>
+              <div><strong>14枚のとき</strong><span>各打牌後のシャンテン数・形・受け入れを比較できます。受け入れ枚数順で並ぶため、候補をすばやく比べられます。</span></div>
+              <div><strong>好形・愚形聴牌の内訳</strong><span>1シャンテンの14枚では、好形・愚形聴牌の内訳表示をオンにできます。好形は待ちが合計6枚以上、愚形はそれ以外として、種類数と枚数を表示します。</span></div>
+              <div><strong>副露を含む手牌</strong><span>横向きの牌を含む連続形または同一牌の3〜4枚を副露として自動認識します。副露牌は打牌候補に含まれません。</span></div>
+              <div><strong>一人麻雀の期待値</strong><span>14枚選択時は、右側パネルから期待値計算も実行できます。表示される和了率・聴牌率・平均和了点は一人麻雀用の目安です。</span></div>
             </div>
           </section>
 
           <section className="help-section" id="help-hand">
-            <div className="help-section-heading"><span>04</span><h3>ランダム牌姿</h3></div>
+            <div className="help-section-heading"><span>04</span><h3>配牌作成</h3></div>
             <div className="help-feature-list">
-              <div><strong>基本のランダム生成</strong><span>手牌タブから連続形、6枚形、6枚形・複合形、7枚形、13枚、14枚を生成できます。選択した牌は「選択牌を理牌」で萬子・筒子・索子・字牌の順に並べ替えられます。</span></div>
-              <div><strong>1シャンテン形</strong><span>「余剰牌型」「完全形」「ヘッドレス1型」「ヘッドレス2型」「くっつき」を選ぶと、条件を検証した13枚の牌姿を生成します。同一牌は最大4枚です。</span></div>
-              <div><strong>完全形のフォロー</strong><span>完全形は、ターツの構成牌を重ねる縦のフォローと、カンチャン形の外側・構成牌を使うフォローを含めて生成します。</span></div>
-              <div><strong>使用する牌種</strong><span>1シャンテン形は萬子・筒子・索子・字牌を含む全34種から生成します。通常のランダム生成では、手牌タブの使用する牌種フィルターを利用できます。</span></div>
+              <div><strong>すぐに形を作る</strong><span>配牌タブの連続形、6枚形、6枚形暗刻含み、7枚形、13枚、14枚で、指定枚数の牌姿を自動生成します。使用する種類は萬子・筒子・索子から選べます。</span></div>
+              <div><strong>何切る問題</strong><span>「何切る問題」を押すと14枚の手牌を作成し、選択した状態で置きます。すぐ右側の牌理パネルで打牌候補を比較できます。</span></div>
+              <div><strong>1シャンテン形を指定</strong><span>余剰牌型・完全形・ヘッドレス1・ヘッドレス2・くっつきから選んで13枚の1シャンテン形を生成できます。ランダムで5分類から生成することも可能です。</span></div>
+              <div><strong>作成後の使い方</strong><span>生成した牌は通常の牌と同じように移動・回転・複製できます。必要な牌だけ選択して理牌し、教材や検討図に仕上げてください。</span></div>
             </div>
           </section>
 
           <section className="help-section" id="help-save">
-            <div className="help-section-heading"><span>05</span><h3>保存・共有</h3></div>
+            <div className="help-section-heading"><span>05</span><h3>保存・出力</h3></div>
             <div className="help-steps compact">
-              <div><b>1</b><p><strong>ブラウザに保存</strong><span>保存・共有タブの「保存」で、現在のページと配置をこのブラウザに保存します。保存ページから読み込み・名前変更・削除ができます。</span></p></div>
-              <div><b>2</b><p><strong>保存ページを管理する</strong><span>保存ページでは、呼び出し、上書き保存、名前変更、分類、並べ替え、削除ができます。複数ページをまとめて保存することもできます。</span></p></div>
-              <div><b>3</b><p><strong>共有する</strong><span>保存ページの「共有ファイル保存」でレイアウトファイルを書き出せます。保存・共有タブの「共有ファイル読込」から、受け取ったファイルを開けます。</span></p></div>
+              <div><b>1</b><p><strong>ブラウザに保存</strong><span>保存・出力タブの「保存」で、現在のページと作業状態をこのブラウザに保存します。保存ページから名前を付けて保存し、後から読み込み・複製・削除もできます。</span></p></div>
+              <div><b>2</b><p><strong>PNG・PDFとして出力</strong><span>「PNG保存」で作業領域を画像として保存します。「PNG背景を透過」をオンにすると背景を透明にできます。「PDF保存」は作業領域をPDFとして出力します。</span></p></div>
+              <div><b>3</b><p><strong>他の端末へ共有</strong><span>「共有ファイル読込」で、保存した共有ファイルを読み込めます。ページ・配置・設定を引き継ぎたい場合は、共有用の保存ファイルを利用してください。</span></p></div>
+            </div>
+          </section>
+
+          <section className="help-section" id="help-settings">
+            <div className="help-section-heading"><span>06</span><h3>設定</h3></div>
+            <div className="help-feature-list">
+              <div><strong>画面と作業領域</strong><span>設定タブから画面・文字サイズ、グリッド表示、新規作業領域の幅・高さを初期値として保存できます。</span></div>
+              <div><strong>アプリの見た目</strong><span>上部バーの色とアプリアイコンを変更できます。作業画面の背景色は変わりません。</span></div>
+              <div><strong>文字・図形の初期値</strong><span>フォント、文字サイズ、文字色、図形・描画の色、線の太さを、次に追加する要素の初期値として設定できます。</span></div>
+              <div><strong>右クリック項目</strong><span>右クリックメニューに表示する操作を選べます。設定はこの端末のブラウザに保存され、後からいつでも変更できます。</span></div>
             </div>
           </section>
 
