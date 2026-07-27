@@ -25,4 +25,7 @@ assert.equal(fourOpenMeldHand?.shanten, 0, 'a four-open-meld hand with one conce
 assert.deepEqual(fourOpenMeldHand?.effectiveTileIds, ['ton'], 'the remaining concealed tile determines the pair wait')
 assert.equal(fourOpenMeldHand?.effectiveTileCount, 3, 'the one selected honor is subtracted from the four possible copies')
 
+const invalidAcrossHandAndMeld = getEfficiency(['man1', 'man1'], 1, ['man1', 'man1', 'man1'])
+assert.equal(invalidAcrossHandAndMeld, null, 'five copies across the concealed hand and an open meld are rejected')
+
 console.log('efficiency known-tile tests passed')

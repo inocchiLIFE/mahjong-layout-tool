@@ -107,6 +107,7 @@ export const getEfficiency = (tileIds: string[], fixedMelds = 0, knownTileIds: s
     if (index < 0) return null
     knownCounts[index] += 1
   }
+  if (counts.some((count, index) => count + knownCounts[index] > 4)) return null
   const currentShanten = shanten(counts, fixedMelds)
   const effectiveTileIds = TILE_IDS.filter((_, index) => {
     if (counts[index] + knownCounts[index] >= 4) return false
