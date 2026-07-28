@@ -142,6 +142,10 @@
 .hand-suit-filters { display: flex; align-items: center; gap: 7px; padding-top: 3px; }
 .hand-suit-filters label { display: inline-flex; align-items: center; gap: 3px; color: #365d52; font-size: 10px; font-weight: 700; white-space: nowrap; cursor: pointer; }
 .hand-suit-filters input { accent-color: #18745d; margin: 0; }
+.iishanten-question-filter-group { min-width: 310px; }
+.iishanten-question-filters { display: flex; align-items: center; gap: 7px; padding-top: 3px; }
+.iishanten-question-filters label { display: inline-flex; align-items: center; gap: 3px; color: #365d52; font-size: 10px; font-weight: 700; white-space: nowrap; cursor: pointer; }
+.iishanten-question-filters input { accent-color: #18745d; margin: 0; }
 .tool-group-label { position: absolute; top: 0; left: 9px; color: #84958f; font-size: 8px; font-weight: 800; letter-spacing: .1em; }
 .ribbon-content .tool-group:first-child .tool-group-label { left: 0; }
 

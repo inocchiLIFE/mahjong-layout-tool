@@ -77,6 +77,7 @@ const PREFERENCES_KEY = 'mahjong-layout-tool:preferences-v1'
 const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
 const DRAWING_PRESETS_KEY = 'mahjong-layout-tool:drawing-presets-v1'
 const HAND_SUITS_KEY = 'mahjong-layout-tool:hand-suits-v1'
+const IISHANTEN_QUESTION_TYPES_KEY = 'mahjong-layout-tool:iishanten-question-types-v1'
 const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, eraserSize: 24, arrowHeadSize: 30 }
 const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visible-v1'
 const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
@@ -424,6 +425,14 @@ const readHandSuits = (): Array<'man' | 'pin' | 'sou'> => {
   } catch { return [] }
 }
 
+const readIishantenQuestionTypes = (): IishantenType[] => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(IISHANTEN_QUESTION_TYPES_KEY) ?? '[]') as unknown
+    const allowed: IishantenType[] = ['surplus', 'complete', 'headless1', 'headless2', 'kuttsuki']
+    return Array.isArray(saved) ? saved.filter((type): type is IishantenType => allowed.includes(type as IishantenType)) : []
+  } catch { return [] }
+}
+
 const loadImageFile = (file: File) => new Promise<{ src: string; width: number; height: number }>((resolve, reject) => {
   if (!file.type.startsWith('image/')) {
     reject(new Error('not-image'))
@@ -482,6 +491,7 @@ const App = () => {
   const [drawingPresets, setDrawingPresets] = useState(readDrawingPresets)
   const [drawingPresetTarget, setDrawingPresetTarget] = useState<DrawingTool | null>(null)
   const [handSuits, setHandSuits] = useState(readHandSuits)
+  const [iishantenQuestionTypes, setIishantenQuestionTypes] = useState(readIishantenQuestionTypes)
   const [efficiencyPanelVisible, setEfficiencyPanelVisible] = useState(() => localStorage.getItem(EFFICIENCY_PANEL_VISIBLE_KEY) !== 'false')
   const [efficiencyPanelWidth, setEfficiencyPanelWidth] = useState(() => {
     const value = Number(localStorage.getItem(EFFICIENCY_PANEL_WIDTH_KEY))
@@ -663,6 +673,8 @@ const App = () => {
         setEraserSize(next.eraser.eraserSize)
       } else if (event.key === HAND_SUITS_KEY) {
         setHandSuits(readHandSuits())
+      } else if (event.key === IISHANTEN_QUESTION_TYPES_KEY) {
+        setIishantenQuestionTypes(readIishantenQuestionTypes())
       } else if (event.key === 'mahjong-layout-tool:custom-colors-v1') {
         window.dispatchEvent(new Event('mahjong-custom-colors-changed'))
       }
@@ -984,7 +996,7 @@ const App = () => {
     let generatedIishantenType: IishantenType | null = null
     try {
       if (type === 'iishanten-question') {
-        const question = generateIishantenQuestion(); tileIds = question.tileIds; generatedIishantenType = question.type
+        const question = generateIishantenQuestion(iishantenQuestionTypes); tileIds = question.tileIds; generatedIishantenType = question.type
       } else if (type === 'iishanten-random') {
         const hand = generateRandomIishanten(); tileIds = hand.tileIds; generatedIishantenType = hand.type
       } else tileIds = isIishanten ? generateIishanten(type as IishantenType) : type === 'continuous' ? randomContinuousHand(handSuits) : type === '6-triplet' ? randomShapeHand(6, true, handSuits) : type === 6 || type === 7 ? randomShapeHand(type, false, handSuits) : handSuits.length ? randomSingleSuitHand(type as 13 | 14, handSuits) : randomHand(type as 13 | 14)
@@ -1821,6 +1833,12 @@ const App = () => {
         onToggleHandSuit={(suit) => setHandSuits((current) => {
           const next = current.includes(suit) ? current.filter((value) => value !== suit) : [...current, suit]
           localStorage.setItem(HAND_SUITS_KEY, JSON.stringify(next))
+          return next
+        })}
+        iishantenQuestionTypes={iishantenQuestionTypes}
+        onToggleIishantenQuestionType={(type) => setIishantenQuestionTypes((current) => {
+          const next = current.includes(type) ? current.filter((value) => value !== type) : [...current, type]
+          localStorage.setItem(IISHANTEN_QUESTION_TYPES_KEY, JSON.stringify(next))
           return next
         })}
         canSortSelectedTiles={selected.some((element) => element.kind === 'tile' && !element.locked)}

@@ -72,7 +72,7 @@ export const HelpModal = ({ onClose }: HelpModalProps) => {
             <div className="help-section-heading"><span>04</span><h3>配牌作成</h3></div>
             <div className="help-feature-list">
               <div><strong>すぐに形を作る</strong><span>配牌タブの連続形、6枚形、6枚形暗刻含み、7枚形、13枚、14枚で、指定枚数の牌姿を自動生成します。使用する種類は萬子・筒子・索子から選べます。</span></div>
-              <div><strong>何切る問題</strong><span>「何切る問題」を押すと14枚の手牌を作成し、選択した状態で置きます。すぐ右側の牌理パネルで打牌候補を比較できます。</span></div>
+              <div><strong>何切る問題</strong><span>「何切る問題」を押すと14枚の手牌を作成し、選択した状態で置きます。使用する1シャンテン形をチェックすると、その分類から問題を作成します。複数選択時はその中からランダム、未選択時は5分類からランダムです。</span></div>
               <div><strong>1シャンテン形を指定</strong><span>余剰牌型・完全形・ヘッドレス1・ヘッドレス2・くっつきから選んで13枚の1シャンテン形を生成できます。ランダムで5分類から生成することも可能です。</span></div>
               <div><strong>作成後の使い方</strong><span>生成した牌は通常の牌と同じように移動・回転・複製できます。必要な牌だけ選択し、ホームタブの「理牌」で教材や検討図に仕上げてください。</span></div>
             </div>

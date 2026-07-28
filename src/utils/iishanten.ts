@@ -132,15 +132,15 @@ export const generateIishanten = (type: IishantenType, maxAttempts = 500) => {
   throw new Error(`${IISHANTEN_LABELS[type]}を生成できませんでした。もう一度お試しください。`)
 }
 
-export const generateRandomIishanten = () => {
-  const type = pick(IISHANTEN_TYPES)
+export const generateRandomIishanten = (types: readonly IishantenType[] = IISHANTEN_TYPES) => {
+  const type = pick(types.length ? types : IISHANTEN_TYPES)
   return { type, tileIds: generateIishanten(type) }
 }
 
 /** Generates a 14-tile what-to-discard question. The drawn tile deliberately
  * stays at the far right so the original 13-tile iishanten shape is visible. */
-export const generateIishantenQuestion = () => {
-  const { type, tileIds } = generateRandomIishanten()
+export const generateIishantenQuestion = (types: readonly IishantenType[] = IISHANTEN_TYPES) => {
+  const { type, tileIds } = generateRandomIishanten(types)
   const wall = buildWall()
   for (const tileId of tileIds) {
     const baseId = TILE_MAP.get(tileId)?.baseId ?? tileId

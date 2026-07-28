@@ -39,6 +39,8 @@ interface ToolbarProps {
   onRandomHand: (count: 6 | 7 | 13 | 14 | '6-triplet' | 'continuous' | 'iishanten-random' | 'iishanten-question' | IishantenType) => void
   handSuits: Array<'man' | 'pin' | 'sou'>
   onToggleHandSuit: (suit: 'man' | 'pin' | 'sou') => void
+  iishantenQuestionTypes: IishantenType[]
+  onToggleIishantenQuestionType: (type: IishantenType) => void
   canSortSelectedTiles: boolean
   onSortSelectedTiles: () => void
   onSetPlacementMode: (mode: PlacementMode) => void
@@ -359,6 +361,15 @@ export const Toolbar = (props: ToolbarProps) => {
           <span className="tool-group-label">使用する種類</span>
           <div className="hand-suit-filters" aria-label="配牌に使用する種類">
             {([['man', '萬子'], ['pin', '筒子'], ['sou', '索子']] as const).map(([suit, label]) => <label key={suit}><input type="checkbox" checked={props.handSuits.includes(suit)} onChange={() => props.onToggleHandSuit(suit)} />{label}</label>)}
+          </div>
+        </div>}
+
+        {activeTab === 'hand' && <div className="tool-group iishanten-question-filter-group">
+          <span className="tool-group-label">何切る問題の1シャンテン形</span>
+          <div className="iishanten-question-filters" aria-label="何切る問題で使用する1シャンテン形">
+            {([['surplus', '余剰牌型'], ['complete', '完全形'], ['headless1', 'ヘッドレス1'], ['headless2', 'ヘッドレス2'], ['kuttsuki', 'くっつき']] as const).map(([type, label]) => (
+              <label key={type}><input type="checkbox" checked={props.iishantenQuestionTypes.includes(type)} onChange={() => props.onToggleIishantenQuestionType(type)} />{label}</label>
+            ))}
           </div>
         </div>}
 
