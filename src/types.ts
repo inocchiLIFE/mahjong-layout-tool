@@ -104,6 +104,7 @@ export interface CustomShapeTemplate {
   id: string
   name: string
   elements: CanvasElement[]
+  color?: string | null
 }
 
 export interface SavedLayout {

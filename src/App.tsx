@@ -525,6 +525,7 @@ const App = () => {
   const [iishantenQuestionTypes, setIishantenQuestionTypes] = useState(readIishantenQuestionTypes)
   const [customShapes, setCustomShapes] = useState(readCustomShapes)
   const [customShapeSaveOpen, setCustomShapeSaveOpen] = useState(false)
+  const [customShapeEditId, setCustomShapeEditId] = useState<string | null>(null)
   const [efficiencyPanelVisible, setEfficiencyPanelVisible] = useState(() => localStorage.getItem(EFFICIENCY_PANEL_VISIBLE_KEY) !== 'false')
   const [efficiencyPanelWidth, setEfficiencyPanelWidth] = useState(() => {
     const value = Number(localStorage.getItem(EFFICIENCY_PANEL_WIDTH_KEY))
@@ -1114,7 +1115,7 @@ const App = () => {
     if (returnToSelect) setPlacementMode('select')
   }
 
-  const saveCustomShape = (name: string) => {
+  const saveCustomShape = (name: string, color: string) => {
     const elements = scene.elements.filter((element) => element.selected && element.kind !== 'tile')
     if (!elements.length) return
     const minX = Math.min(...elements.map((element) => element.x))
@@ -1122,6 +1123,7 @@ const App = () => {
     const template: CustomShapeTemplate = {
       id: createId('custom-shape'),
       name,
+      color,
       elements: elements.map((element) => ({ ...structuredClone(element), id: createId('custom-shape-element'), x: element.x - minX, y: element.y - minY, selected: false, locked: false, zIndex: element.zIndex })),
     }
     setCustomShapes((current) => {
@@ -1143,7 +1145,7 @@ const App = () => {
       const zStart = Math.max(0, ...latestScene.elements.map((element) => element.zIndex)) + 1
       const width = Math.max(...template.elements.map((element) => element.x + getElementDimensions(element).width))
       const height = Math.max(...template.elements.map((element) => element.y + getElementDimensions(element).height))
-      const added: CustomShapeElement = { id: createId('custom-shape-instance'), kind: 'customShape', name: template.name, elements: structuredClone(template.elements) as CustomShapeElement['elements'], x: snap(x, snapToGrid), y: snap(y, snapToGrid), width, height, color: null, rotation: 0, selected: true, locked: false, zIndex: zStart }
+      const added: CustomShapeElement = { id: createId('custom-shape-instance'), kind: 'customShape', name: template.name, elements: structuredClone(template.elements) as CustomShapeElement['elements'], x: snap(x, snapToGrid), y: snap(y, snapToGrid), width, height, color: template.color ?? null, rotation: 0, selected: true, locked: false, zIndex: zStart }
       return { ...latestScene, elements: [...latestScene.elements.map((element) => ({ ...element, selected: false })), added] }
     })
     setPlacementMode('select')
@@ -1155,6 +1157,13 @@ const App = () => {
     const next = current.filter((shape) => shape.id !== id)
     localStorage.setItem(CUSTOM_SHAPES_KEY, JSON.stringify(next))
     if (target) notify(`「${target.name}」をマイ図形から削除しました`)
+    return next
+  })
+
+  const renameCustomShape = (id: string, name: string, color: string) => setCustomShapes((current) => {
+    const next = current.map((shape) => shape.id === id ? { ...shape, name, color } : shape)
+    localStorage.setItem(CUSTOM_SHAPES_KEY, JSON.stringify(next))
+    notify('マイ図形の名前を変更しました')
     return next
   })
 
@@ -1881,6 +1890,7 @@ const App = () => {
         customShapes={customShapes}
         onInsertCustomShape={insertCustomShape}
         onDeleteCustomShape={deleteCustomShape}
+        onEditCustomShape={setCustomShapeEditId}
         onRotate={rotateSelected}
         onToggleTileFaces={toggleSelectedTileFaces}
         onEditSelectedText={() => selectedText && setEditTextRequest({ id: selectedText.id, token: Date.now() })}
@@ -1975,6 +1985,7 @@ const App = () => {
           symbolSizes={symbolSizes}
           customShapes={customShapes}
           onInsertCustomShape={insertCustomShape}
+          onEditCustomShape={setCustomShapeEditId}
         />
         <section className="workspace-panel">
           <div className="workspace-scroll">
@@ -2152,6 +2163,7 @@ const App = () => {
         }}
       />}
       {customShapeSaveOpen && <CustomShapeDialog itemCount={selected.filter((element) => element.kind !== 'tile').length} onSave={saveCustomShape} onClose={() => setCustomShapeSaveOpen(false)} />}
+      {customShapeEditId && customShapes.find((shape) => shape.id === customShapeEditId) && <CustomShapeDialog initialName={customShapes.find((shape) => shape.id === customShapeEditId)!.name} initialColor={customShapes.find((shape) => shape.id === customShapeEditId)!.color ?? '#244a40'} onSave={(name, color) => { renameCustomShape(customShapeEditId, name, color); setCustomShapeEditId(null) }} onDelete={() => { deleteCustomShape(customShapeEditId); setCustomShapeEditId(null) }} onClose={() => setCustomShapeEditId(null)} />}
       {drawingPresetTarget && <DrawingPresetDialog
         tool={drawingPresetTarget}
         preset={drawingPresets[drawingPresetTarget]}

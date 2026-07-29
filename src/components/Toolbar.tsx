@@ -33,6 +33,7 @@ interface ToolbarProps {
   customShapes: CustomShapeTemplate[]
   onInsertCustomShape: (id: string) => void
   onDeleteCustomShape: (id: string) => void
+  onEditCustomShape: (id: string) => void
   onRotate: () => void
   onToggleTileFaces: () => void
   onEditSelectedText: () => void
@@ -345,7 +346,7 @@ export const Toolbar = (props: ToolbarProps) => {
             <span className="tool-group-label">マイ図形</span>
             {props.customShapes.length ? <div className="custom-shape-toolbar-list">
               {props.customShapes.map((shape) => <div key={shape.id} className="custom-shape-toolbar-item">
-                <button type="button" onClick={() => props.onInsertCustomShape(shape.id)} title={`${shape.name}を追加`}>{shape.name}</button>
+                <button type="button" onClick={() => props.onInsertCustomShape(shape.id)} onContextMenu={(event) => { event.preventDefault(); props.onEditCustomShape(shape.id) }} title={`${shape.name}を追加（右クリックで編集）`}>{shape.name}</button>
                 <button type="button" onClick={() => props.onDeleteCustomShape(shape.id)} aria-label={`${shape.name}を削除`} title="削除">×</button>
               </div>)}
             </div> : <span className="custom-shape-empty">ホームで図形を選択して保存</span>}

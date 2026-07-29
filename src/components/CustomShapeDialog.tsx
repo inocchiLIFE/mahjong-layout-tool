@@ -1,20 +1,22 @@
 import { useState, type FormEvent } from 'react'
 
-export const CustomShapeDialog = ({ itemCount, onSave, onClose }: { itemCount: number; onSave: (name: string) => void; onClose: () => void }) => {
-  const [name, setName] = useState('マイ図形')
+export const CustomShapeDialog = ({ itemCount, initialName = 'マイ図形', initialColor = '#244a40', onSave, onDelete, onClose }: { itemCount?: number; initialName?: string; initialColor?: string; onSave: (name: string, color: string) => void; onDelete?: () => void; onClose: () => void }) => {
+  const [name, setName] = useState(initialName)
+  const [color, setColor] = useState(initialColor)
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const value = name.trim()
-    if (value) onSave(value.slice(0, 30))
+    if (value) onSave(value.slice(0, 30), color)
   }
   return <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
     <form className="property-editor custom-shape-dialog" role="dialog" aria-modal="true" aria-labelledby="custom-shape-dialog-title" onSubmit={submit} onMouseDown={(event) => event.stopPropagation()}>
       <button className="modal-close" type="button" onClick={onClose} aria-label="閉じる">×</button>
       <span className="eyebrow">MY SHAPE</span>
-      <h2 id="custom-shape-dialog-title">マイ図形に保存</h2>
-      <p>選択中の{itemCount}個の要素を、挿入タブからいつでも呼び出せる図形として保存します。</p>
+      <h2 id="custom-shape-dialog-title">{onDelete ? 'マイ図形を編集' : 'マイ図形に保存'}</h2>
+      <p>{onDelete ? '名前を変更できます。削除するとこの図形は一覧からなくなります。' : `選択中の${itemCount}個の要素を、挿入タブからいつでも呼び出せる図形として保存します。`}</p>
       <label>名前 <input autoFocus value={name} maxLength={30} onChange={(event) => setName(event.target.value)} /></label>
-      <div className="property-actions"><button type="button" onClick={onClose}>キャンセル</button><button className="primary-button" type="submit" disabled={!name.trim()}>保存</button></div>
+      <label>配置時の既定色 <span className="color-field"><input type="color" value={color} onChange={(event) => setColor(event.target.value)} /><code>{color}</code></span></label>
+      <div className="property-actions">{onDelete && <button type="button" className="danger-button" onClick={onDelete}>削除</button>}<button type="button" onClick={onClose}>キャンセル</button><button className="primary-button" type="submit" disabled={!name.trim()}>保存</button></div>
     </form>
   </div>
 }

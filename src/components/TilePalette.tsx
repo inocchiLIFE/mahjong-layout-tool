@@ -16,6 +16,7 @@ interface TilePaletteProps {
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   customShapes: CustomShapeTemplate[]
   onInsertCustomShape: (id: string) => void
+  onEditCustomShape: (id: string) => void
 }
 
 const PaletteTile = ({ tile, onAdd }: { tile: TileDefinition; onAdd: () => void }) => {
@@ -105,7 +106,7 @@ const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: Pl
   window.requestAnimationFrame(() => preview.remove())
 }
 
-export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, onOpenDrawingPreset, symbolColors, drawingColors, symbolStrokeWidths, symbolSizes, customShapes, onInsertCustomShape }: TilePaletteProps) => (
+export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, onOpenDrawingPreset, symbolColors, drawingColors, symbolStrokeWidths, symbolSizes, customShapes, onInsertCustomShape, onEditCustomShape }: TilePaletteProps) => (
   <aside className={`palette-panel${trashActive ? ' trash-active' : ''}`} aria-label="牌一覧と削除エリア">
     <div className="palette-trash-message" aria-hidden={!trashActive}>
       <strong>ここで離して削除</strong>
@@ -162,7 +163,7 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
       {customShapes.length > 0 && <section className="tile-group custom-shape-palette-group">
         <h3>マイ図形</h3>
         <div className="custom-shape-palette-list">
-          {customShapes.map((shape) => <button key={shape.id} type="button" onClick={() => onInsertCustomShape(shape.id)} title={`${shape.name}を追加`}>☆ {shape.name}</button>)}
+          {customShapes.map((shape) => <button key={shape.id} type="button" onClick={() => onInsertCustomShape(shape.id)} onContextMenu={(event) => { event.preventDefault(); onEditCustomShape(shape.id) }} title={`${shape.name}を追加（右クリックで編集）`}>☆ {shape.name}</button>)}
         </div>
       </section>}
     </div>
