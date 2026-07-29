@@ -526,6 +526,7 @@ const App = () => {
   const [customShapes, setCustomShapes] = useState(readCustomShapes)
   const [customShapeSaveOpen, setCustomShapeSaveOpen] = useState(false)
   const [customShapeEditId, setCustomShapeEditId] = useState<string | null>(null)
+  const [draggedCustomShapeId, setDraggedCustomShapeId] = useState<string | null>(null)
   const [efficiencyPanelVisible, setEfficiencyPanelVisible] = useState(() => localStorage.getItem(EFFICIENCY_PANEL_VISIBLE_KEY) !== 'false')
   const [efficiencyPanelWidth, setEfficiencyPanelWidth] = useState(() => {
     const value = Number(localStorage.getItem(EFFICIENCY_PANEL_WIDTH_KEY))
@@ -1986,6 +1987,7 @@ const App = () => {
           customShapes={customShapes}
           onInsertCustomShape={insertCustomShape}
           onEditCustomShape={setCustomShapeEditId}
+          onCustomShapeDragChange={setDraggedCustomShapeId}
         />
         <section className="workspace-panel">
           <div className="workspace-scroll">
@@ -2014,6 +2016,7 @@ const App = () => {
               symbolStrokeWidths={symbolStrokeWidths}
               symbolSizes={symbolSizes}
               customShapes={customShapes}
+              draggedCustomShapeId={draggedCustomShapeId}
               editTextRequest={editTextRequest}
               onDropTile={addTile}
               onDropCustomShape={(id, x, y) => insertCustomShape(id, { x, y })}

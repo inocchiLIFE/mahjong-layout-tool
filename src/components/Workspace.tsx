@@ -49,6 +49,7 @@ interface WorkspaceProps {
   symbolStrokeWidths: Record<SymbolType, number>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   customShapes: CustomShapeTemplate[]
+  draggedCustomShapeId: string | null
   editTextRequest: EditTextRequest | null
   onDropTile: (tileId: string, x: number, y: number) => void
   onDropCustomShape: (id: string, x: number, y: number) => void
@@ -799,7 +800,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       setDropPreview({ kind: 'tile', x: x - TILE_WIDTH / 2, y: y - TILE_HEIGHT / 2, width: TILE_WIDTH, height: TILE_HEIGHT, label: '牌' })
       return
     }
-    const customShapeId = event.dataTransfer.getData('application/x-mahjong-custom-shape')
+    const customShapeId = event.dataTransfer.getData('application/x-mahjong-custom-shape') || props.draggedCustomShapeId
     const customShape = props.customShapes.find((shape) => shape.id === customShapeId)
     if (customShape) {
       const width = Math.max(...customShape.elements.map((element) => element.x + getElementDimensions(element).width))
