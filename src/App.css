@@ -152,6 +152,15 @@
 .custom-shape-palette-list { display: grid; gap: 4px; padding: 2px; }
 .custom-shape-palette-list button { min-height: 27px; overflow: hidden; border: 1px solid #c8d8d0; border-radius: 5px; padding: 4px 6px; color: #31574d; background: #fff; font: 700 10px Inter, "Yu Gothic UI", sans-serif; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 .custom-shape-palette-list button:hover, .custom-shape-toolbar-item button:first-child:hover { background: #edf6f1; }
+.custom-shape-visual { position: absolute; top: 50%; left: 50%; display: block; transform-origin: center; pointer-events: none; }
+.custom-shape-part { position: absolute; display: block; box-sizing: border-box; transform-origin: top left; pointer-events: none; }
+.custom-shape-text { overflow: visible; white-space: pre-wrap; line-height: 1.5; text-align: left; }
+.custom-shape-image { overflow: hidden; }
+.custom-shape-image img { width: 100%; height: 100%; object-fit: fill; }
+.custom-shape-symbol { border: solid currentColor; border-radius: 0; }
+.custom-shape-circle { border-radius: 50%; }
+.custom-shape-triangle { width: 0 !important; height: 0 !important; border-right-color: transparent !important; border-bottom-color: transparent !important; transform: rotate(45deg) !important; }
+.custom-shape-cross::before, .custom-shape-cross::after { position: absolute; top: 50%; left: 50%; width: 120%; height: currentColor; content: ''; border-top: inherit; transform: translate(-50%, -50%) rotate(45deg); }
 .iishanten-question-filter-group { min-width: 310px; }
 .iishanten-question-filters { display: flex; align-items: center; gap: 7px; padding-top: 3px; }
 .iishanten-question-filters label { display: inline-flex; align-items: center; gap: 3px; color: #365d52; font-size: 10px; font-weight: 700; white-space: nowrap; cursor: pointer; }

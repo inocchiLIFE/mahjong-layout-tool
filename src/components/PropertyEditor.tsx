@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import type { DrawingElement, ImageElement, SymbolElement, TextElement } from '../types'
+import type { CustomShapeElement, DrawingElement, ImageElement, SymbolElement, TextElement } from '../types'
 import { saveCustomColors } from '../utils/colors'
 
 const CUSTOM_COLORS_KEY = 'mahjong-layout-tool:custom-colors-v1'
@@ -15,7 +15,7 @@ const readCustomColors = () => {
   }
 }
 
-type EditableElement = TextElement | SymbolElement | DrawingElement | ImageElement
+type EditableElement = TextElement | SymbolElement | DrawingElement | ImageElement | CustomShapeElement
 
 interface PropertyEditorProps {
   element: EditableElement
@@ -26,13 +26,14 @@ interface PropertyEditorProps {
     fontFamily?: string
     strokeWidth?: number
     opacity?: number
+    customShapeColor?: string | null
   }) => void
   onClose: () => void
 }
 
 export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps) => {
   const [text, setText] = useState(element.kind === 'text' ? element.text : '')
-  const [color, setColor] = useState(element.kind === 'image' ? '#244a40' : element.color)
+  const [color, setColor] = useState(element.kind === 'image' ? '#244a40' : element.kind === 'customShape' ? element.color ?? '#244a40' : element.color)
   const [fontSize, setFontSize] = useState(element.kind === 'text' ? element.fontSize : 22)
   const [fontFamily, setFontFamily] = useState(element.kind === 'text' ? element.fontFamily : 'sans-serif')
   const [strokeWidth, setStrokeWidth] = useState(element.kind === 'symbol' || element.kind === 'drawing' ? element.strokeWidth : 4)
@@ -65,7 +66,8 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
     if (element.kind === 'text' && !text.trim()) return
     onSave({
       text: element.kind === 'text' ? text.trim() : undefined,
-      color: element.kind === 'image' ? undefined : color,
+      color: element.kind === 'image' || element.kind === 'customShape' ? undefined : color,
+      customShapeColor: element.kind === 'customShape' ? color : undefined,
       fontSize: element.kind === 'text' ? fontSize : undefined,
       fontFamily: element.kind === 'text' ? fontFamily : undefined,
       strokeWidth: element.kind === 'symbol' || element.kind === 'drawing' ? strokeWidth : undefined,
@@ -130,9 +132,11 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
           </label>
         )}
 
+        {element.kind === 'customShape' && <p>「{element.name}」は固定グループとして配置されています。色は図形・線・文字へまとめて適用されます。</p>}
+
         {element.kind !== 'image' && (
           <label>
-            {element.kind === 'text' ? '文字色' : '色'}
+            {element.kind === 'text' ? '文字色' : element.kind === 'customShape' ? '全体の色' : '色'}
             <span className="color-field">
               <input type="color" value={color} onChange={(event) => setColor(event.target.value)} />
               <code>{color}</code>

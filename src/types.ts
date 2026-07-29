@@ -83,7 +83,16 @@ export interface ImageElement extends CanvasElementBase {
   crop?: { x: number; y: number; width: number; height: number }
 }
 
-export type CanvasElement = TileElement | TextElement | SymbolElement | DrawingElement | ImageElement
+export interface CustomShapeElement extends CanvasElementBase {
+  kind: 'customShape'
+  name: string
+  elements: Array<TextElement | SymbolElement | DrawingElement | ImageElement>
+  width: number
+  height: number
+  color: string | null
+}
+
+export type CanvasElement = TileElement | TextElement | SymbolElement | DrawingElement | ImageElement | CustomShapeElement
 
 export interface Scene {
   elements: CanvasElement[]

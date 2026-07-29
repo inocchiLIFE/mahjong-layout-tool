@@ -122,7 +122,7 @@ export const getSymbolBaseDimensions = (symbolType: SymbolType) => {
 
 export const getElementDimensions = (element: CanvasElement) => {
   if (element.kind === 'tile') return rotateDimensions(TILE_WIDTH, TILE_HEIGHT, element.rotation)
-  if (element.kind === 'image' || element.kind === 'drawing') {
+  if (element.kind === 'image' || element.kind === 'drawing' || element.kind === 'customShape') {
     return rotateDimensions(element.width, element.height, element.rotation)
   }
   if (element.kind === 'symbol') {

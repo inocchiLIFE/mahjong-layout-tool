@@ -445,7 +445,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   }, [moveElementDrag, endElementDrag])
 
   const beginElementResize = (event: ReactPointerEvent<HTMLButtonElement>, element: CanvasElement) => {
-    if (event.button !== 0 || (element.kind !== 'symbol' && element.kind !== 'image' && element.kind !== 'drawing') || element.locked) return
+    if (event.button !== 0 || (element.kind !== 'symbol' && element.kind !== 'image' && element.kind !== 'drawing' && element.kind !== 'customShape') || element.locked) return
     event.preventDefault()
     event.stopPropagation()
     const dimensions = getElementDimensions(element)
@@ -458,7 +458,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       startWidth: dimensions.width,
       startHeight: dimensions.height,
       // Pasted images should never be stretched by the resize handle.
-      lockAspectRatio: element.kind === 'image',
+      lockAspectRatio: element.kind === 'image' || element.kind === 'customShape',
     }
     props.onBeginDrag()
   }
@@ -811,7 +811,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     width: Math.abs(marquee.currentX - marquee.startX),
     height: Math.abs(marquee.currentY - marquee.startY),
   } : undefined
-  const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || element.kind === 'image' || (element.kind === 'drawing' && element.drawingType !== 'freehand')) && element.selected && !element.locked) ?? null
+  const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || element.kind === 'image' || element.kind === 'customShape' || (element.kind === 'drawing' && element.drawingType !== 'freehand')) && element.selected && !element.locked) ?? null
   const selectedImage = props.scene.elements.find((element): element is Extract<CanvasElement, { kind: 'image' }> => element.kind === 'image' && element.selected && !element.locked) ?? null
 
   return (
@@ -978,6 +978,25 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
+        }
+
+        if (element.kind === 'customShape') {
+          const scaleX = element.width ? dimensions.width / element.width : 1
+          const scaleY = element.height ? dimensions.height / element.height : 1
+          return <button key={element.id} {...commonProps} aria-label={`マイ図形「${element.name}」${element.selected ? '、選択中' : ''}${lockedLabel}`}>
+            <span className="custom-shape-visual" style={{ width: element.width, height: element.height, transform: `translate(-50%, -50%) rotate(${element.rotation}deg) scale(${scaleX}, ${scaleY})` }}>
+              {element.elements.map((part) => {
+                const partDimensions = getElementDimensions(part)
+                const color = element.color ?? (part.kind === 'image' ? undefined : part.color)
+                if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: partDimensions.width, height: partDimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{part.text}</span>
+                if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" draggable={false} /></span>
+                if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" strokeLinejoin="round" /></svg>
+                const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale)
+                return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ left: part.x, top: part.y, width, height, color, borderWidth: part.strokeWidth, transform: `rotate(${part.rotation}deg)` }} />
+              })}
+            </span>
+            {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
+          </button>
         }
 
         if (element.kind === 'drawing') {

@@ -96,6 +96,7 @@ const LayoutPreview = ({ saved }: { saved: NamedSavedLayout }) => {
             </svg>
           )
         }
+        if (element.kind === 'customShape') return <span key={element.id} className="saved-preview-item" style={{ ...style, color: element.color ?? '#244a40' }}>☆</span>
         return (
           <span key={element.id} className={`saved-preview-item saved-preview-symbol preview-${element.symbolType}`} style={{ ...style, color: element.color }}>
             {element.symbolType === 'cross' ? '✕' : element.symbolType === 'triangle' ? '△' : ''}

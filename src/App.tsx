@@ -22,6 +22,7 @@ import { useSceneHistory } from './hooks/useSceneHistory'
 import type {
   CanvasElement,
   CanvasPoint,
+  CustomShapeElement,
   CustomShapeTemplate,
   ContextMenuState,
   DrawingElement,
@@ -241,6 +242,19 @@ const parseElement = (value: unknown): CanvasElement | null => {
       width: clamp(typeof item.width === 'number' ? item.width : 240, 32, MAX_WORKSPACE_WIDTH),
       height: clamp(typeof item.height === 'number' ? item.height : 180, 32, MAX_WORKSPACE_HEIGHT),
       opacity: clamp(typeof item.opacity === 'number' ? item.opacity : 1, 0.1, 1),
+    }
+  }
+  if (item.kind === 'customShape' && typeof item.name === 'string' && Array.isArray(item.elements)) {
+    const elements = item.elements.map(parseElement).filter((element): element is Exclude<CanvasElement, TileElement | CustomShapeElement> => element !== null && element.kind !== 'tile' && element.kind !== 'customShape')
+    if (!elements.length) return null
+    return {
+      ...base,
+      kind: 'customShape',
+      name: item.name.slice(0, 30),
+      elements,
+      width: clamp(typeof item.width === 'number' ? item.width : Math.max(...elements.map((element) => element.x + getElementDimensions(element).width)), 24, MAX_WORKSPACE_WIDTH),
+      height: clamp(typeof item.height === 'number' ? item.height : Math.max(...elements.map((element) => element.y + getElementDimensions(element).height)), 24, MAX_WORKSPACE_HEIGHT),
+      color: typeof item.color === 'string' ? item.color : null,
     }
   }
   return null
@@ -972,7 +986,6 @@ const App = () => {
     }
     return elements.map((element) => positions.get(element.id) ?? element)
   }
-
   const rotateSelected = () => {
     if (!scene.elements.some((element) => element.selected && !element.locked)) return
     const horizontalizingTiles = scene.elements.filter((element) => element.kind === 'tile' && element.selected && !element.locked && (element.rotation === 0 || element.rotation === 180))
@@ -1128,8 +1141,10 @@ const App = () => {
       const x = latestScene.elements.length ? Math.min(latestScene.width - 40, content.width + 12) : 40
       const y = 80
       const zStart = Math.max(0, ...latestScene.elements.map((element) => element.zIndex)) + 1
-      const added = template.elements.map((element, index) => ({ ...structuredClone(element), id: createId('custom-shape-instance'), x: snap(x + element.x, snapToGrid), y: snap(y + element.y, snapToGrid), selected: true, locked: false, zIndex: zStart + index }))
-      return { ...latestScene, elements: [...latestScene.elements.map((element) => ({ ...element, selected: false })), ...added] }
+      const width = Math.max(...template.elements.map((element) => element.x + getElementDimensions(element).width))
+      const height = Math.max(...template.elements.map((element) => element.y + getElementDimensions(element).height))
+      const added: CustomShapeElement = { id: createId('custom-shape-instance'), kind: 'customShape', name: template.name, elements: structuredClone(template.elements) as CustomShapeElement['elements'], x: snap(x, snapToGrid), y: snap(y, snapToGrid), width, height, color: null, rotation: 0, selected: true, locked: false, zIndex: zStart }
+      return { ...latestScene, elements: [...latestScene.elements.map((element) => ({ ...element, selected: false })), added] }
     })
     setPlacementMode('select')
     notify(`「${template.name}」を追加しました`)
@@ -1362,13 +1377,14 @@ const App = () => {
       fontFamily?: string
       strokeWidth?: number
       opacity?: number
+      customShapeColor?: string | null
     },
   ) => {
     history.commit({
       ...scene,
       elements: scene.elements.map((element) => {
         if (element.id !== id || element.locked || element.kind === 'tile') return element
-        let updated: TextElement | SymbolElement | DrawingElement | ImageElement
+        let updated: TextElement | SymbolElement | DrawingElement | ImageElement | CustomShapeElement
         if (element.kind === 'text') {
           updated = {
               ...element,
@@ -1389,11 +1405,13 @@ const App = () => {
             color: properties.color ?? element.color,
             strokeWidth: clamp(properties.strokeWidth ?? element.strokeWidth, 1, 20),
           }
-        } else {
+        } else if (element.kind === 'image') {
           updated = {
             ...element,
             opacity: clamp(properties.opacity ?? element.opacity, 0.1, 1),
           }
+        } else {
+          updated = { ...element, color: properties.customShapeColor ?? element.color }
         }
         return updated
       }),
@@ -1445,7 +1463,7 @@ const App = () => {
           const base = getElementDimensions({ ...element, scale: 1, scaleX: 1, scaleY: 1 })
           return { ...element, scaleX: clamp(width / base.width, 0.25, 12), scaleY: clamp(height / base.height, 0.25, 12) }
         }
-        if (element.kind === 'image' || element.kind === 'drawing') {
+        if (element.kind === 'image' || element.kind === 'drawing' || element.kind === 'customShape') {
           return { ...element, width: Math.max(width, 24), height: Math.max(height, 24) }
         }
         return element
@@ -1816,7 +1834,7 @@ const App = () => {
   const tileCount = scene.elements.filter((element) => element.kind === 'tile').length
   const contextElement = contextMenu ? scene.elements.find((element) => element.id === contextMenu.elementId) ?? null : null
   const propertyElement = propertyElementId
-    ? scene.elements.find((element): element is TextElement | SymbolElement | DrawingElement | ImageElement => element.id === propertyElementId && element.kind !== 'tile') ?? null
+    ? scene.elements.find((element): element is TextElement | SymbolElement | DrawingElement | ImageElement | CustomShapeElement => element.id === propertyElementId && element.kind !== 'tile') ?? null
     : null
 
   return (
