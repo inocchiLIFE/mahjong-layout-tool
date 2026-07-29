@@ -49,6 +49,7 @@ interface WorkspaceProps {
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   editTextRequest: EditTextRequest | null
   onDropTile: (tileId: string, x: number, y: number) => void
+  onDropCustomShape: (id: string, x: number, y: number) => void
   onDropFiles: (files: File[], x: number, y: number) => void
   onDropText: (text: string, x: number, y: number) => void
   onCursorCanvasPoint: (point: CanvasPoint) => void
@@ -835,7 +836,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       }}
       onDragEnter={updateDropPreview}
       onDragOver={(event) => {
-        if (event.dataTransfer.types.includes('application/x-mahjong-tile') || event.dataTransfer.types.includes('application/x-mahjong-symbol') || event.dataTransfer.types.includes('Files') || event.dataTransfer.types.includes('text/plain')) {
+        if (event.dataTransfer.types.includes('application/x-mahjong-tile') || event.dataTransfer.types.includes('application/x-mahjong-symbol') || event.dataTransfer.types.includes('application/x-mahjong-custom-shape') || event.dataTransfer.types.includes('Files') || event.dataTransfer.types.includes('text/plain')) {
           event.preventDefault()
           event.dataTransfer.dropEffect = 'copy'
           updateDropPreview(event)
@@ -853,6 +854,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         const y = toCanvasCoordinate(event.clientY, bounds.top, camera.y)
         if (TILE_MAP.has(tileId)) {
           props.onDropTile(tileId, x - TILE_WIDTH / 2, y - TILE_HEIGHT / 2)
+          return
+        }
+        const customShapeId = event.dataTransfer.getData('application/x-mahjong-custom-shape')
+        if (customShapeId) {
+          props.onDropCustomShape(customShapeId, x, y)
           return
         }
         const symbolType = event.dataTransfer.getData('application/x-mahjong-symbol')

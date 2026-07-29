@@ -1135,16 +1135,16 @@ const App = () => {
     notify(`「${name}」をマイ図形に保存しました`)
   }
 
-  const insertCustomShape = (id: string) => {
+  const insertCustomShape = (id: string, anchor?: { x: number; y: number }) => {
     const template = customShapes.find((shape) => shape.id === id)
     if (!template) return
     history.commitLatest((latestScene) => {
-      const content = getSceneContentBounds(latestScene)
-      const x = latestScene.elements.length ? Math.min(latestScene.width - 40, content.width + 12) : 40
-      const y = 80
       const zStart = Math.max(0, ...latestScene.elements.map((element) => element.zIndex)) + 1
       const width = Math.max(...template.elements.map((element) => element.x + getElementDimensions(element).width))
       const height = Math.max(...template.elements.map((element) => element.y + getElementDimensions(element).height))
+      const content = getSceneContentBounds(latestScene)
+      const x = anchor ? clamp(anchor.x - width / 2, 0, latestScene.width - width) : latestScene.elements.length ? Math.min(latestScene.width - 40, content.width + 12) : 40
+      const y = anchor ? clamp(anchor.y - height / 2, 0, latestScene.height - height) : 80
       const added: CustomShapeElement = { id: createId('custom-shape-instance'), kind: 'customShape', name: template.name, elements: structuredClone(template.elements) as CustomShapeElement['elements'], x: snap(x, snapToGrid), y: snap(y, snapToGrid), width, height, color: template.color ?? null, rotation: 0, selected: true, locked: false, zIndex: zStart }
       return { ...latestScene, elements: [...latestScene.elements.map((element) => ({ ...element, selected: false })), added] }
     })
@@ -2015,6 +2015,7 @@ const App = () => {
               symbolSizes={symbolSizes}
               editTextRequest={editTextRequest}
               onDropTile={addTile}
+              onDropCustomShape={(id, x, y) => insertCustomShape(id, { x, y })}
               onDropFiles={(files, x, y) => {
                 const sharedLayout = files.find((file) => file.name.toLowerCase().endsWith('.mahjong-layout.json'))
                 if (sharedLayout) void importSharedLayout(sharedLayout)

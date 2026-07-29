@@ -163,7 +163,7 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
       {customShapes.length > 0 && <section className="tile-group custom-shape-palette-group">
         <h3>マイ図形</h3>
         <div className="custom-shape-palette-list">
-          {customShapes.map((shape) => <button key={shape.id} type="button" onClick={() => onInsertCustomShape(shape.id)} onContextMenu={(event) => { event.preventDefault(); onEditCustomShape(shape.id) }} title={`${shape.name}を追加（右クリックで編集）`}>☆ {shape.name}</button>)}
+          {customShapes.map((shape) => <button key={shape.id} type="button" draggable onClick={() => onInsertCustomShape(shape.id)} onDragStart={(event) => { event.dataTransfer.setData('application/x-mahjong-custom-shape', shape.id); event.dataTransfer.effectAllowed = 'copy' }} onContextMenu={(event) => { event.preventDefault(); onEditCustomShape(shape.id) }} title={`${shape.name}を追加（ドラッグで配置・右クリックで編集）`}>☆ {shape.name}</button>)}
         </div>
       </section>}
     </div>
