@@ -981,8 +981,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }
 
         if (element.kind === 'customShape') {
-          const scaleX = element.width ? dimensions.width / element.width : 1
-          const scaleY = element.height ? dimensions.height / element.height : 1
+          // width/height are the current, user-resized dimensions.  The
+          // saved parts retain their original coordinates, so derive the
+          // natural bounds from them before scaling the fixed group.
+          const naturalWidth = Math.max(...element.elements.map((part) => part.x + getElementDimensions(part).width))
+          const naturalHeight = Math.max(...element.elements.map((part) => part.y + getElementDimensions(part).height))
+          const scaleX = element.width / naturalWidth
+          const scaleY = element.height / naturalHeight
           return <button key={element.id} {...commonProps} aria-label={`マイ図形「${element.name}」${element.selected ? '、選択中' : ''}${lockedLabel}`}>
             <span className="custom-shape-visual" style={{ width: element.width, height: element.height, transform: `translate(-50%, -50%) rotate(${element.rotation}deg) scale(${scaleX}, ${scaleY})` }}>
               {element.elements.map((part) => {
