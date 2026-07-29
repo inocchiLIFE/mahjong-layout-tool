@@ -91,6 +91,12 @@ export interface Scene {
   height: number
 }
 
+export interface CustomShapeTemplate {
+  id: string
+  name: string
+  elements: CanvasElement[]
+}
+
 export interface SavedLayout {
   version: 3
   savedAt: string

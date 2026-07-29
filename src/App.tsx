@@ -10,6 +10,7 @@ import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
 import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
 import { SymbolPresetDialog, type SymbolPreset } from './components/SymbolPresetDialog'
+import { CustomShapeDialog } from './components/CustomShapeDialog'
 import { DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
@@ -21,6 +22,7 @@ import { useSceneHistory } from './hooks/useSceneHistory'
 import type {
   CanvasElement,
   CanvasPoint,
+  CustomShapeTemplate,
   ContextMenuState,
   DrawingElement,
   DrawingType,
@@ -78,6 +80,7 @@ const SYMBOL_PRESETS_KEY = 'mahjong-layout-tool:symbol-presets-v1'
 const DRAWING_PRESETS_KEY = 'mahjong-layout-tool:drawing-presets-v1'
 const HAND_SUITS_KEY = 'mahjong-layout-tool:hand-suits-v1'
 const IISHANTEN_QUESTION_TYPES_KEY = 'mahjong-layout-tool:iishanten-question-types-v1'
+const CUSTOM_SHAPES_KEY = 'mahjong-layout-tool:custom-shapes-v1'
 const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, eraserSize: 24, arrowHeadSize: 30 }
 const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visible-v1'
 const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
@@ -433,6 +436,20 @@ const readIishantenQuestionTypes = (): IishantenType[] => {
   } catch { return [] }
 }
 
+const readCustomShapes = (): CustomShapeTemplate[] => {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CUSTOM_SHAPES_KEY) ?? '[]') as unknown
+    if (!Array.isArray(saved)) return []
+    return saved.flatMap((value): CustomShapeTemplate[] => {
+      if (!value || typeof value !== 'object') return []
+      const item = value as Partial<CustomShapeTemplate>
+      return typeof item.id === 'string' && typeof item.name === 'string' && Array.isArray(item.elements)
+        ? [{ id: item.id, name: item.name.slice(0, 30), elements: item.elements.filter((element): element is CanvasElement => Boolean(element) && typeof element === 'object' && (element as CanvasElement).kind !== 'tile') }]
+        : []
+    }).filter((item) => item.elements.length > 0)
+  } catch { return [] }
+}
+
 const loadImageFile = (file: File) => new Promise<{ src: string; width: number; height: number }>((resolve, reject) => {
   if (!file.type.startsWith('image/')) {
     reject(new Error('not-image'))
@@ -492,6 +509,8 @@ const App = () => {
   const [drawingPresetTarget, setDrawingPresetTarget] = useState<DrawingTool | null>(null)
   const [handSuits, setHandSuits] = useState(readHandSuits)
   const [iishantenQuestionTypes, setIishantenQuestionTypes] = useState(readIishantenQuestionTypes)
+  const [customShapes, setCustomShapes] = useState(readCustomShapes)
+  const [customShapeSaveOpen, setCustomShapeSaveOpen] = useState(false)
   const [efficiencyPanelVisible, setEfficiencyPanelVisible] = useState(() => localStorage.getItem(EFFICIENCY_PANEL_VISIBLE_KEY) !== 'false')
   const [efficiencyPanelWidth, setEfficiencyPanelWidth] = useState(() => {
     const value = Number(localStorage.getItem(EFFICIENCY_PANEL_WIDTH_KEY))
@@ -675,6 +694,8 @@ const App = () => {
         setHandSuits(readHandSuits())
       } else if (event.key === IISHANTEN_QUESTION_TYPES_KEY) {
         setIishantenQuestionTypes(readIishantenQuestionTypes())
+      } else if (event.key === CUSTOM_SHAPES_KEY) {
+        setCustomShapes(readCustomShapes())
       } else if (event.key === 'mahjong-layout-tool:custom-colors-v1') {
         window.dispatchEvent(new Event('mahjong-custom-colors-changed'))
       }
@@ -1079,6 +1100,48 @@ const App = () => {
     history.commit({ ...scene, elements: [...scene.elements, item] })
     if (returnToSelect) setPlacementMode('select')
   }
+
+  const saveCustomShape = (name: string) => {
+    const elements = scene.elements.filter((element) => element.selected && element.kind !== 'tile')
+    if (!elements.length) return
+    const minX = Math.min(...elements.map((element) => element.x))
+    const minY = Math.min(...elements.map((element) => element.y))
+    const template: CustomShapeTemplate = {
+      id: createId('custom-shape'),
+      name,
+      elements: elements.map((element) => ({ ...structuredClone(element), id: createId('custom-shape-element'), x: element.x - minX, y: element.y - minY, selected: false, locked: false, zIndex: element.zIndex })),
+    }
+    setCustomShapes((current) => {
+      const next = [...current, template].slice(-30)
+      localStorage.setItem(CUSTOM_SHAPES_KEY, JSON.stringify(next))
+      return next
+    })
+    setCustomShapeSaveOpen(false)
+    notify(`「${name}」をマイ図形に保存しました`)
+  }
+
+  const insertCustomShape = (id: string) => {
+    const template = customShapes.find((shape) => shape.id === id)
+    if (!template) return
+    history.commitLatest((latestScene) => {
+      const content = getSceneContentBounds(latestScene)
+      const x = latestScene.elements.length ? Math.min(latestScene.width - 40, content.width + 12) : 40
+      const y = 80
+      const zStart = Math.max(0, ...latestScene.elements.map((element) => element.zIndex)) + 1
+      const added = template.elements.map((element, index) => ({ ...structuredClone(element), id: createId('custom-shape-instance'), x: snap(x + element.x, snapToGrid), y: snap(y + element.y, snapToGrid), selected: true, locked: false, zIndex: zStart + index }))
+      return { ...latestScene, elements: [...latestScene.elements.map((element) => ({ ...element, selected: false })), ...added] }
+    })
+    setPlacementMode('select')
+    notify(`「${template.name}」を追加しました`)
+  }
+
+  const deleteCustomShape = (id: string) => setCustomShapes((current) => {
+    const target = current.find((shape) => shape.id === id)
+    const next = current.filter((shape) => shape.id !== id)
+    localStorage.setItem(CUSTOM_SHAPES_KEY, JSON.stringify(next))
+    if (target) notify(`「${target.name}」をマイ図形から削除しました`)
+    return next
+  })
 
   const commitDrawing = (points: CanvasPoint[], drawingType: DrawingType = 'freehand') => {
     if (points.length < 2) return
@@ -1795,6 +1858,11 @@ const App = () => {
         onRedo={history.redo}
         onDeleteSelected={deleteSelected}
         onDuplicate={duplicateSelected}
+        canSaveCustomShape={selected.some((element) => element.kind !== 'tile')}
+        onSaveCustomShape={() => setCustomShapeSaveOpen(true)}
+        customShapes={customShapes}
+        onInsertCustomShape={insertCustomShape}
+        onDeleteCustomShape={deleteCustomShape}
         onRotate={rotateSelected}
         onToggleTileFaces={toggleSelectedTileFaces}
         onEditSelectedText={() => selectedText && setEditTextRequest({ id: selectedText.id, token: Date.now() })}
@@ -1887,6 +1955,8 @@ const App = () => {
           symbolStrokeWidths={symbolStrokeWidths}
           drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
           symbolSizes={symbolSizes}
+          customShapes={customShapes}
+          onInsertCustomShape={insertCustomShape}
         />
         <section className="workspace-panel">
           <div className="workspace-scroll">
@@ -2063,6 +2133,7 @@ const App = () => {
           notify('これから配置する図形の設定を保存しました')
         }}
       />}
+      {customShapeSaveOpen && <CustomShapeDialog itemCount={selected.filter((element) => element.kind !== 'tile').length} onSave={saveCustomShape} onClose={() => setCustomShapeSaveOpen(false)} />}
       {drawingPresetTarget && <DrawingPresetDialog
         tool={drawingPresetTarget}
         preset={drawingPresets[drawingPresetTarget]}

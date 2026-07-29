@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { PlacementMode, SymbolType } from '../types'
 import type { DrawingTool } from './DrawingPresetDialog'
 import type { IishantenType } from '../utils/iishanten'
+import type { CustomShapeTemplate } from '../types'
 import { TEXT_COLOR_PALETTE, readCustomColors, saveCustomColors } from '../utils/colors'
 import { WorkspaceSizeControls } from './WorkspaceSizeControls'
 
@@ -27,6 +28,11 @@ interface ToolbarProps {
   onRedo: () => void
   onDeleteSelected: () => void
   onDuplicate: () => void
+  canSaveCustomShape: boolean
+  onSaveCustomShape: () => void
+  customShapes: CustomShapeTemplate[]
+  onInsertCustomShape: (id: string) => void
+  onDeleteCustomShape: (id: string) => void
   onRotate: () => void
   onToggleTileFaces: () => void
   onEditSelectedText: () => void
@@ -216,6 +222,7 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="元に戻す" icon="↶" onClick={props.onUndo} disabled={!props.canUndo} />
           <ToolButton label="やり直す" icon="↷" onClick={props.onRedo} disabled={!props.canRedo} />
           <ToolButton label="複製" icon="⧉" onClick={props.onDuplicate} disabled={!props.canDuplicate} />
+          <ToolButton label="マイ図形に保存" icon="☆" onClick={props.onSaveCustomShape} disabled={!props.canSaveCustomShape} />
           <ToolButton label="表裏" icon="▣" onClick={props.onToggleTileFaces} disabled={!props.canToggleTileFaces} />
           <ToolButton label="回転" icon="↻" onClick={props.onRotate} disabled={!props.hasSelection} />
           <ToolButton label="理牌" icon="≡" onClick={props.onSortSelectedTiles} disabled={!props.canSortSelectedTiles} />
@@ -333,6 +340,15 @@ export const Toolbar = (props: ToolbarProps) => {
           <div className="tool-group">
             <span className="tool-group-label">画像</span>
             <ToolButton label="画像追加" icon="▧" onClick={props.onAddImage} />
+          </div>
+          <div className="tool-group custom-shape-tool-group">
+            <span className="tool-group-label">マイ図形</span>
+            {props.customShapes.length ? <div className="custom-shape-toolbar-list">
+              {props.customShapes.map((shape) => <div key={shape.id} className="custom-shape-toolbar-item">
+                <button type="button" onClick={() => props.onInsertCustomShape(shape.id)} title={`${shape.name}を追加`}>{shape.name}</button>
+                <button type="button" onClick={() => props.onDeleteCustomShape(shape.id)} aria-label={`${shape.name}を削除`} title="削除">×</button>
+              </div>)}
+            </div> : <span className="custom-shape-empty">ホームで図形を選択して保存</span>}
           </div>
         </>}
 
