@@ -989,7 +989,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           const scaleX = element.width / naturalWidth
           const scaleY = element.height / naturalHeight
           return <button key={element.id} {...commonProps} aria-label={`マイ図形「${element.name}」${element.selected ? '、選択中' : ''}${lockedLabel}`}>
-            <span className="custom-shape-visual" style={{ width: element.width, height: element.height, transform: `translate(-50%, -50%) rotate(${element.rotation}deg) scale(${scaleX}, ${scaleY})` }}>
+            <span className="custom-shape-visual" style={{ width: naturalWidth, height: naturalHeight, transform: `scale(${scaleX}, ${scaleY}) rotate(${element.rotation}deg)` }}>
               {element.elements.map((part) => {
                 const partDimensions = getElementDimensions(part)
                 const color = element.color ?? (part.kind === 'image' ? undefined : part.color)
