@@ -164,6 +164,7 @@ interface DropPreview {
   label: string
   color?: string
   strokeWidth?: number
+  customShape?: CustomShapeTemplate
 }
 
 const isPalettePoint = (clientX: number, clientY: number) => {
@@ -805,7 +806,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (customShape) {
       const width = Math.max(...customShape.elements.map((element) => element.x + getElementDimensions(element).width))
       const height = Math.max(...customShape.elements.map((element) => element.y + getElementDimensions(element).height))
-      setDropPreview({ kind: 'customShape', x: x - width / 2, y: y - height / 2, width, height, label: customShape.name, color: customShape.color ?? '#244a40' })
+      setDropPreview({ kind: 'customShape', x: x - width / 2, y: y - height / 2, width, height, label: customShape.name, color: customShape.color ?? '#244a40', customShape })
       return
     }
     if (event.dataTransfer.types.includes('Files')) {
@@ -1143,7 +1144,20 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }}
         aria-hidden="true"
       >
-      {preview.kind === 'symbol' && preview.symbolType === 'cross' ? (
+      {preview.kind === 'customShape' && preview.customShape ? <span className="custom-shape-drop-content">
+        {preview.customShape.elements.filter((part) => part.kind !== 'tile' && part.kind !== 'customShape').map((part) => {
+          const dimensions = getElementDimensions(part)
+          const color = preview.color ?? (part.kind === 'image' ? undefined : part.color)
+          if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: dimensions.width, height: dimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{part.text}</span>
+          if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" /></span>
+          if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" strokeLinejoin="round" /></svg>
+          const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }
+          if (part.symbolType === 'cross') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 48 66" style={style}><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" /></svg>
+          if (part.symbolType === 'triangle') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 99 66" style={style}><polygon points="49.5,5 94,61 5,61" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinejoin="round" /></svg>
+          if (part.symbolType === 'wave') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 240 16" style={style}><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" /></svg>
+          return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth }} />
+        })}
+      </span> : preview.kind === 'symbol' && preview.symbolType === 'cross' ? (
           <svg className="drop-symbol-preview drop-symbol-cross" viewBox="0 0 48 66" aria-hidden="true"><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
         ) : preview.kind === 'symbol' && preview.symbolType === 'triangle' ? (
           <svg className="drop-symbol-preview drop-symbol-triangle" viewBox="0 0 99 66" aria-hidden="true">
@@ -1153,7 +1167,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           <svg className="drop-symbol-preview drop-symbol-wave" viewBox="0 0 240 16" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
         ) : preview.kind === 'symbol' && preview.symbolType ? (
           <span className={`drop-symbol-preview drop-symbol-${preview.symbolType}`} aria-hidden="true" />
-        ) : <span>{preview.kind === 'customShape' ? `☆ ${preview.label}` : preview.label}</span>}
+        ) : <span>{preview.label}</span>}
       </div>
       })()}
 

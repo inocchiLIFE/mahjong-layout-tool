@@ -419,6 +419,7 @@
 .drop-preview-text { border-radius: 4px; }
 .drop-preview-image { border-style: solid; border-color: #678c7f; background: rgba(103, 140, 127, .12); color: #315f52; }
 .drop-preview-customShape { border-color: currentColor; background: color-mix(in srgb, currentColor 14%, transparent); }
+.custom-shape-drop-content { position: absolute; inset: 0; display: block; opacity: .82; pointer-events: none; }
 .drop-preview-symbol { border: 0; border-radius: 0; background: transparent; color: #244a40; opacity: .78; }
 .drop-symbol-preview { box-sizing: border-box; display: block; width: 100%; height: 100%; color: currentColor; }
 .drop-symbol-rectangle { border: 4px solid currentColor; border-radius: 5px; }
