@@ -2013,6 +2013,7 @@ const App = () => {
               symbolColors={symbolColors}
               symbolStrokeWidths={symbolStrokeWidths}
               symbolSizes={symbolSizes}
+              customShapes={customShapes}
               editTextRequest={editTextRequest}
               onDropTile={addTile}
               onDropCustomShape={(id, x, y) => insertCustomShape(id, { x, y })}

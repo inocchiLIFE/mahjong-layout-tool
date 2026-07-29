@@ -11,6 +11,7 @@ import { TILE_MAP } from '../data/tiles'
 import type {
   CanvasElement,
   CanvasPoint,
+  CustomShapeTemplate,
   ContextMenuState,
   ElementPosition,
   PlacementMode,
@@ -47,6 +48,7 @@ interface WorkspaceProps {
   symbolColors: Record<SymbolType, string>
   symbolStrokeWidths: Record<SymbolType, number>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
+  customShapes: CustomShapeTemplate[]
   editTextRequest: EditTextRequest | null
   onDropTile: (tileId: string, x: number, y: number) => void
   onDropCustomShape: (id: string, x: number, y: number) => void
@@ -152,7 +154,7 @@ interface PanState {
 }
 
 interface DropPreview {
-  kind: 'tile' | 'symbol' | 'text' | 'image'
+  kind: 'tile' | 'symbol' | 'text' | 'image' | 'customShape'
   symbolType?: SymbolType
   x: number
   y: number
@@ -797,6 +799,14 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       setDropPreview({ kind: 'tile', x: x - TILE_WIDTH / 2, y: y - TILE_HEIGHT / 2, width: TILE_WIDTH, height: TILE_HEIGHT, label: '牌' })
       return
     }
+    const customShapeId = event.dataTransfer.getData('application/x-mahjong-custom-shape')
+    const customShape = props.customShapes.find((shape) => shape.id === customShapeId)
+    if (customShape) {
+      const width = Math.max(...customShape.elements.map((element) => element.x + getElementDimensions(element).width))
+      const height = Math.max(...customShape.elements.map((element) => element.y + getElementDimensions(element).height))
+      setDropPreview({ kind: 'customShape', x: x - width / 2, y: y - height / 2, width, height, label: customShape.name, color: customShape.color ?? '#244a40' })
+      return
+    }
     if (event.dataTransfer.types.includes('Files')) {
       setDropPreview({ kind: 'image', x: x - 80, y: y - 55, width: 160, height: 110, label: '画像' })
       return
@@ -1132,7 +1142,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }}
         aria-hidden="true"
       >
-        {preview.kind === 'symbol' && preview.symbolType === 'cross' ? (
+      {preview.kind === 'symbol' && preview.symbolType === 'cross' ? (
           <svg className="drop-symbol-preview drop-symbol-cross" viewBox="0 0 48 66" aria-hidden="true"><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
         ) : preview.kind === 'symbol' && preview.symbolType === 'triangle' ? (
           <svg className="drop-symbol-preview drop-symbol-triangle" viewBox="0 0 99 66" aria-hidden="true">
@@ -1142,7 +1152,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           <svg className="drop-symbol-preview drop-symbol-wave" viewBox="0 0 240 16" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
         ) : preview.kind === 'symbol' && preview.symbolType ? (
           <span className={`drop-symbol-preview drop-symbol-${preview.symbolType}`} aria-hidden="true" />
-        ) : <span>{preview.label}</span>}
+        ) : <span>{preview.kind === 'customShape' ? `☆ ${preview.label}` : preview.label}</span>}
       </div>
       })()}
 
