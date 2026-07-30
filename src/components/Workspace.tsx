@@ -1085,6 +1085,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               <svg className="symbol-visual symbol-wave" viewBox="0 0 240 16" style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
                 <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" />
               </svg>
+            ) : element.symbolType === 'circle' ? (
+              <svg className="symbol-visual" viewBox={`0 0 ${visualWidth} ${visualHeight}`} style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
+                <ellipse cx={visualWidth / 2} cy={visualHeight / 2} rx={Math.max(1, visualWidth / 2 - element.strokeWidth / 2)} ry={Math.max(1, visualHeight / 2 - element.strokeWidth / 2)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} />
+              </svg>
             ) : (
               <span
                 className={`symbol-visual symbol-${element.symbolType}`}
@@ -1167,6 +1171,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           </svg>
         ) : preview.kind === 'symbol' && preview.symbolType === 'wave' ? (
           <svg className="drop-symbol-preview drop-symbol-wave" viewBox="0 0 240 16" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
+        ) : preview.kind === 'symbol' && preview.symbolType === 'circle' ? (
+          <svg className="drop-symbol-preview" viewBox={`0 0 ${preview.width} ${preview.height}`} aria-hidden="true"><ellipse cx={preview.width / 2} cy={preview.height / 2} rx={Math.max(1, preview.width / 2 - (preview.strokeWidth ?? 4) / 2)} ry={Math.max(1, preview.height / 2 - (preview.strokeWidth ?? 4) / 2)} fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth ?? 4} /></svg>
         ) : preview.kind === 'symbol' && preview.symbolType ? (
           <span className={`drop-symbol-preview drop-symbol-${preview.symbolType}`} aria-hidden="true" />
         ) : <span>{preview.label}</span>}
