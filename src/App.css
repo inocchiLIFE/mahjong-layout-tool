@@ -82,7 +82,7 @@
 .ribbon-end-actions > button { position: static !important; top: auto !important; right: auto !important; z-index: auto; flex: 0 0 auto; }
 .ribbon-end-actions .ribbon-help-button { min-width: 27px; padding-inline: 6px; border-bottom: 1px solid #c7d6cf; border-radius: 5px; background: #edf3ef; }
 .ribbon-end-actions .ribbon-references-button { padding-inline: 9px; border: 1px solid #c7d6cf; border-radius: 5px; background: #edf3ef; }
-.ribbon-end-actions .ribbon-announcements-button { width: 27px; min-width: 27px; padding: 0; border: 1px solid #c7d6cf; border-radius: 5px; background: #edf3ef; font-size: 13px; }
+.ribbon-end-actions .ribbon-announcements-button { width: 27px; min-width: 27px; padding: 0; display: grid; place-items: center; border: 1px solid #c7d6cf; border-radius: 5px; color: #31574d; background: #edf3ef; font: 13px/1 "Segoe UI Emoji", "Noto Color Emoji", sans-serif; text-align: center; }
 .ribbon-end-actions .ribbon-collapse-button { min-width: 30px; padding-inline: 7px !important; color: #244a40 !important; font-size: 18px !important; line-height: 1; background: #edf3ef !important; }
 
 .brand-mark {
