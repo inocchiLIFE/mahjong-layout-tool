@@ -78,10 +78,12 @@
 .quick-access button:first-child { color: #c157c9; font-size: 21px; }
 .quick-access button:hover:not(:disabled) { background: rgba(255,255,255,.8); }
 .quick-access button:disabled { opacity: .36; cursor: default; }
-.ribbon-collapse-button { position: absolute; top: 0; right: 12px; z-index: 2; min-width: 30px; padding-inline: 7px !important; color: #244a40 !important; font-size: 18px !important; line-height: 1; background: #edf3ef !important; box-shadow: -8px 0 9px #edf3ef; }
-.ribbon-tabs .ribbon-help-button { position: absolute; top: 0; right: 45px; z-index: 2; min-width: 27px; padding-inline: 6px; background: #edf3ef; }
-.ribbon-tabs .ribbon-references-button { position: absolute; top: 0; right: 84px; z-index: 2; padding-inline: 9px; border: 1px solid #c7d6cf; border-radius: 5px; background: #edf3ef; }
-.ribbon-tabs .ribbon-announcements-button { position: absolute; top: 0; right: 158px; z-index: 2; width: 27px; min-width: 27px; padding: 0; border: 1px solid #c7d6cf; border-radius: 5px; background: #edf3ef; font-size: 13px; }
+.ribbon-end-actions { position: absolute; top: 0; right: 12px; z-index: 3; display: flex; align-items: flex-start; gap: 4px; height: 100%; padding-left: 6px; background: #edf3ef; box-shadow: -8px 0 9px #edf3ef; }
+.ribbon-end-actions > button { position: static !important; top: auto !important; right: auto !important; z-index: auto; flex: 0 0 auto; }
+.ribbon-end-actions .ribbon-help-button { min-width: 27px; padding-inline: 6px; border-bottom: 1px solid #c7d6cf; border-radius: 5px; background: #edf3ef; }
+.ribbon-end-actions .ribbon-references-button { padding-inline: 9px; border: 1px solid #c7d6cf; border-radius: 5px; background: #edf3ef; }
+.ribbon-end-actions .ribbon-announcements-button { width: 27px; min-width: 27px; padding: 0; border: 1px solid #c7d6cf; border-radius: 5px; background: #edf3ef; font-size: 13px; }
+.ribbon-end-actions .ribbon-collapse-button { min-width: 30px; padding-inline: 7px !important; color: #244a40 !important; font-size: 18px !important; line-height: 1; background: #edf3ef !important; }
 
 .brand-mark {
   width: 34px;
@@ -119,7 +121,7 @@
   border-bottom: 1px solid var(--line);
   box-shadow: 0 5px 20px rgba(28, 55, 47, .08);
 }
-.ribbon-tabs { display: flex; align-items: end; gap: 1px; min-height: 29px; padding: 0 12px; overflow-x: auto; background: #edf3ef; border-bottom: 1px solid #d3dfd8; scrollbar-width: thin; }
+.ribbon-tabs { position: relative; display: flex; align-items: end; gap: 1px; min-height: 29px; padding: 0 12px; overflow-x: auto; background: #edf3ef; border-bottom: 1px solid #d3dfd8; scrollbar-width: thin; }
 .ribbon-tabs button { flex: 0 0 auto; height: 27px; padding: 0 11px; border: 1px solid transparent; border-bottom: 0; border-radius: 5px 5px 0 0; color: #3e5d53; background: transparent; font: 700 10px Inter, "Yu Gothic UI", sans-serif; cursor: pointer; }
 .ribbon-tabs button:hover { background: rgba(255, 255, 255, .65); }
 .ribbon-tabs button.active { position: relative; top: 1px; color: #174f40; background: rgba(251, 250, 244, .96); border-color: #d3dfd8; }

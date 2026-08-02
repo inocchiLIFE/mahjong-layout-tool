@@ -205,16 +205,18 @@ export const Toolbar = (props: ToolbarProps) => {
           {props.pages.map((page, index) => <div key={page.id} draggable onDragStart={(event) => event.dataTransfer.setData('application/x-mahjong-page', String(index))} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const from = Number(event.dataTransfer.getData('application/x-mahjong-page')); if (Number.isInteger(from)) props.onReorderPages(from, index) }} className={`page-tab${index === props.activePageIndex ? ' active' : ''}`}><button type="button" onClick={() => props.onSwitchPage(index)} onDoubleClick={() => props.onRenamePage(index)} title={`${page.name}（ダブルクリックで名前変更）`}>{Array.from(page.name).slice(0, 5).join('')}</button>{index === props.activePageIndex && <button type="button" className="page-close-tab" onClick={(event) => { event.stopPropagation(); props.onDeletePage(index) }} title="ページを削除">×</button>}</div>)}
           <button type="button" className="page-add-tab" onClick={props.onAddPage} title="新規ページ">＋</button>
         </div>
-        <button
-          className="ribbon-collapse-button"
-          type="button"
-          onClick={() => setRibbonCollapsed((value) => !value)}
-          title={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
-          aria-label={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
-        >{ribbonCollapsed ? '⌄' : '⌃'}</button>
-        <button className="ribbon-help-button" type="button" onClick={props.onHelp} title="操作ガイド" aria-label="操作ガイド">?</button>
-        <button className="ribbon-references-button" type="button" onClick={props.onOpenReferences} title="参考サイト・ライセンス">参考サイト</button>
-        <button className="ribbon-announcements-button" type="button" onClick={props.onOpenAnnouncements} title="アップデートのお知らせ" aria-label="アップデートのお知らせ">📢</button>
+        <div className="ribbon-end-actions">
+          <button className="ribbon-help-button" type="button" onClick={props.onHelp} title="操作ガイド" aria-label="操作ガイド">?</button>
+          <button className="ribbon-references-button" type="button" onClick={props.onOpenReferences} title="参考サイト・ライセンス">参考サイト</button>
+          <button className="ribbon-announcements-button" type="button" onClick={props.onOpenAnnouncements} title="アップデートのお知らせ" aria-label="アップデートのお知らせ">📢</button>
+          <button
+            className="ribbon-collapse-button"
+            type="button"
+            onClick={() => setRibbonCollapsed((value) => !value)}
+            title={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
+            aria-label={ribbonCollapsed ? 'リボンを展開' : 'リボンを折りたたむ'}
+          >{ribbonCollapsed ? '⌄' : '⌃'}</button>
+        </div>
       </div>
 
       <div className="ribbon-content" role="tabpanel">
