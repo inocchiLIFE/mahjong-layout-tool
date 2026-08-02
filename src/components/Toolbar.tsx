@@ -58,6 +58,7 @@ interface ToolbarProps {
   onAddText: (text: string) => void
   onHelp: () => void
   onOpenReferences: () => void
+  onOpenAnnouncements: () => void
   onOpenSettings: () => void
   onOpenSymbolPreset: (symbolType: SymbolType) => void
   onOpenDrawingPreset: (tool: DrawingTool) => void
@@ -213,6 +214,7 @@ export const Toolbar = (props: ToolbarProps) => {
         >{ribbonCollapsed ? '⌄' : '⌃'}</button>
         <button className="ribbon-help-button" type="button" onClick={props.onHelp} title="操作ガイド" aria-label="操作ガイド">?</button>
         <button className="ribbon-references-button" type="button" onClick={props.onOpenReferences} title="参考サイト・ライセンス">参考サイト</button>
+        <button className="ribbon-announcements-button" type="button" onClick={props.onOpenAnnouncements} title="アップデートのお知らせ" aria-label="アップデートのお知らせ">📢</button>
       </div>
 
       <div className="ribbon-content" role="tabpanel">

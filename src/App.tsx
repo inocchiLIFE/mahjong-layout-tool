@@ -6,6 +6,7 @@ import { ContextMenu } from './components/ContextMenu'
 import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './components/contextMenuItems'
 import { HelpModal } from './components/HelpModal'
 import { ReferencesModal } from './components/ReferencesModal'
+import { AnnouncementsModal } from './components/AnnouncementsModal'
 import { PropertyEditor } from './components/PropertyEditor'
 import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
 import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
@@ -564,6 +565,7 @@ const App = () => {
   const [activePageIndex, setActivePageIndex] = useState(0)
   const [helpOpen, setHelpOpen] = useState(() => localStorage.getItem(HELP_KEY) !== '1')
   const [referencesOpen, setReferencesOpen] = useState(false)
+  const [announcementsOpen, setAnnouncementsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [isExporting, setIsExporting] = useState(false)
@@ -1948,6 +1950,7 @@ const App = () => {
         onAddText={(text) => commitText(text)}
         onHelp={() => setHelpOpen(true)}
         onOpenReferences={() => setReferencesOpen(true)}
+        onOpenAnnouncements={() => setAnnouncementsOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}
         onOpenSymbolPreset={setSymbolPresetTarget}
         onOpenDrawingPreset={setDrawingPresetTarget}
@@ -2153,6 +2156,7 @@ const App = () => {
       {toast && <div className="toast" role="status">✓ {toast}</div>}
       {helpOpen && <HelpModal onClose={() => { localStorage.setItem(HELP_KEY, '1'); setHelpOpen(false) }} />}
       {referencesOpen && <ReferencesModal onClose={() => setReferencesOpen(false)} />}
+      {announcementsOpen && <AnnouncementsModal onClose={() => setAnnouncementsOpen(false)} />}
       {settingsOpen && <SettingsDialog preferences={preferences} onSave={savePreferences} onClose={() => setSettingsOpen(false)} />}
       {symbolPresetTarget && <SymbolPresetDialog
         symbolType={symbolPresetTarget}
