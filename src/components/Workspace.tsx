@@ -2,6 +2,7 @@ import {
   forwardRef,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type DragEvent as ReactDragEvent,
@@ -303,6 +304,29 @@ const getTextFormatMenuPosition = (menu: TextFormatMenuState) => {
   }
 }
 
+const getCollapsedTextRangeRect = (root: HTMLElement, offset: number): DOMRect | null => {
+  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node = walker.nextNode() as Text | null
+  let lastNode: Text | null = null
+  let remaining = Math.max(0, offset)
+  while (node) {
+    lastNode = node
+    if (remaining <= node.data.length) {
+      const range = root.ownerDocument.createRange()
+      range.setStart(node, remaining)
+      range.collapse(true)
+      return range.getClientRects()[0] ?? range.getBoundingClientRect()
+    }
+    remaining -= node.data.length
+    node = walker.nextNode() as Text | null
+  }
+  if (!lastNode) return null
+  const range = root.ownerDocument.createRange()
+  range.setStart(lastNode, lastNode.data.length)
+  range.collapse(true)
+  return range.getClientRects()[0] ?? range.getBoundingClientRect()
+}
+
 const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
   return getArrowHeadPoints(points, size).map((point) => `${point.x},${point.y}`).join(' ')
 }
@@ -337,6 +361,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const drawingRef = useRef<DrawingState | null>(null)
   const eraserRef = useRef<EraserState | null>(null)
   const textEditorRef = useRef<HTMLTextAreaElement>(null)
+  const textPreviewRef = useRef<HTMLSpanElement>(null)
   const elementResizeRef = useRef<ElementResizeState | null>(null)
   const imageCropEdgeRef = useRef<ImageCropEdgeState | null>(null)
   const panRef = useRef<PanState | null>(null)
@@ -344,6 +369,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const [marquee, setMarquee] = useState<MarqueeState | null>(null)
   const [editor, setEditor] = useState<TextEditorState | null>(null)
   const [textSelection, setTextSelection] = useState<TextSelectionRange | null>(null)
+  const [textCaretIndex, setTextCaretIndex] = useState<number | null>(null)
+  const [textCaret, setTextCaret] = useState<{ left: number; top: number; height: number } | null>(null)
   const [textFormatMenu, setTextFormatMenu] = useState<TextFormatMenuState | null>(null)
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
   const [curveDraft, setCurveDraft] = useState<CurveDraftState | null>(null)
@@ -367,6 +394,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const start = Math.min(input.selectionStart, input.selectionEnd)
     const end = Math.max(input.selectionStart, input.selectionEnd)
     const next = start === end ? null : { start, end }
+    setTextCaretIndex(input.selectionEnd)
     setTextSelection((previous) => {
       if (!next && !previous) return previous
       if (next && previous && next.start === previous.start && next.end === previous.end) return previous
@@ -375,6 +403,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   }
 
   const restoreTextSelection = (start: number, end: number) => {
+    setTextCaretIndex(end)
     setTextSelection({ start, end })
     window.requestAnimationFrame(() => {
       const input = textEditorRef.current
@@ -424,6 +453,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (item && !item.locked) {
       setEditor(createTextEditorState(item.text, item.x, item.y, item.id, item.textRuns, { color: item.color, fontSize: item.fontSize, fontFamily: item.fontFamily }))
       setTextSelection(null)
+      setTextCaretIndex(0)
       setTextFormatMenu(null)
     }
   }, [props.editTextRequest, props.scene.elements])
@@ -442,6 +472,35 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       window.removeEventListener('pointerup', syncActiveSelection)
     }
   }, [editor])
+
+  useLayoutEffect(() => {
+    if (!editor || textCaretIndex === null || textSelection) {
+      setTextCaret(null)
+      return
+    }
+    const preview = textPreviewRef.current
+    const canvas = preview?.closest('.workspace-canvas') as HTMLElement | null
+    const input = textEditorRef.current
+    if (!preview || !canvas || !input) {
+      setTextCaret(null)
+      return
+    }
+    const caretRect = getCollapsedTextRangeRect(preview, textCaretIndex) ?? input.getBoundingClientRect()
+    const canvasRect = canvas.getBoundingClientRect()
+    const scaleX = canvas.offsetWidth > 0 ? canvasRect.width / canvas.offsetWidth : 1
+    const scaleY = canvas.offsetHeight > 0 ? canvasRect.height / canvas.offsetHeight : 1
+    const next = {
+      left: (caretRect.left - canvasRect.left) / scaleX,
+      top: (caretRect.top - canvasRect.top) / scaleY,
+      height: Math.max(18, caretRect.height / scaleY),
+    }
+    setTextCaret((previous) => previous
+      && Math.abs(previous.left - next.left) < .1
+      && Math.abs(previous.top - next.top) < .1
+      && Math.abs(previous.height - next.height) < .1
+      ? previous
+      : next)
+  }, [camera, editor, textCaretIndex, textSelection])
 
   useEffect(() => {
     if (props.placementMode === 'text' || props.placementMode === 'rectangle' || props.placementMode === 'circle' || props.placementMode === 'triangle' || props.placementMode === 'cross' || props.placementMode === 'wave') return
@@ -891,6 +950,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
     if (props.placementMode === 'text') {
       setTextSelection(null)
+      setTextCaretIndex(0)
       setEditor(createTextEditorState('', state.startX, state.startY))
     } else if (props.placementMode !== 'select' && !isDrawingPlacementMode(props.placementMode) && props.placementMode !== 'eraser') {
       props.onPlaceSymbol(props.placementMode, state.startX, state.startY)
@@ -906,6 +966,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     event.preventDefault()
     event.stopPropagation()
     if (!editor || start === end) {
+      setTextCaretIndex(end)
       setTextSelection(null)
       setTextFormatMenu(null)
       return
@@ -939,6 +1000,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (!cancelled && text) props.onCommitText(text, editor.x, editor.y, editor.id, normalizeTextRuns(text, editor.runs, editor.baseStyle))
     setEditor(null)
     setTextSelection(null)
+    setTextCaretIndex(null)
+    setTextCaret(null)
     setTextFormatMenu(null)
     props.onFinishTextEditing()
   }
@@ -1044,6 +1107,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           y: toCanvasCoordinate(event.clientY, bounds.top, camera.y),
         }
         setTextSelection(null)
+        setTextCaretIndex(0)
         setEditor(createTextEditorState('', point.x, point.y))
       }}
       onDragEnter={updateDropPreview}
@@ -1170,6 +1234,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               onDoubleClick={() => {
                 if (element.locked) return
                 setTextSelection(null)
+                setTextCaretIndex(0)
                 setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily }))
               }}
               aria-label={`文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
@@ -1324,7 +1389,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             WebkitTextFillColor: editor.value ? 'transparent' : editor.baseStyle.color,
             fontSize: editor.baseStyle.fontSize,
             fontFamily: editor.baseStyle.fontFamily,
-            caretColor: editor.baseStyle.color,
+            caretColor: 'transparent',
           }}
           value={editor.value}
           rows={Math.max(1, editor.value.split('\n').length)}
@@ -1365,10 +1430,18 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       {editor && editor.value && (() => {
         const previewFontSize = Math.max(editor.baseStyle.fontSize, ...(editor.runs.map((run) => run.fontSize)))
         return <span
+          ref={textPreviewRef}
           className="workspace-text-editor-preview export-hidden"
           style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: previewFontSize, fontFamily: editor.baseStyle.fontFamily }}
           aria-hidden="true"
         >{renderTextRuns(editor.value, editor.runs, editor.baseStyle, undefined, textSelection ?? undefined)}</span>
+      })()}
+
+      {editor && !editor.value && <span ref={textPreviewRef} className="workspace-text-editor-preview export-hidden" style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: editor.baseStyle.fontSize, fontFamily: editor.baseStyle.fontFamily }} aria-hidden="true" />}
+      {editor && !textSelection && textCaret && (() => {
+        const caretIndex = Math.max(0, Math.min(editor.value.length - 1, textCaretIndex ?? 0))
+        const caretStyle = getTextRunStyleAt(editor.value, editor.runs, caretIndex, editor.baseStyle)
+        return <span className="workspace-text-editor-caret export-hidden" style={{ left: textCaret.left, top: textCaret.top, height: textCaret.height, backgroundColor: caretStyle.color }} aria-hidden="true" />
       })()}
 
       {editor && textFormatMenu && (() => {
