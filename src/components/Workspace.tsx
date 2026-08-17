@@ -541,7 +541,16 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     event.stopPropagation()
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     textPointerSelectionRef.current = null
-    if (textEditorRef.current) syncTextSelection(textEditorRef.current)
+    const selectedRange = textFormatSelectionRef.current
+    if (selectedRange) {
+      // Releasing the pointer can briefly collapse the hidden textarea's native
+      // selection in some browsers. The preview drag already has the correct
+      // range, so keep that range instead of overwriting it on pointerup.
+      setTextCaretIndex(selectedRange.end)
+      setTextSelection(selectedRange)
+    } else if (textEditorRef.current) {
+      syncTextSelection(textEditorRef.current)
+    }
   }
 
   const restoreTextSelection = (start: number, end: number) => {
