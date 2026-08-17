@@ -24,6 +24,7 @@ interface PropertyEditorProps {
     color?: string
     fontSize?: number
     fontFamily?: string
+    fontWeight?: 400 | 700
     strokeWidth?: number
     opacity?: number
     customShapeColor?: string | null
@@ -36,6 +37,7 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
   const [color, setColor] = useState(element.kind === 'image' ? '#244a40' : element.kind === 'customShape' ? element.color ?? '#244a40' : element.color)
   const [fontSize, setFontSize] = useState(element.kind === 'text' ? element.fontSize : 22)
   const [fontFamily, setFontFamily] = useState(element.kind === 'text' ? element.fontFamily : 'sans-serif')
+  const [fontWeight, setFontWeight] = useState<400 | 700>(element.kind === 'text' ? element.fontWeight : 400)
   const [strokeWidth, setStrokeWidth] = useState(element.kind === 'symbol' || element.kind === 'drawing' ? element.strokeWidth : 4)
   const [opacity, setOpacity] = useState(element.kind === 'image' ? element.opacity : 1)
   const [customColors, setCustomColors] = useState(readCustomColors)
@@ -70,6 +72,7 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
       customShapeColor: element.kind === 'customShape' ? color : undefined,
       fontSize: element.kind === 'text' ? fontSize : undefined,
       fontFamily: element.kind === 'text' ? fontFamily : undefined,
+      fontWeight: element.kind === 'text' ? fontWeight : undefined,
       strokeWidth: element.kind === 'symbol' || element.kind === 'drawing' ? strokeWidth : undefined,
       opacity: element.kind === 'image' ? opacity : undefined,
     })
@@ -108,6 +111,7 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
                 <option value="monospace">等幅フォント</option>
               </select>
             </label>
+            <label><input type="checkbox" checked={fontWeight === 700} onChange={(event) => setFontWeight(event.target.checked ? 700 : 400)} /> 太字</label>
           </>
         )}
 

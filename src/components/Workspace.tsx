@@ -52,7 +52,7 @@ interface WorkspaceProps {
   allowTileOverlap: boolean
   placementMode: PlacementMode
   eraserSize: number
-  textStyle: { fontFamily: string; fontSize: number; color: string }
+  textStyle: { fontFamily: string; fontSize: number; fontWeight: 400 | 700; color: string }
   drawingStyle: { color: string; strokeWidth: number; strokePattern: StrokePattern; opacity?: number; arrowHeadSize: number }
   symbolColors: Record<SymbolType, string>
   symbolStrokeWidths: Record<SymbolType, number>
@@ -246,7 +246,7 @@ const renderTextRuns = (
   const normalized = normalizeTextRuns(text, runs, fallback)
   if (!normalized.length) return text
   if (!selection || selection.start >= selection.end) {
-    return normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily }}>{run.text}</span>)
+    return normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight }}>{run.text}</span>)
   }
 
   const selectedStart = Math.max(0, Math.min(selection.start, text.length))
@@ -267,6 +267,7 @@ const renderTextRuns = (
           color: selected ? '#082b26' : colorOverride ?? run.color,
           fontSize: run.fontSize,
           fontFamily: run.fontFamily,
+          fontWeight: run.fontWeight,
           backgroundColor: selected ? '#dcae5e' : undefined,
           borderRadius: selected ? 2 : undefined,
         }}
@@ -451,7 +452,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       (element): element is TextElement => element.id === props.editTextRequest?.id && element.kind === 'text',
     )
     if (item && !item.locked) {
-      setEditor(createTextEditorState(item.text, item.x, item.y, item.id, item.textRuns, { color: item.color, fontSize: item.fontSize, fontFamily: item.fontFamily }))
+      setEditor(createTextEditorState(item.text, item.x, item.y, item.id, item.textRuns, { color: item.color, fontSize: item.fontSize, fontFamily: item.fontFamily, fontWeight: item.fontWeight }))
       setTextSelection(null)
       setTextCaretIndex(0)
       setTextFormatMenu(null)
@@ -1235,7 +1236,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 if (element.locked) return
                 setTextSelection(null)
                 setTextCaretIndex(0)
-                setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily }))
+                setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight }))
               }}
               aria-label={`文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
             >
@@ -1245,12 +1246,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   color: element.color,
                   fontSize: element.fontSize,
                   fontFamily: element.fontFamily,
+                  fontWeight: element.fontWeight,
                   width: baseWidth,
                   height: baseHeight,
                   transform: `rotate(${element.rotation}deg)`,
                   transformOrigin: 'top left',
                 }}
-              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily })}</span>
+              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight })}</span>
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1281,7 +1283,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               {element.elements.map((part) => {
                 const partDimensions = getElementDimensions(part)
                 const color = element.color ?? (part.kind === 'image' ? undefined : part.color)
-                if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: partDimensions.width, height: partDimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily }, color)}</span>
+                if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: partDimensions.width, height: partDimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight }, color)}</span>
                 if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" draggable={false} /></span>
                 if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
                 const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }
@@ -1389,6 +1391,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             WebkitTextFillColor: editor.value ? 'transparent' : editor.baseStyle.color,
             fontSize: editor.baseStyle.fontSize,
             fontFamily: editor.baseStyle.fontFamily,
+            fontWeight: editor.baseStyle.fontWeight,
             caretColor: 'transparent',
           }}
           value={editor.value}
@@ -1397,7 +1400,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           aria-label="文字を入力"
           onPointerDown={(event) => {
             event.stopPropagation()
-            window.requestAnimationFrame(() => syncTextSelection(event.currentTarget))
+            const input = event.currentTarget
+            window.requestAnimationFrame(() => syncTextSelection(input))
           }}
           onPointerMove={(event) => {
             if (event.buttons & 1) syncTextSelection(event.currentTarget)
@@ -1432,12 +1436,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         return <span
           ref={textPreviewRef}
           className="workspace-text-editor-preview export-hidden"
-          style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: previewFontSize, fontFamily: editor.baseStyle.fontFamily }}
+          style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: previewFontSize, fontFamily: editor.baseStyle.fontFamily, fontWeight: editor.baseStyle.fontWeight }}
           aria-hidden="true"
         >{renderTextRuns(editor.value, editor.runs, editor.baseStyle, undefined, textSelection ?? undefined)}</span>
       })()}
 
-      {editor && !editor.value && <span ref={textPreviewRef} className="workspace-text-editor-preview export-hidden" style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: editor.baseStyle.fontSize, fontFamily: editor.baseStyle.fontFamily }} aria-hidden="true" />}
+      {editor && !editor.value && <span ref={textPreviewRef} className="workspace-text-editor-preview export-hidden" style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: editor.baseStyle.fontSize, fontFamily: editor.baseStyle.fontFamily, fontWeight: editor.baseStyle.fontWeight }} aria-hidden="true" />}
       {editor && !textSelection && textCaret && (() => {
         const caretIndex = Math.max(0, Math.min(editor.value.length - 1, textCaretIndex ?? 0))
         const caretStyle = getTextRunStyleAt(editor.value, editor.runs, caretIndex, editor.baseStyle)
@@ -1461,6 +1465,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         >
           <strong>選択部分を編集</strong>
           <div className="text-format-context-row">
+            <button type="button" className={selectedStyle.fontWeight === 700 ? 'active' : ''} aria-pressed={selectedStyle.fontWeight === 700} onClick={() => applyTextFormat({ fontWeight: selectedStyle.fontWeight === 700 ? 400 : 700 })} aria-label="太字を切り替え">B</button>
             <button type="button" onClick={() => applyTextFormat({ fontSize: Math.max(12, selectedStyle.fontSize - 2) })} aria-label="文字を小さく">A−</button>
             <output>{selectedStyle.fontSize}px</output>
             <button type="button" onClick={() => applyTextFormat({ fontSize: Math.min(72, selectedStyle.fontSize + 2) })} aria-label="文字を大きく">A+</button>
@@ -1498,7 +1503,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         {preview.customShape.elements.filter((part) => part.kind !== 'tile' && part.kind !== 'customShape').map((part) => {
           const dimensions = getElementDimensions(part)
           const color = preview.color ?? (part.kind === 'image' ? undefined : part.color)
-          if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: dimensions.width, height: dimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily }, color)}</span>
+          if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: dimensions.width, height: dimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight }, color)}</span>
           if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" /></span>
           if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
           const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }

@@ -4,12 +4,13 @@ export interface TextRunStyle {
   color: string
   fontSize: number
   fontFamily: string
+  fontWeight: 400 | 700
 }
 
 export type TextRunStylePatch = Partial<TextRunStyle>
 
 const sameStyle = (left: TextRun, right: TextRun) =>
-  left.color === right.color && left.fontSize === right.fontSize && left.fontFamily === right.fontFamily
+  left.color === right.color && left.fontSize === right.fontSize && left.fontFamily === right.fontFamily && left.fontWeight === right.fontWeight
 
 const mergeRuns = (runs: TextRun[]) => runs.reduce<TextRun[]>((result, run) => {
   if (!run.text) return result
@@ -32,6 +33,7 @@ export const normalizeTextRuns = (text: string, runs: TextRun[] | undefined, fal
       color: typeof run.color === 'string' ? run.color : fallback.color,
       fontSize: typeof run.fontSize === 'number' ? run.fontSize : fallback.fontSize,
       fontFamily: typeof run.fontFamily === 'string' ? run.fontFamily : fallback.fontFamily,
+      fontWeight: run.fontWeight === 700 ? 700 : run.fontWeight === 400 ? 400 : fallback.fontWeight,
     })
     offset += available.length
   }
@@ -62,7 +64,7 @@ export const getTextRunStyleAt = (text: string, runs: TextRun[] | undefined, ind
   const target = Math.max(0, Math.min(index, Math.max(0, text.length - 1)))
   let offset = 0
   for (const run of normalized) {
-    if (target < offset + run.text.length) return { color: run.color, fontSize: run.fontSize, fontFamily: run.fontFamily }
+    if (target < offset + run.text.length) return { color: run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight }
     offset += run.text.length
   }
   return { ...fallback }

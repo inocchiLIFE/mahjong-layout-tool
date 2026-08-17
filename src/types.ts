@@ -52,6 +52,7 @@ export interface TextElement extends CanvasElementBase {
   color: string
   fontSize: number
   fontFamily: string
+  fontWeight: 400 | 700
   textRuns?: TextRun[]
 }
 
@@ -60,6 +61,7 @@ export interface TextRun {
   color: string
   fontSize: number
   fontFamily: string
+  fontWeight: 400 | 700
 }
 
 export interface SymbolElement extends CanvasElementBase {

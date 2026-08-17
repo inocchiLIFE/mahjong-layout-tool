@@ -97,6 +97,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   allowTileOverlap: true,
   defaultFontFamily: 'sans-serif',
   defaultTextFontSize: 35,
+  defaultTextFontWeight: 400,
   defaultTextColor: '#172c27',
   defaultShapeColor: '#244a40',
   defaultShapeStrokeWidth: 4,
@@ -132,7 +133,9 @@ const normalizeTextColor = (value: unknown) => {
   return value
 }
 
-const parseTextRuns = (value: unknown, text: string, fallback: Pick<TextRun, 'color' | 'fontSize' | 'fontFamily'>) => {
+const normalizeFontWeight = (value: unknown): 400 | 700 => value === 700 ? 700 : 400
+
+const parseTextRuns = (value: unknown, text: string, fallback: Pick<TextRun, 'color' | 'fontSize' | 'fontFamily' | 'fontWeight'>) => {
   if (!Array.isArray(value)) return undefined
   const runs = value.flatMap((run) => {
     if (!run || typeof run !== 'object') return []
@@ -143,6 +146,7 @@ const parseTextRuns = (value: unknown, text: string, fallback: Pick<TextRun, 'co
       color: typeof candidate.color === 'string' ? candidate.color : fallback.color,
       fontSize: typeof candidate.fontSize === 'number' ? clamp(candidate.fontSize, 12, 72) : fallback.fontSize,
       fontFamily: typeof candidate.fontFamily === 'string' ? candidate.fontFamily : fallback.fontFamily,
+      fontWeight: candidate.fontWeight === 700 ? 700 : candidate.fontWeight === 400 ? 400 : fallback.fontWeight,
     }]
   })
   return normalizeTextRuns(text, runs, fallback)
@@ -208,6 +212,7 @@ const parseElement = (value: unknown): CanvasElement | null => {
   if (item.kind === 'text' && typeof item.text === 'string') {
     const fontSize = typeof item.fontSize === 'number' ? clamp(item.fontSize, 12, 72) : 22
     const fontFamily = typeof item.fontFamily === 'string' ? item.fontFamily : 'sans-serif'
+    const fontWeight = normalizeFontWeight(item.fontWeight)
     const color = normalizeTextColor(item.color)
     return {
       ...base,
@@ -216,7 +221,8 @@ const parseElement = (value: unknown): CanvasElement | null => {
       color,
       fontSize,
       fontFamily,
-      textRuns: parseTextRuns(item.textRuns, item.text, { color, fontSize, fontFamily }),
+      fontWeight,
+      textRuns: parseTextRuns(item.textRuns, item.text, { color, fontSize, fontFamily, fontWeight }),
     }
   }
   if (item.kind === 'symbol' && isSymbolType(item.symbolType)) {
@@ -410,6 +416,7 @@ const readPreferences = (): AppPreferences => {
       allowTileOverlap: typeof saved.allowTileOverlap === 'boolean' ? saved.allowTileOverlap : DEFAULT_PREFERENCES.allowTileOverlap,
       defaultFontFamily: typeof saved.defaultFontFamily === 'string' ? saved.defaultFontFamily : DEFAULT_PREFERENCES.defaultFontFamily,
       defaultTextFontSize: typeof saved.defaultTextFontSize === 'number' ? clamp(saved.defaultTextFontSize, 12, 72) : DEFAULT_PREFERENCES.defaultTextFontSize,
+      defaultTextFontWeight: normalizeFontWeight(saved.defaultTextFontWeight),
       defaultTextColor: typeof saved.defaultTextColor === 'string' ? saved.defaultTextColor : DEFAULT_PREFERENCES.defaultTextColor,
       defaultShapeColor: typeof saved.defaultShapeColor === 'string' ? saved.defaultShapeColor : DEFAULT_PREFERENCES.defaultShapeColor,
       defaultShapeStrokeWidth: typeof saved.defaultShapeStrokeWidth === 'number' ? clamp(saved.defaultShapeStrokeWidth, 1, 12) : DEFAULT_PREFERENCES.defaultShapeStrokeWidth,
@@ -545,7 +552,7 @@ const App = () => {
   const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
   const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? preferences.showGrid)
   const snapToGrid = true
-  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, color: preferences.defaultTextColor })
+  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, fontWeight: preferences.defaultTextFontWeight, color: preferences.defaultTextColor })
   const [defaultShapeColor, setDefaultShapeColor] = useState(preferences.defaultShapeColor)
   const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(preferences.defaultShapeStrokeWidth)
   const [defaultShapeStrokePattern, setDefaultShapeStrokePattern] = useState<StrokePattern>(preferences.defaultShapeStrokePattern)
@@ -646,7 +653,7 @@ const App = () => {
   const applySharedPreferences = (next: AppPreferences) => {
     setPreferences(next)
     setShowGrid(next.showGrid)
-    setDefaultTextStyle((current) => ({ ...current, fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, color: next.defaultTextColor }))
+    setDefaultTextStyle((current) => ({ ...current, fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, fontWeight: next.defaultTextFontWeight, color: next.defaultTextColor }))
     setDefaultShapeColor(next.defaultShapeColor)
     setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
     setDefaultShapeStrokePattern(next.defaultShapeStrokePattern)
@@ -734,7 +741,7 @@ const App = () => {
         const next = readPreferences()
         setPreferences(next)
         setShowGrid(next.showGrid)
-        setDefaultTextStyle({ fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, color: next.defaultTextColor })
+        setDefaultTextStyle({ fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, fontWeight: next.defaultTextFontWeight, color: next.defaultTextColor })
         setDefaultShapeColor(next.defaultShapeColor)
         setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
         setDefaultShapeStrokePattern(next.defaultShapeStrokePattern)
@@ -1426,6 +1433,7 @@ const App = () => {
       color?: string
       fontSize?: number
       fontFamily?: string
+      fontWeight?: 400 | 700
       strokeWidth?: number
       opacity?: number
       customShapeColor?: string | null
@@ -1443,6 +1451,7 @@ const App = () => {
               color: properties.color ?? element.color,
               fontSize: clamp(properties.fontSize ?? element.fontSize, 12, 72),
               fontFamily: properties.fontFamily ?? element.fontFamily,
+              fontWeight: normalizeFontWeight(properties.fontWeight ?? element.fontWeight),
               textRuns: undefined,
             }
         } else if (element.kind === 'symbol') {
@@ -1932,7 +1941,7 @@ const App = () => {
         hasItems={scene.elements.length > 0}
         hasSelection={selected.some((element) => !element.locked)}
         canEditText={Boolean(selectedText)}
-        textStyle={selectedText ? { fontFamily: selectedText.fontFamily, fontSize: selectedText.fontSize, color: selectedText.color } : defaultTextStyle}
+        textStyle={selectedText ? { fontFamily: selectedText.fontFamily, fontSize: selectedText.fontSize, fontWeight: selectedText.fontWeight, color: selectedText.color } : defaultTextStyle}
         isEditingSelectedText={Boolean(selectedText)}
         selectedShapeColor={selectedColoredElement?.color ?? null}
         shapeColor={selectedColoredElement?.color ?? defaultShapeColor}
@@ -1974,6 +1983,7 @@ const App = () => {
             ...preferences,
             defaultFontFamily: style.fontFamily ?? defaultTextStyle.fontFamily,
             defaultTextFontSize: style.fontSize === undefined ? defaultTextStyle.fontSize : clamp(style.fontSize, 12, 72),
+            defaultTextFontWeight: style.fontWeight === undefined ? defaultTextStyle.fontWeight : normalizeFontWeight(style.fontWeight),
             defaultTextColor: style.color ?? defaultTextStyle.color,
           })
         }}

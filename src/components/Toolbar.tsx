@@ -13,7 +13,7 @@ interface ToolbarProps {
   hasItems: boolean
   hasSelection: boolean
   canEditText: boolean
-  textStyle: { fontFamily: string; fontSize: number; color: string }
+  textStyle: { fontFamily: string; fontSize: number; fontWeight: 400 | 700; color: string }
   isEditingSelectedText: boolean
   selectedShapeColor: string | null
   shapeColor: string
@@ -39,7 +39,7 @@ interface ToolbarProps {
   onRotate: () => void
   onToggleTileFaces: () => void
   onEditSelectedText: () => void
-  onUpdateTextStyle: (style: { fontFamily?: string; fontSize?: number; color?: string }) => void
+  onUpdateTextStyle: (style: { fontFamily?: string; fontSize?: number; fontWeight?: 400 | 700; color?: string }) => void
   onUpdateSelectedShapeColor: (color: string) => void
   onUpdateShapeStrokeWidth: (strokeWidth: number) => void
   onUpdateShapeStrokePattern: (strokePattern: StrokePattern) => void
@@ -253,6 +253,7 @@ export const Toolbar = (props: ToolbarProps) => {
               <option value="monospace">等幅</option>
             </select>
             <div className="font-ribbon-controls">
+              <button type="button" aria-label="太字を切り替え" aria-pressed={props.textStyle.fontWeight === 700} className={props.textStyle.fontWeight === 700 ? 'active' : ''} disabled={isEditingShape} onClick={() => props.onUpdateTextStyle({ fontWeight: props.textStyle.fontWeight === 700 ? 400 : 700 })}>B</button>
               <button type="button" aria-label="文字サイズを小さく" disabled={isEditingShape} onClick={() => props.onUpdateTextStyle({ fontSize: Math.max(12, props.textStyle.fontSize - 2) })}>A−</button>
               <input
                 type="number"
