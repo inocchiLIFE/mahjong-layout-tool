@@ -420,6 +420,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const textEditorRef = useRef<HTMLTextAreaElement>(null)
   const textPreviewRef = useRef<HTMLSpanElement>(null)
   const textPointerSelectionRef = useRef<{ pointerId: number; anchor: number } | null>(null)
+  const textFormatSelectionRef = useRef<TextSelectionRange | null>(null)
   const elementResizeRef = useRef<ElementResizeState | null>(null)
   const imageCropEdgeRef = useRef<ImageCropEdgeState | null>(null)
   const panRef = useRef<PanState | null>(null)
@@ -551,6 +552,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       (element): element is TextElement => element.id === props.editTextRequest?.id && element.kind === 'text',
     )
     if (item && !item.locked) {
+      textFormatSelectionRef.current = null
       setEditor(createTextEditorState(item.text, item.x, item.y, item.id, item.textRuns, { color: item.color, fontSize: item.fontSize, fontFamily: item.fontFamily, fontWeight: item.fontWeight, textDecoration: item.textDecoration ?? 'none', backgroundColor: item.backgroundColor ?? null }))
       setTextSelection(null)
       setTextCaretIndex(0)
@@ -1056,6 +1058,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
 
     if (props.placementMode === 'text') {
+      textFormatSelectionRef.current = null
       setTextSelection(null)
       setTextCaretIndex(0)
       setEditor(createTextEditorState('', state.startX, state.startY))
@@ -1076,11 +1079,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     event.preventDefault()
     event.stopPropagation()
     if (!editor || start === end) {
+      textFormatSelectionRef.current = null
       setTextCaretIndex(end)
       setTextSelection(null)
       setTextFormatMenu(null)
       return
     }
+    textFormatSelectionRef.current = { start, end }
     setTextSelection({ start, end })
     const bounds = textPreviewRef.current?.getBoundingClientRect() ?? textarea.getBoundingClientRect()
     const appShell = textarea.closest('.app-shell')
@@ -1097,8 +1102,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   }
 
   const applyTextFormat = (style: TextRunStylePatch) => {
-    if (!editor || !textFormatMenu) return
-    const { start, end } = textFormatMenu
+    if (!editor) return
+    const range = textFormatSelectionRef.current ?? (textFormatMenu ? { start: textFormatMenu.start, end: textFormatMenu.end } : null)
+    if (!range) return
+    const { start, end } = range
     const runs = applyTextRunStyle(editor.value, editor.runs, start, end, style, editor.baseStyle)
     setEditor({ ...editor, runs })
     restoreTextSelection(start, end)
@@ -1109,6 +1116,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const text = editor.value.trim()
     if (!cancelled && text) props.onCommitText(text, editor.x, editor.y, editor.id, normalizeTextRuns(text, editor.runs, editor.baseStyle))
     textPointerSelectionRef.current = null
+    textFormatSelectionRef.current = null
     setEditor(null)
     setTextSelection(null)
     setTextCaretIndex(null)
@@ -1220,6 +1228,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           x: toCanvasCoordinate(event.clientX, bounds.left, camera.x),
           y: toCanvasCoordinate(event.clientY, bounds.top, camera.y),
         }
+        textFormatSelectionRef.current = null
         setTextSelection(null)
         setTextCaretIndex(0)
         setEditor(createTextEditorState('', point.x, point.y))
@@ -1347,6 +1356,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               className={`${commonProps.className}${editor?.id === element.id ? ' editing' : ''}`}
               onDoubleClick={() => {
                 if (element.locked) return
+                textFormatSelectionRef.current = null
                 setTextSelection(null)
                 setTextCaretIndex(0)
                 setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null }))
@@ -1598,7 +1608,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           style={menuPosition}
           onPointerDown={(event) => {
             event.stopPropagation()
-            if (event.target instanceof HTMLButtonElement) event.preventDefault()
+            const target = event.target instanceof HTMLElement ? event.target : null
+            if (target?.closest('button')) event.preventDefault()
+          }}
+          onMouseDown={(event) => {
+            event.stopPropagation()
+            const target = event.target instanceof HTMLElement ? event.target : null
+            if (target?.closest('button')) event.preventDefault()
           }}
           onContextMenu={(event) => event.preventDefault()}
           role="menu"
