@@ -398,7 +398,6 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const syncTextSelection = (input: HTMLTextAreaElement) => {
     const selectionStart = input.selectionStart
     const selectionEnd = input.selectionEnd
-    const direction = input.selectionDirection
     const start = Math.min(selectionStart, selectionEnd)
     const end = Math.max(selectionStart, selectionEnd)
     const next = start === end ? null : { start, end }
@@ -407,12 +406,6 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       if (!next && !previous) return previous
       if (next && previous && next.start === previous.start && next.end === previous.end) return previous
       return next
-    })
-    window.requestAnimationFrame(() => {
-      if (textEditorRef.current !== input || document.activeElement !== input) return
-      if (input.selectionStart !== selectionStart || input.selectionEnd !== selectionEnd || input.selectionDirection !== direction) {
-        input.setSelectionRange(selectionStart, selectionEnd, direction)
-      }
     })
   }
 
@@ -1435,6 +1428,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             // range before a new drag (especially a right-to-left drag) starts.
             setTextSelection(null)
             setTextFormatMenu(null)
+            const input = event.currentTarget
+            window.requestAnimationFrame(() => {
+              if (textEditorRef.current === input && document.activeElement === input) syncTextSelection(input)
+            })
           }}
           onPointerMove={(event) => {
             if (event.buttons & 1) syncTextSelection(event.currentTarget)

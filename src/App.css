@@ -191,7 +191,7 @@
 .tool-button.danger:hover:not(:disabled) { background: #f7e7e4; border-color: #e2bbb4; color: #a23b2d; }
 .tool-button:disabled, .text-add-button:disabled { opacity: .36; cursor: not-allowed; }
 
-.font-ribbon { order: -1; align-self: stretch; display: grid; grid-template-columns: 112px 164px; grid-template-rows: 14px 29px 20px; gap: 3px 5px; min-width: 500px; margin-right: 5px; padding-right: 8px; }
+.font-ribbon { order: -1; align-self: stretch; display: grid; grid-template-columns: 112px 164px; grid-template-rows: 14px 29px 20px; gap: 3px 5px; min-width: 330px; margin-right: 0; padding-right: 4px; }
 .font-ribbon-label { grid-column: 1 / -1; color: #84958f; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
 .font-ribbon select { grid-column: 1; grid-row: 2; }
 .font-ribbon-controls { grid-column: 2; grid-row: 2; }
