@@ -122,7 +122,7 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
             <label>文字背景色
               <span className="color-field">
                 <input type="color" value={backgroundColor ?? '#fff3c4'} onChange={(event) => setBackgroundColor(event.target.value)} />
-                {backgroundColor && <button type="button" onClick={() => setBackgroundColor(null)}>なし</button>}
+                {backgroundColor && <button type="button" onClick={() => setBackgroundColor(null)}>無</button>}
               </span>
             </label>
           </>

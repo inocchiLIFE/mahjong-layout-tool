@@ -304,7 +304,7 @@ export const Toolbar = (props: ToolbarProps) => {
               <div className="text-color-palette" aria-label="文字背景色パレット">
                 <small>背景</small>
                 <div className="text-color-swatches">
-                  <button type="button" className={`text-background-none${!props.textStyle.backgroundColor ? ' active' : ''}`} title="背景なし" aria-label="文字背景色なし" onClick={() => props.onUpdateTextStyle({ backgroundColor: null })} disabled={isEditingShape}>なし</button>
+                  <button type="button" className={`text-background-none${!props.textStyle.backgroundColor ? ' active' : ''}`} title="背景なし" aria-label="文字背景色なし" onClick={() => props.onUpdateTextStyle({ backgroundColor: null })} disabled={isEditingShape}>無</button>
                   {textBackgroundColors.map((color) => <button key={color} type="button" className={props.textStyle.backgroundColor?.toLowerCase() === color ? 'active' : ''} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字背景色`} onClick={() => props.onUpdateTextStyle({ backgroundColor: color })} disabled={isEditingShape} />)}
                 </div>
               </div>

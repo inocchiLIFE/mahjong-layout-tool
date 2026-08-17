@@ -115,7 +115,7 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
             <label>文字背景色
               <span className="color-field">
                 <input type="color" value={draft.defaultTextBackgroundColor ?? '#fff3c4'} onChange={(event) => setDraft((current) => ({ ...current, defaultTextBackgroundColor: event.target.value }))} />
-                {draft.defaultTextBackgroundColor && <button type="button" onClick={() => setDraft((current) => ({ ...current, defaultTextBackgroundColor: null }))}>なし</button>}
+                {draft.defaultTextBackgroundColor && <button type="button" onClick={() => setDraft((current) => ({ ...current, defaultTextBackgroundColor: null }))}>無</button>}
               </span>
             </label>
           </fieldset>
