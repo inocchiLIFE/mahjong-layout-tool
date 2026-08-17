@@ -330,6 +330,53 @@ const getCollapsedTextRangeRect = (root: HTMLElement, offset: number): DOMRect |
   return range.getClientRects()[0] ?? range.getBoundingClientRect()
 }
 
+const getTextNodeLength = (node: Node): number => {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent?.length ?? 0
+  return Array.from(node.childNodes).reduce((total, child) => total + getTextNodeLength(child), 0)
+}
+
+const getTextOffsetFromCaretPosition = (root: HTMLElement, node: Node, nodeOffset: number): number | null => {
+  let offset = node.nodeType === Node.TEXT_NODE
+    ? Math.max(0, Math.min(nodeOffset, node.textContent?.length ?? 0))
+    : Array.from(node.childNodes).slice(0, Math.max(0, Math.min(nodeOffset, node.childNodes.length))).reduce((total, child) => total + getTextNodeLength(child), 0)
+  let current: Node | null = node
+  while (current && current !== root) {
+    let sibling = current.previousSibling
+    while (sibling) {
+      offset += getTextNodeLength(sibling)
+      sibling = sibling.previousSibling
+    }
+    current = current.parentNode
+  }
+  return current === root ? offset : null
+}
+
+const getTextOffsetAtPoint = (root: HTMLElement, clientX: number, clientY: number): number | null => {
+  const doc = root.ownerDocument
+  const caretDocument = doc as Document & {
+    caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null
+    caretRangeFromPoint?: (x: number, y: number) => Range | null
+  }
+  const caretPosition = caretDocument.caretPositionFromPoint?.(clientX, clientY)
+  if (caretPosition) {
+    const offset = getTextOffsetFromCaretPosition(root, caretPosition.offsetNode, caretPosition.offset)
+    if (offset !== null) return offset
+  }
+  const caretRange = caretDocument.caretRangeFromPoint?.(clientX, clientY)
+  if (caretRange) {
+    const offset = getTextOffsetFromCaretPosition(root, caretRange.startContainer, caretRange.startOffset)
+    if (offset !== null) return offset
+  }
+
+  const bounds = root.getBoundingClientRect()
+  const textLength = root.textContent?.length ?? 0
+  if (clientX <= bounds.left) return 0
+  if (clientX >= bounds.right) return textLength
+  if (clientY < bounds.top) return 0
+  if (clientY > bounds.bottom) return textLength
+  return null
+}
+
 const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
   return getArrowHeadPoints(points, size).map((point) => `${point.x},${point.y}`).join(' ')
 }
@@ -367,6 +414,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const eraserRef = useRef<EraserState | null>(null)
   const textEditorRef = useRef<HTMLTextAreaElement>(null)
   const textPreviewRef = useRef<HTMLSpanElement>(null)
+  const textPointerSelectionRef = useRef<{ pointerId: number; anchor: number } | null>(null)
   const elementResizeRef = useRef<ElementResizeState | null>(null)
   const imageCropEdgeRef = useRef<ImageCropEdgeState | null>(null)
   const panRef = useRef<PanState | null>(null)
@@ -407,6 +455,46 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       if (next && previous && next.start === previous.start && next.end === previous.end) return previous
       return next
     })
+  }
+
+  const updateTextSelectionFromPreview = (input: HTMLTextAreaElement, anchor: number, focus: number) => {
+    input.focus({ preventScroll: true })
+    input.setSelectionRange(anchor, focus, anchor === focus ? 'none' : anchor < focus ? 'forward' : 'backward')
+    syncTextSelection(input)
+  }
+
+  const handleTextPreviewPointerDown = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (event.button !== 0) return
+    const input = textEditorRef.current
+    const offset = getTextOffsetAtPoint(event.currentTarget, event.clientX, event.clientY)
+    if (!input || offset === null) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    textPointerSelectionRef.current = { pointerId: event.pointerId, anchor: offset }
+    setTextFormatMenu(null)
+    updateTextSelectionFromPreview(input, offset, offset)
+  }
+
+  const handleTextPreviewPointerMove = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    const selection = textPointerSelectionRef.current
+    if (!selection || selection.pointerId !== event.pointerId || !(event.buttons & 1)) return
+    const input = textEditorRef.current
+    const offset = getTextOffsetAtPoint(event.currentTarget, event.clientX, event.clientY)
+    if (!input || offset === null) return
+    event.preventDefault()
+    event.stopPropagation()
+    updateTextSelectionFromPreview(input, selection.anchor, offset)
+  }
+
+  const handleTextPreviewPointerUp = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    const selection = textPointerSelectionRef.current
+    if (!selection || selection.pointerId !== event.pointerId) return
+    event.preventDefault()
+    event.stopPropagation()
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    textPointerSelectionRef.current = null
+    if (textEditorRef.current) syncTextSelection(textEditorRef.current)
   }
 
   const restoreTextSelection = (start: number, end: number) => {
@@ -973,8 +1061,9 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
   }
 
-  const openTextFormatMenu = (event: ReactMouseEvent<HTMLTextAreaElement>) => {
-    const textarea = event.currentTarget
+  const openTextFormatMenu = (event: ReactMouseEvent<HTMLElement>) => {
+    const textarea = textEditorRef.current
+    if (!textarea) return
     const start = Math.min(textarea.selectionStart, textarea.selectionEnd)
     const end = Math.max(textarea.selectionStart, textarea.selectionEnd)
     event.preventDefault()
@@ -1012,6 +1101,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (!editor) return
     const text = editor.value.trim()
     if (!cancelled && text) props.onCommitText(text, editor.x, editor.y, editor.id, normalizeTextRuns(text, editor.runs, editor.baseStyle))
+    textPointerSelectionRef.current = null
     setEditor(null)
     setTextSelection(null)
     setTextCaretIndex(null)
@@ -1108,7 +1198,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       onPointerDownCapture={(event) => {
         if (!editor) return
         const target = event.target
-        if (target instanceof Element && target.closest('.workspace-text-editor, .text-format-context-menu')) return
+        if (target instanceof Element && target.closest('.workspace-text-editor, .workspace-text-editor-preview, .text-format-context-menu')) return
         finishTextEditor()
       }}
       onPointerDown={beginCanvasPointer}
@@ -1466,11 +1556,26 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           ref={textPreviewRef}
           className="workspace-text-editor-preview export-hidden"
           style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: editorPreviewFontSize, fontFamily: editor.baseStyle.fontFamily, fontWeight: editor.baseStyle.fontWeight }}
+          onPointerDown={handleTextPreviewPointerDown}
+          onPointerMove={handleTextPreviewPointerMove}
+          onPointerUp={handleTextPreviewPointerUp}
+          onPointerCancel={handleTextPreviewPointerUp}
+          onContextMenu={openTextFormatMenu}
           aria-hidden="true"
         >{renderTextRuns(editor.value, editor.runs, editor.baseStyle, undefined, textSelection ?? undefined)}</span>
       })()}
 
-      {editor && !editor.value && <span ref={textPreviewRef} className="workspace-text-editor-preview export-hidden" style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: editor.baseStyle.fontSize, fontFamily: editor.baseStyle.fontFamily, fontWeight: editor.baseStyle.fontWeight }} aria-hidden="true" />}
+      {editor && !editor.value && <span
+        ref={textPreviewRef}
+        className="workspace-text-editor-preview export-hidden"
+        style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: editor.baseStyle.fontSize, fontFamily: editor.baseStyle.fontFamily, fontWeight: editor.baseStyle.fontWeight }}
+        onPointerDown={handleTextPreviewPointerDown}
+        onPointerMove={handleTextPreviewPointerMove}
+        onPointerUp={handleTextPreviewPointerUp}
+        onPointerCancel={handleTextPreviewPointerUp}
+        onContextMenu={openTextFormatMenu}
+        aria-hidden="true"
+      />}
       {editor && !textSelection && textCaret && (() => {
         const caretIndex = Math.max(0, Math.min(editor.value.length - 1, textCaretIndex ?? 0))
         const caretStyle = getTextRunStyleAt(editor.value, editor.runs, caretIndex, editor.baseStyle)
