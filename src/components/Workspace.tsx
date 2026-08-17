@@ -363,6 +363,17 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     baseStyle,
   })
 
+  const syncTextSelection = (input: HTMLTextAreaElement) => {
+    const start = Math.min(input.selectionStart, input.selectionEnd)
+    const end = Math.max(input.selectionStart, input.selectionEnd)
+    const next = start === end ? null : { start, end }
+    setTextSelection((previous) => {
+      if (!next && !previous) return previous
+      if (next && previous && next.start === previous.start && next.end === previous.end) return previous
+      return next
+    })
+  }
+
   const restoreTextSelection = (start: number, end: number) => {
     setTextSelection({ start, end })
     window.requestAnimationFrame(() => {
@@ -416,6 +427,21 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       setTextFormatMenu(null)
     }
   }, [props.editTextRequest, props.scene.elements])
+
+  useEffect(() => {
+    if (!editor) return
+    const syncActiveSelection = () => {
+      const input = textEditorRef.current
+      if (!input || document.activeElement !== input) return
+      syncTextSelection(input)
+    }
+    document.addEventListener('selectionchange', syncActiveSelection)
+    window.addEventListener('pointerup', syncActiveSelection)
+    return () => {
+      document.removeEventListener('selectionchange', syncActiveSelection)
+      window.removeEventListener('pointerup', syncActiveSelection)
+    }
+  }, [editor])
 
   useEffect(() => {
     if (props.placementMode === 'text' || props.placementMode === 'rectangle' || props.placementMode === 'circle' || props.placementMode === 'triangle' || props.placementMode === 'cross' || props.placementMode === 'wave') return
@@ -1304,12 +1330,16 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           rows={Math.max(1, editor.value.split('\n').length)}
           autoFocus
           aria-label="文字を入力"
-          onPointerDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => {
+            event.stopPropagation()
+            window.requestAnimationFrame(() => syncTextSelection(event.currentTarget))
+          }}
+          onPointerMove={(event) => {
+            if (event.buttons & 1) syncTextSelection(event.currentTarget)
+          }}
           onContextMenu={openTextFormatMenu}
           onSelect={(event) => {
-            const start = Math.min(event.currentTarget.selectionStart, event.currentTarget.selectionEnd)
-            const end = Math.max(event.currentTarget.selectionStart, event.currentTarget.selectionEnd)
-            setTextSelection(start === end ? null : { start, end })
+            syncTextSelection(event.currentTarget)
           }}
           onChange={(event) => {
             const start = Math.min(event.currentTarget.selectionStart, event.currentTarget.selectionEnd)
