@@ -280,7 +280,11 @@ const renderTextRuns = (
 
 const getTextFormatMenuPosition = (menu: TextFormatMenuState) => {
   const width = 270
-  const height = 280
+  // The menu is compact in the ribbon-sized app UI.  Keep a little extra
+  // room for font fallbacks, but do not reserve a desktop-sized rectangle;
+  // doing so incorrectly forces the menu above the text even when the lower
+  // right corner is available.
+  const height = 170
   const gap = 12
   const margin = 8
   const zoom = menu.zoom
@@ -293,10 +297,11 @@ const getTextFormatMenuPosition = (menu: TextFormatMenuState) => {
     bottom: menu.anchor.bottom / zoom,
   }
   const candidates = [
-    { left: anchor.right + gap, top: anchor.top },
-    { left: anchor.left - width - gap, top: anchor.top },
+    { left: anchor.right + gap, top: anchor.bottom + gap },
     { left: anchor.left, top: anchor.bottom + gap },
-    { left: anchor.left, top: anchor.top - height - gap },
+    { left: anchor.right + gap, top: anchor.top - height - gap },
+    { left: anchor.left - width - gap, top: anchor.top - height - gap },
+    { left: anchor.left - width - gap, top: anchor.top },
     { left: menu.clientX / zoom + gap, top: menu.clientY / zoom + gap },
   ]
   const fits = candidates.find(({ left, top }) => left >= margin && top >= margin && left + width <= viewportWidth - margin && top + height <= viewportHeight - margin)
@@ -1064,6 +1069,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const openTextFormatMenu = (event: ReactMouseEvent<HTMLElement>) => {
     const textarea = textEditorRef.current
     if (!textarea) return
+    textPointerSelectionRef.current = null
+    syncTextSelection(textarea)
     const start = Math.min(textarea.selectionStart, textarea.selectionEnd)
     const end = Math.max(textarea.selectionStart, textarea.selectionEnd)
     event.preventDefault()
@@ -1075,7 +1082,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       return
     }
     setTextSelection({ start, end })
-    const bounds = textarea.getBoundingClientRect()
+    const bounds = textPreviewRef.current?.getBoundingClientRect() ?? textarea.getBoundingClientRect()
     const appShell = textarea.closest('.app-shell')
     const parsedZoom = appShell ? Number.parseFloat(getComputedStyle(appShell).zoom) : 1
     const zoom = Number.isFinite(parsedZoom) && parsedZoom > 0 ? parsedZoom : 1
