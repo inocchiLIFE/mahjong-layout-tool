@@ -373,12 +373,48 @@ const getTextOffsetAtPoint = (root: HTMLElement, clientX: number, clientY: numbe
     if (offset !== null) return offset
   }
 
+  // Some embedded browsers do not expose caretPositionFromPoint/caretRangeFromPoint.
+  // In that case, resolve the nearest character boundary from the rendered text
+  // itself.  This also keeps reverse (right-to-left) drags working when text runs
+  // have different sizes or colors.
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let node = walker.nextNode() as Text | null
+  let textOffset = 0
+  let nearest: { offset: number; distance: number } | null = null
+  while (node) {
+    const length = node.textContent?.length ?? 0
+    for (let index = 0; index < length; index += 1) {
+      const range = doc.createRange()
+      range.setStart(node, index)
+      range.setEnd(node, index + 1)
+      const rect = Array.from(range.getClientRects())[0] ?? range.getBoundingClientRect()
+      if (rect.width <= 0 && rect.height <= 0) continue
+      const verticalDistance = clientY < rect.top ? rect.top - clientY : clientY > rect.bottom ? clientY - rect.bottom : 0
+      const horizontalDistance = clientX < rect.left ? rect.left - clientX : clientX > rect.right ? clientX - rect.right : 0
+      const distance = verticalDistance * 1000 + horizontalDistance
+      const midpoint = rect.left + rect.width / 2
+      const candidateOffset = clientX <= midpoint ? textOffset + index : textOffset + index + 1
+      if (!nearest || distance < nearest.distance) nearest = { offset: candidateOffset, distance }
+      if (verticalDistance === 0 && clientX <= midpoint) return textOffset + index
+    }
+    textOffset += length
+    node = walker.nextNode() as Text | null
+  }
+  if (nearest) return nearest.offset
+
   const bounds = root.getBoundingClientRect()
   const textLength = root.textContent?.length ?? 0
   if (clientX <= bounds.left) return 0
   if (clientX >= bounds.right) return textLength
   if (clientY < bounds.top) return 0
   if (clientY > bounds.bottom) return textLength
+  if (textLength > 0 && bounds.width > 0) {
+    // Last-resort approximation for browsers that expose neither caret APIs nor
+    // usable character ranges. The rendered preview is a single horizontal text
+    // box in the editor, so this still provides a stable anchor/focus offset.
+    const ratio = Math.max(0, Math.min(1, (clientX - bounds.left) / bounds.width))
+    return Math.max(0, Math.min(textLength, Math.round(ratio * textLength)))
+  }
   return null
 }
 
@@ -455,6 +491,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const start = Math.min(selectionStart, selectionEnd)
     const end = Math.max(selectionStart, selectionEnd)
     const next = start === end ? null : { start, end }
+    textFormatSelectionRef.current = next
     setTextCaretIndex(selectionEnd)
     setTextSelection((previous) => {
       if (!next && !previous) return previous
@@ -466,18 +503,22 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const updateTextSelectionFromPreview = (input: HTMLTextAreaElement, anchor: number, focus: number) => {
     input.focus({ preventScroll: true })
     input.setSelectionRange(anchor, focus, anchor === focus ? 'none' : anchor < focus ? 'forward' : 'backward')
+    const start = Math.min(anchor, focus)
+    const end = Math.max(anchor, focus)
+    textFormatSelectionRef.current = start === end ? null : { start, end }
     syncTextSelection(input)
   }
 
   const handleTextPreviewPointerDown = (event: ReactPointerEvent<HTMLSpanElement>) => {
     if (event.button !== 0) return
+    event.preventDefault()
+    event.stopPropagation()
     const input = textEditorRef.current
     const offset = getTextOffsetAtPoint(event.currentTarget, event.clientX, event.clientY)
     if (!input || offset === null) return
-    event.preventDefault()
-    event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
     textPointerSelectionRef.current = { pointerId: event.pointerId, anchor: offset }
+    textFormatSelectionRef.current = null
     setTextFormatMenu(null)
     updateTextSelectionFromPreview(input, offset, offset)
   }
@@ -485,11 +526,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const handleTextPreviewPointerMove = (event: ReactPointerEvent<HTMLSpanElement>) => {
     const selection = textPointerSelectionRef.current
     if (!selection || selection.pointerId !== event.pointerId || !(event.buttons & 1)) return
+    event.preventDefault()
+    event.stopPropagation()
     const input = textEditorRef.current
     const offset = getTextOffsetAtPoint(event.currentTarget, event.clientX, event.clientY)
     if (!input || offset === null) return
-    event.preventDefault()
-    event.stopPropagation()
     updateTextSelectionFromPreview(input, selection.anchor, offset)
   }
 
@@ -1072,19 +1113,22 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const openTextFormatMenu = (event: ReactMouseEvent<HTMLElement>) => {
     const textarea = textEditorRef.current
     if (!textarea) return
+    const savedSelection = textSelection ?? textFormatSelectionRef.current
     textPointerSelectionRef.current = null
-    syncTextSelection(textarea)
-    const start = Math.min(textarea.selectionStart, textarea.selectionEnd)
-    const end = Math.max(textarea.selectionStart, textarea.selectionEnd)
+    const nativeStart = Math.min(textarea.selectionStart, textarea.selectionEnd)
+    const nativeEnd = Math.max(textarea.selectionStart, textarea.selectionEnd)
+    const nativeSelection = nativeStart === nativeEnd ? null : { start: nativeStart, end: nativeEnd }
+    const selection = nativeSelection ?? savedSelection
     event.preventDefault()
     event.stopPropagation()
-    if (!editor || start === end) {
+    if (!editor || !selection) {
       textFormatSelectionRef.current = null
-      setTextCaretIndex(end)
+      setTextCaretIndex(nativeEnd)
       setTextSelection(null)
       setTextFormatMenu(null)
       return
     }
+    const { start, end } = selection
     textFormatSelectionRef.current = { start, end }
     setTextSelection({ start, end })
     const bounds = textPreviewRef.current?.getBoundingClientRect() ?? textarea.getBoundingClientRect()
