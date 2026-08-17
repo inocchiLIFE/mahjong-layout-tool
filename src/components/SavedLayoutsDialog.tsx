@@ -88,10 +88,11 @@ const LayoutPreview = ({ saved }: { saved: NamedSavedLayout }) => {
           return <img key={element.id} className="saved-preview-item" src={element.src} alt="" style={{ ...style, opacity: element.opacity }} />
         }
         if (element.kind === 'drawing') {
+          const drawingOpacity = element.drawingType === 'marker' ? element.opacity ?? 0.42 : 1
           return (
             <svg key={element.id} className="saved-preview-item" viewBox={`0 0 ${element.width} ${element.height}`} style={style}>
-              {element.drawingType === 'curve' ? <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers> : <>
-                <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>
+              {element.drawingType === 'curve' ? <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" opacity={drawingOpacity} transform={transform} />}</StrokeLayers> : <>
+                <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" opacity={drawingOpacity} transform={transform} />}</StrokeLayers>
                 {element.drawingType === 'arrow' && <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>}
               </>}
             </svg>

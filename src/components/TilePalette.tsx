@@ -65,6 +65,7 @@ const symbolChoices: Array<{ mode: PlacementMode; icon: string; label: string; h
   { mode: 'cross', icon: '✕', label: 'バツ', hint: 'ドラッグして配置', dragOnly: true },
   { mode: 'wave', icon: '〰', label: '波線（牌5枚分）', hint: 'ドラッグして配置', dragOnly: true },
   { mode: 'draw', icon: '✎', label: 'ペン', hint: '手描きで線を書く' },
+  { mode: 'marker', icon: '🖍', label: 'マーカー', hint: 'ドラッグして線を引く' },
   { mode: 'eraser', icon: '⌫', label: '消しゴム', hint: '要素をクリックして削除' },
   { mode: 'line', icon: '╱', label: '直線', hint: 'ドラッグで描画' },
   { mode: 'curve', icon: '⌒', label: '曲線', hint: 'ドラッグで描画' },
@@ -154,11 +155,11 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
                 event.dataTransfer.effectAllowed = 'copy'
                 setSymbolDragPreview(event, choice.mode, symbolColors[choice.mode as SymbolType], symbolSizes[choice.mode as SymbolType], symbolStrokeWidths[choice.mode as SymbolType], symbolStrokePatterns[choice.mode as SymbolType])
               }}
-              onContextMenu={(event) => { if (choice.dragOnly) { event.preventDefault(); onOpenSymbolPreset(choice.mode as SymbolType) } else if (['draw', 'line', 'curve', 'arrow', 'eraser'].includes(choice.mode)) { event.preventDefault(); onOpenDrawingPreset(choice.mode as DrawingTool) } }}
+              onContextMenu={(event) => { if (choice.dragOnly) { event.preventDefault(); onOpenSymbolPreset(choice.mode as SymbolType) } else if (['draw', 'marker', 'line', 'curve', 'arrow', 'eraser'].includes(choice.mode)) { event.preventDefault(); onOpenDrawingPreset(choice.mode as DrawingTool) } }}
               aria-pressed={!choice.dragOnly && placementMode === choice.mode}
               aria-label={choice.dragOnly ? `${choice.label}をドラッグして配置` : `${choice.label}配置ツール`}
             >
-              <b aria-hidden="true" style={choice.dragOnly ? { color: symbolColors[choice.mode as SymbolType] } : ['draw', 'line', 'curve', 'arrow'].includes(choice.mode) ? { color: drawingColors[choice.mode as Exclude<DrawingTool, 'eraser'>] } : undefined}>{choice.icon}</b>
+              <b aria-hidden="true" style={choice.dragOnly ? { color: symbolColors[choice.mode as SymbolType] } : ['draw', 'marker', 'line', 'curve', 'arrow'].includes(choice.mode) ? { color: drawingColors[choice.mode as Exclude<DrawingTool, 'eraser'>] } : undefined}>{choice.icon}</b>
               <span>{choice.label}<small>{choice.hint}</small></span>
             </button>
           ))}

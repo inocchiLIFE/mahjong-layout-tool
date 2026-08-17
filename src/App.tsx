@@ -12,7 +12,7 @@ import { SavedLayoutsDialog } from './components/SavedLayoutsDialog'
 import { SettingsDialog, type AppPreferences } from './components/SettingsDialog'
 import { SymbolPresetDialog, type SymbolPreset } from './components/SymbolPresetDialog'
 import { CustomShapeDialog } from './components/CustomShapeDialog'
-import { DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
+import { DEFAULT_MARKER_COLOR, DEFAULT_MARKER_OPACITY, DEFAULT_MARKER_STROKE_WIDTH, DrawingPresetDialog, type DrawingPreset, type DrawingTool } from './components/DrawingPresetDialog'
 import { TilePalette } from './components/TilePalette'
 import { Toolbar } from './components/Toolbar'
 import { Workspace } from './components/Workspace'
@@ -86,6 +86,7 @@ const HAND_SUITS_KEY = 'mahjong-layout-tool:hand-suits-v1'
 const IISHANTEN_QUESTION_TYPES_KEY = 'mahjong-layout-tool:iishanten-question-types-v1'
 const CUSTOM_SHAPES_KEY = 'mahjong-layout-tool:custom-shapes-v1'
 const DEFAULT_DRAWING_PRESET: DrawingPreset = { color: null, strokeWidth: 4, strokePattern: DEFAULT_STROKE_PATTERN, eraserSize: 24, arrowHeadSize: 30 }
+const DEFAULT_MARKER_PRESET: DrawingPreset = { color: DEFAULT_MARKER_COLOR, strokeWidth: DEFAULT_MARKER_STROKE_WIDTH, strokePattern: DEFAULT_STROKE_PATTERN, opacity: DEFAULT_MARKER_OPACITY, eraserSize: 24 }
 const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visible-v1'
 const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
 const CONTEXT_MENU_WAVE_MIGRATION_KEY = 'mahjong-layout-tool:context-wave-migration-v1'
@@ -120,7 +121,7 @@ const isSymbolType = (value: unknown): value is SymbolType =>
   value === 'rectangle' || value === 'cross' || value === 'circle' || value === 'triangle' || value === 'wave'
 
 const isDrawingType = (value: unknown): value is DrawingType =>
-  value === 'freehand' || value === 'line' || value === 'curve' || value === 'arrow'
+  value === 'freehand' || value === 'line' || value === 'curve' || value === 'arrow' || value === 'marker'
 
 const normalizeTextColor = (value: unknown) => {
   if (typeof value !== 'string') return '#172c27'
@@ -235,6 +236,7 @@ const parseElement = (value: unknown): CanvasElement | null => {
       color: typeof item.color === 'string' ? item.color : '#244a40',
       strokeWidth,
       strokePattern: isStrokePattern(item.strokePattern) ? item.strokePattern : DEFAULT_STROKE_PATTERN,
+      opacity: typeof item.opacity === 'number' ? clamp(item.opacity, 0.15, 1) : drawingType === 'marker' ? DEFAULT_MARKER_OPACITY : undefined,
       drawingType,
       arrowHeadSize,
     }
@@ -430,7 +432,7 @@ const readSymbolPresets = () => {
 }
 
 const createDrawingPresets = (): Record<DrawingTool, DrawingPreset> => Object.fromEntries(
-  (['draw', 'line', 'curve', 'arrow', 'eraser'] as DrawingTool[]).map((tool) => [tool, { ...DEFAULT_DRAWING_PRESET }]),
+  (['draw', 'line', 'curve', 'arrow', 'marker', 'eraser'] as DrawingTool[]).map((tool) => [tool, { ...(tool === 'marker' ? DEFAULT_MARKER_PRESET : DEFAULT_DRAWING_PRESET) }]),
 ) as Record<DrawingTool, DrawingPreset>
 const readDrawingPresets = (): Record<DrawingTool, DrawingPreset> => {
   const defaults = createDrawingPresets()
@@ -438,7 +440,7 @@ const readDrawingPresets = (): Record<DrawingTool, DrawingPreset> => {
     const saved = JSON.parse(localStorage.getItem(DRAWING_PRESETS_KEY) ?? '{}') as Partial<Record<DrawingTool, Partial<DrawingPreset>>>
     return (Object.keys(defaults) as DrawingTool[]).reduce((result, tool) => ({
       ...result,
-      [tool]: { ...defaults[tool], ...saved[tool], color: saved[tool]?.color === '#244a40' ? null : saved[tool]?.color ?? null, strokePattern: isStrokePattern(saved[tool]?.strokePattern) ? saved[tool]!.strokePattern : defaults[tool].strokePattern, arrowHeadSize: typeof saved[tool]?.arrowHeadSize === 'number' ? clamp(saved[tool]!.arrowHeadSize!, 12, 64) : defaults[tool].arrowHeadSize },
+      [tool]: { ...defaults[tool], ...saved[tool], color: tool === 'marker' ? saved[tool]?.color ?? defaults[tool].color : saved[tool]?.color === '#244a40' ? null : saved[tool]?.color ?? null, strokePattern: isStrokePattern(saved[tool]?.strokePattern) ? saved[tool]!.strokePattern : defaults[tool].strokePattern, opacity: tool === 'marker' && typeof saved[tool]?.opacity === 'number' ? clamp(saved[tool]!.opacity!, 0.15, 1) : defaults[tool].opacity, arrowHeadSize: typeof saved[tool]?.arrowHeadSize === 'number' ? clamp(saved[tool]!.arrowHeadSize!, 12, 64) : defaults[tool].arrowHeadSize },
     }), {} as Record<DrawingTool, DrawingPreset>)
   } catch { return defaults }
 }
@@ -913,7 +915,7 @@ const App = () => {
     let changed = false
     const elements = scene.elements.flatMap((element) => {
       if (element.kind === 'tile' || element.locked) return [element]
-      if (element.kind === 'drawing' && (!element.drawingType || element.drawingType === 'freehand')) {
+      if (element.kind === 'drawing' && (!element.drawingType || element.drawingType === 'freehand' || element.drawingType === 'marker')) {
         const touchesStroke = element.points.some((item, index) => index > 0 && distanceToSegment(
           { x: point.x - element.x, y: point.y - element.y },
           element.points[index - 1],
@@ -1198,7 +1200,7 @@ const App = () => {
     const height = Math.max(8, Math.ceil(bounds.maxY - y))
     const relative = points.map((point) => ({ x: point.x - x, y: point.y - y }))
     const item = makeDrawing(relative, x, y, width, height, nextZIndex(), drawingType)
-    history.commit({ ...scene, elements: [...scene.elements, { ...item, color: preset.color ?? defaultShapeColor, strokeWidth, strokePattern: preset.strokePattern ?? defaultShapeStrokePattern, arrowHeadSize }] })
+    history.commit({ ...scene, elements: [...scene.elements, { ...item, color: preset.color ?? defaultShapeColor, strokeWidth, strokePattern: preset.strokePattern ?? defaultShapeStrokePattern, opacity: drawingType === 'marker' ? preset.opacity ?? DEFAULT_MARKER_OPACITY : undefined, arrowHeadSize }] })
   }
 
   const addImageFile = async (file: File, anchor?: { x: number; y: number } | null) => {
@@ -1475,7 +1477,7 @@ const App = () => {
     const nextStrokeWidth = clamp(strokeWidth, 1, 12)
     applySharedPreferences({ ...preferences, defaultShapeStrokeWidth: nextStrokeWidth })
     const nextSymbolPresets = Object.fromEntries((Object.keys(symbolPresets) as SymbolType[]).map((symbolType) => [symbolType, { ...symbolPresets[symbolType], strokeWidth: nextStrokeWidth }])) as Record<SymbolType, SymbolPreset>
-    const nextDrawingPresets = Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, { ...drawingPresets[tool], strokeWidth: nextStrokeWidth }])) as Pick<Record<DrawingTool, DrawingPreset>, 'draw' | 'line' | 'curve' | 'arrow'>
+    const nextDrawingPresets = Object.fromEntries((['draw', 'line', 'curve', 'arrow', 'marker'] as DrawingTool[]).map((tool) => [tool, { ...drawingPresets[tool], strokeWidth: nextStrokeWidth }])) as Pick<Record<DrawingTool, DrawingPreset>, 'draw' | 'line' | 'curve' | 'arrow' | 'marker'>
     const mergedDrawingPresets = { ...drawingPresets, ...nextDrawingPresets }
     setSymbolPresets(nextSymbolPresets)
     setDrawingPresets(mergedDrawingPresets)
@@ -1498,7 +1500,7 @@ const App = () => {
   const updateDefaultShapeStrokePattern = (strokePattern: StrokePattern) => {
     applySharedPreferences({ ...preferences, defaultShapeStrokePattern: strokePattern })
     const nextSymbolPresets = Object.fromEntries((Object.keys(symbolPresets) as SymbolType[]).map((symbolType) => [symbolType, { ...symbolPresets[symbolType], strokePattern }])) as Record<SymbolType, SymbolPreset>
-    const nextDrawingPresets = Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, { ...drawingPresets[tool], strokePattern }])) as Pick<Record<DrawingTool, DrawingPreset>, 'draw' | 'line' | 'curve' | 'arrow'>
+    const nextDrawingPresets = Object.fromEntries((['draw', 'line', 'curve', 'arrow', 'marker'] as DrawingTool[]).map((tool) => [tool, { ...drawingPresets[tool], strokePattern }])) as Pick<Record<DrawingTool, DrawingPreset>, 'draw' | 'line' | 'curve' | 'arrow' | 'marker'>
     const mergedDrawingPresets = { ...drawingPresets, ...nextDrawingPresets }
     setSymbolPresets(nextSymbolPresets)
     setDrawingPresets(mergedDrawingPresets)
@@ -2012,7 +2014,7 @@ const App = () => {
         onReorderPages={reorderPages}
         onRenamePage={renamePage}
         symbolColors={symbolColors}
-        drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
+        drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow', 'marker'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
       />
 
       <main className={`app-body${efficiencyPanelVisible ? '' : ' efficiency-panel-hidden'}`} style={{ '--efficiency-panel-requested-space': efficiencyPanelVisible ? `${efficiencyPanelWidth}px` : '0px' } as CSSProperties}>
@@ -2026,7 +2028,7 @@ const App = () => {
           symbolColors={symbolColors}
           symbolStrokeWidths={symbolStrokeWidths}
           symbolStrokePatterns={symbolStrokePatterns}
-          drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
+          drawingColors={Object.fromEntries((['draw', 'line', 'curve', 'arrow', 'marker'] as DrawingTool[]).map((tool) => [tool, drawingPresets[tool].color ?? defaultShapeColor])) as Record<Exclude<DrawingTool, 'eraser'>, string>}
           symbolSizes={symbolSizes}
           customShapes={customShapes}
           onInsertCustomShape={insertCustomShape}
@@ -2052,9 +2054,9 @@ const App = () => {
               eraserSize={eraserSize}
               textStyle={defaultTextStyle}
               drawingStyle={(() => {
-                const tool = placementMode === 'draw' ? 'draw' : placementMode === 'line' ? 'line' : placementMode === 'curve' ? 'curve' : placementMode === 'arrow' ? 'arrow' : 'draw'
+                const tool = placementMode === 'draw' ? 'draw' : placementMode === 'line' ? 'line' : placementMode === 'curve' ? 'curve' : placementMode === 'arrow' ? 'arrow' : placementMode === 'marker' ? 'marker' : 'draw'
                 const preset = drawingPresets[tool]
-                return { color: preset.color ?? defaultShapeColor, strokeWidth: preset.strokeWidth, strokePattern: preset.strokePattern ?? defaultShapeStrokePattern, arrowHeadSize: preset.arrowHeadSize ?? 30 }
+                return { color: preset.color ?? defaultShapeColor, strokeWidth: preset.strokeWidth, strokePattern: preset.strokePattern ?? defaultShapeStrokePattern, opacity: preset.opacity, arrowHeadSize: preset.arrowHeadSize ?? 30 }
               })()}
               symbolColors={symbolColors}
               symbolStrokeWidths={symbolStrokeWidths}

@@ -324,7 +324,7 @@ export const Toolbar = (props: ToolbarProps) => {
             <span className="tool-group-label">配置（Escで解除）</span>
             <ToolButton label="選択" icon="↖" onClick={() => props.onSetPlacementMode('select')} active={props.placementMode === 'select'} />
             {([
-              ['text', 'クリック文字', 'T'], ['draw', 'ペン', '✎'], ['eraser', '消しゴム', '⌫'], ['line', '直線', '╱'], ['curve', '曲線', '⌒'], ['arrow', '矢印', '→'],
+              ['text', 'クリック文字', 'T'], ['draw', 'ペン', '✎'], ['marker', 'マーカー', '🖍'], ['eraser', '消しゴム', '⌫'], ['line', '直線', '╱'], ['curve', '曲線', '⌒'], ['arrow', '矢印', '→'],
               ['rectangle', '長方形', '▭'], ['triangle', '三角形', '△'], ['cross', 'バツ', '✕'], ['circle', '丸', '〇'], ['wave', '波線（牌5枚分）', '〰'],
             ] as Array<[PlacementMode, string, string]>).map(([mode, label, icon]) => (
               <ToolButton
@@ -333,8 +333,8 @@ export const Toolbar = (props: ToolbarProps) => {
                 icon={icon}
                 onClick={() => props.onSetPlacementMode(props.placementMode === mode ? 'select' : mode)}
                 active={props.placementMode === mode}
-                iconColor={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? props.symbolColors[mode as SymbolType] : ['draw', 'line', 'curve', 'arrow'].includes(mode) ? props.drawingColors[mode as Exclude<DrawingTool, 'eraser'>] : undefined}
-                onContextMenu={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? () => props.onOpenSymbolPreset(mode as SymbolType) : ['draw', 'line', 'curve', 'arrow', 'eraser'].includes(mode) ? () => props.onOpenDrawingPreset(mode as DrawingTool) : undefined}
+                iconColor={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? props.symbolColors[mode as SymbolType] : ['draw', 'line', 'curve', 'arrow', 'marker'].includes(mode) ? props.drawingColors[mode as Exclude<DrawingTool, 'eraser'>] : undefined}
+                onContextMenu={['rectangle', 'triangle', 'cross', 'circle', 'wave'].includes(mode) ? () => props.onOpenSymbolPreset(mode as SymbolType) : ['draw', 'line', 'curve', 'arrow', 'marker', 'eraser'].includes(mode) ? () => props.onOpenDrawingPreset(mode as DrawingTool) : undefined}
               />
             ))}
           </div>

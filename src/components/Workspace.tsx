@@ -46,7 +46,7 @@ interface WorkspaceProps {
   placementMode: PlacementMode
   eraserSize: number
   textStyle: { fontFamily: string; fontSize: number; color: string }
-  drawingStyle: { color: string; strokeWidth: number; strokePattern: StrokePattern; arrowHeadSize: number }
+  drawingStyle: { color: string; strokeWidth: number; strokePattern: StrokePattern; opacity?: number; arrowHeadSize: number }
   symbolColors: Record<SymbolType, string>
   symbolStrokeWidths: Record<SymbolType, number>
   symbolStrokePatterns: Record<SymbolType, StrokePattern>
@@ -210,6 +210,8 @@ const curvePath = (points: CanvasPoint[]) => {
   const control = getCurveControlPoint(points)
   return `M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y}`
 }
+
+const isDrawingPlacementMode = (mode: PlacementMode) => mode === 'draw' || mode === 'line' || mode === 'curve' || mode === 'arrow' || mode === 'marker'
 
 const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
   return getArrowHeadPoints(points, size).map((point) => `${point.x},${point.y}`).join(' ')
@@ -611,7 +613,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       setCurvePreview(null)
       return
     }
-    if (props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow') {
+    if (isDrawingPlacementMode(props.placementMode)) {
       const point = canvasPoint(event)
       const state = { pointerId: event.pointerId, points: [point] }
       drawingRef.current = state
@@ -711,7 +713,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         return
       }
       if (points.length >= 2 && Math.hypot(points.at(-1)!.x - points[0].x, points.at(-1)!.y - points[0].y) > 3) {
-        props.onCommitDrawing(points, props.placementMode === 'line' ? 'line' : props.placementMode === 'curve' ? 'curve' : props.placementMode === 'arrow' ? 'arrow' : 'freehand')
+        props.onCommitDrawing(points, props.placementMode === 'line' ? 'line' : props.placementMode === 'curve' ? 'curve' : props.placementMode === 'arrow' ? 'arrow' : props.placementMode === 'marker' ? 'marker' : 'freehand')
       }
       return
     }
@@ -740,7 +742,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
     if (props.placementMode === 'text') {
       setEditor({ x: state.startX, y: state.startY, value: '' })
-    } else if (props.placementMode !== 'select' && props.placementMode !== 'draw' && props.placementMode !== 'line' && props.placementMode !== 'curve' && props.placementMode !== 'arrow' && props.placementMode !== 'eraser') {
+    } else if (props.placementMode !== 'select' && !isDrawingPlacementMode(props.placementMode) && props.placementMode !== 'eraser') {
       props.onPlaceSymbol(props.placementMode, state.startX, state.startY)
     } else {
       props.onClearSelection()
@@ -835,7 +837,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   return (
     <div
       ref={ref}
-      className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.captureMode ? ' capture-hide-grid is-capturing' : ''}${props.transparentBackground ? ' capture-transparent' : ''}${props.placementMode === 'draw' || props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' ? ' drawing-mode' : ''}${props.placementMode === 'eraser' ? ' eraser-mode' : ''}`}
+      className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.captureMode ? ' capture-hide-grid is-capturing' : ''}${props.transparentBackground ? ' capture-transparent' : ''}${isDrawingPlacementMode(props.placementMode) ? ' drawing-mode' : ''}${props.placementMode === 'eraser' ? ' eraser-mode' : ''}`}
       style={{ width: props.scene.width, height: props.scene.height }}
       onPointerDown={beginCanvasPointer}
       onPointerMove={moveCanvasPointer}
@@ -928,7 +930,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               if (!element.locked) props.onDeleteDragged([element.id])
               return
             }
-            if (props.placementMode !== 'draw' && props.placementMode !== 'line' && props.placementMode !== 'curve' && props.placementMode !== 'arrow') beginElementDrag(event, element)
+            if (!isDrawingPlacementMode(props.placementMode)) beginElementDrag(event, element)
           },
           onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => openContextMenu(event, element),
         }
@@ -1032,6 +1034,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }
 
         if (element.kind === 'drawing') {
+          const drawingOpacity = element.drawingType === 'marker' ? element.opacity ?? 0.42 : 1
           return (
             <button key={element.id} {...commonProps} aria-label={`手描き線${element.selected ? '、選択中' : ''}${lockedLabel}`}>
               <svg
@@ -1042,13 +1045,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               >
                 {element.drawingType === 'curve' ? <>
                   {element.selected && <path d={curvePath(element.points)} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" opacity=".7" />}
-                  <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers>
+                  <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" opacity={drawingOpacity} transform={transform} />}</StrokeLayers>
                 </> : <>
                   {element.selected && <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" strokeLinejoin="round" opacity=".7" />}
-                  <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>
+                  <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" opacity={drawingOpacity} transform={transform} />}</StrokeLayers>
                   {element.drawingType === 'arrow' && <>
                     {element.selected && <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" strokeLinejoin="round" opacity=".7" />}
-                    <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>
+                    <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" opacity={drawingOpacity} transform={transform} />}</StrokeLayers>
                   </>}
                 </>}
               </svg>
@@ -1200,7 +1203,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           aria-hidden="true"
         >
           <>
-            <StrokeLayers pattern={props.drawingStyle.strokePattern} strokeWidth={props.drawingStyle.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={drawing.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={props.drawingStyle.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>
+            <StrokeLayers pattern={props.drawingStyle.strokePattern} strokeWidth={props.drawingStyle.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={drawing.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={props.drawingStyle.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" opacity={props.placementMode === 'marker' ? props.drawingStyle.opacity ?? 0.42 : 1} transform={transform} />}</StrokeLayers>
             {props.placementMode === 'arrow' && <StrokeLayers pattern={props.drawingStyle.strokePattern} strokeWidth={props.drawingStyle.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={arrowHeadPoints(drawing.points, props.drawingStyle.arrowHeadSize)} fill="none" stroke={props.drawingStyle.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>}
           </>
         </svg>

@@ -4,11 +4,11 @@ export type Rotation = 0 | 90 | 180 | 270
 
 export type SymbolType = 'rectangle' | 'cross' | 'circle' | 'triangle' | 'wave'
 
-export type DrawingType = 'freehand' | 'line' | 'curve' | 'arrow'
+export type DrawingType = 'freehand' | 'line' | 'curve' | 'arrow' | 'marker'
 
 export type StrokePattern = 'solid' | 'dashed' | 'dotted' | 'dashDot' | 'double'
 
-export type PlacementMode = 'select' | 'text' | 'draw' | 'line' | 'curve' | 'arrow' | 'eraser' | SymbolType
+export type PlacementMode = 'select' | 'text' | 'draw' | 'line' | 'curve' | 'arrow' | 'marker' | 'eraser' | SymbolType
 
 export interface CanvasPoint {
   x: number
@@ -73,6 +73,7 @@ export interface DrawingElement extends CanvasElementBase {
   color: string
   strokeWidth: number
   strokePattern?: StrokePattern
+  opacity?: number
   drawingType?: DrawingType
   arrowHeadSize?: number
 }
