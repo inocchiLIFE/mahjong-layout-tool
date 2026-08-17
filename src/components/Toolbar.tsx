@@ -293,18 +293,20 @@ export const Toolbar = (props: ToolbarProps) => {
                 </div>}
               </div>
             </div>
-            <div className="text-color-palette" aria-label="文字色パレット">
-              <small>文字</small>
-              <div className="text-color-swatches">
-                {TEXT_COLOR_PALETTE.map((color) => <button key={color} type="button" className={props.textStyle.color.toLowerCase() === color ? 'active' : ''} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字色`} onClick={() => props.onUpdateTextStyle({ color })} />)}
-                {customColors.map((color) => <button key={color} type="button" className={`custom${props.textStyle.color.toLowerCase() === color ? ' active' : ''}`} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字色`} onClick={() => props.onUpdateTextStyle({ color })} />)}
+            <div className="text-palette-row">
+              <div className="text-color-palette" aria-label="文字色パレット">
+                <small>文字</small>
+                <div className="text-color-swatches">
+                  {TEXT_COLOR_PALETTE.map((color) => <button key={color} type="button" className={props.textStyle.color.toLowerCase() === color ? 'active' : ''} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字色`} onClick={() => props.onUpdateTextStyle({ color })} />)}
+                  {customColors.map((color) => <button key={color} type="button" className={`custom${props.textStyle.color.toLowerCase() === color ? ' active' : ''}`} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字色`} onClick={() => props.onUpdateTextStyle({ color })} />)}
+                </div>
               </div>
-            </div>
-            <div className="text-color-palette" aria-label="文字背景色パレット">
-              <small>背景</small>
-              <div className="text-color-swatches">
-                <button type="button" className={`text-background-none${!props.textStyle.backgroundColor ? ' active' : ''}`} title="背景なし" aria-label="文字背景色なし" onClick={() => props.onUpdateTextStyle({ backgroundColor: null })} disabled={isEditingShape}>なし</button>
-                {textBackgroundColors.map((color) => <button key={color} type="button" className={props.textStyle.backgroundColor?.toLowerCase() === color ? 'active' : ''} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字背景色`} onClick={() => props.onUpdateTextStyle({ backgroundColor: color })} disabled={isEditingShape} />)}
+              <div className="text-color-palette" aria-label="文字背景色パレット">
+                <small>背景</small>
+                <div className="text-color-swatches">
+                  <button type="button" className={`text-background-none${!props.textStyle.backgroundColor ? ' active' : ''}`} title="背景なし" aria-label="文字背景色なし" onClick={() => props.onUpdateTextStyle({ backgroundColor: null })} disabled={isEditingShape}>なし</button>
+                  {textBackgroundColors.map((color) => <button key={color} type="button" className={props.textStyle.backgroundColor?.toLowerCase() === color ? 'active' : ''} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字背景色`} onClick={() => props.onUpdateTextStyle({ backgroundColor: color })} disabled={isEditingShape} />)}
+                </div>
               </div>
             </div>
           </div>
