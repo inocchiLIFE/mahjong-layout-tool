@@ -392,14 +392,23 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   })
 
   const syncTextSelection = (input: HTMLTextAreaElement) => {
-    const start = Math.min(input.selectionStart, input.selectionEnd)
-    const end = Math.max(input.selectionStart, input.selectionEnd)
+    const selectionStart = input.selectionStart
+    const selectionEnd = input.selectionEnd
+    const direction = input.selectionDirection
+    const start = Math.min(selectionStart, selectionEnd)
+    const end = Math.max(selectionStart, selectionEnd)
     const next = start === end ? null : { start, end }
-    setTextCaretIndex(input.selectionEnd)
+    setTextCaretIndex(selectionEnd)
     setTextSelection((previous) => {
       if (!next && !previous) return previous
       if (next && previous && next.start === previous.start && next.end === previous.end) return previous
       return next
+    })
+    window.requestAnimationFrame(() => {
+      if (textEditorRef.current !== input || document.activeElement !== input) return
+      if (input.selectionStart !== selectionStart || input.selectionEnd !== selectionEnd || input.selectionDirection !== direction) {
+        input.setSelectionRange(selectionStart, selectionEnd, direction)
+      }
     })
   }
 
@@ -1081,6 +1090,9 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     width: Math.abs(marquee.currentX - marquee.startX),
     height: Math.abs(marquee.currentY - marquee.startY),
   } : undefined
+  const editorPreviewFontSize = editor
+    ? Math.max(editor.baseStyle.fontSize, ...editor.runs.map((run) => run.fontSize))
+    : props.textStyle.fontSize
   const selectedResizable = props.scene.elements.find((element) => (element.kind === 'symbol' || element.kind === 'image' || element.kind === 'customShape' || (element.kind === 'drawing' && element.drawingType !== 'freehand')) && element.selected && !element.locked) ?? null
   const selectedImage = props.scene.elements.find((element): element is Extract<CanvasElement, { kind: 'image' }> => element.kind === 'image' && element.selected && !element.locked) ?? null
 
@@ -1389,7 +1401,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             top: editor.y + camera.y,
             color: editor.value ? 'transparent' : editor.baseStyle.color,
             WebkitTextFillColor: editor.value ? 'transparent' : editor.baseStyle.color,
-            fontSize: editor.baseStyle.fontSize,
+            fontSize: editorPreviewFontSize,
             fontFamily: editor.baseStyle.fontFamily,
             fontWeight: editor.baseStyle.fontWeight,
             caretColor: 'transparent',
@@ -1400,8 +1412,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           aria-label="文字を入力"
           onPointerDown={(event) => {
             event.stopPropagation()
-            const input = event.currentTarget
-            window.requestAnimationFrame(() => syncTextSelection(input))
+            // Let the browser complete its native caret/selection update first.
+            // Reading the old selection in pointerdown can restore a previous
+            // range before a new drag (especially a right-to-left drag) starts.
+            setTextSelection(null)
+            setTextFormatMenu(null)
           }}
           onPointerMove={(event) => {
             if (event.buttons & 1) syncTextSelection(event.currentTarget)
@@ -1432,11 +1447,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       )}
 
       {editor && editor.value && (() => {
-        const previewFontSize = Math.max(editor.baseStyle.fontSize, ...(editor.runs.map((run) => run.fontSize)))
         return <span
           ref={textPreviewRef}
           className="workspace-text-editor-preview export-hidden"
-          style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: previewFontSize, fontFamily: editor.baseStyle.fontFamily, fontWeight: editor.baseStyle.fontWeight }}
+          style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: editorPreviewFontSize, fontFamily: editor.baseStyle.fontFamily, fontWeight: editor.baseStyle.fontWeight }}
           aria-hidden="true"
         >{renderTextRuns(editor.value, editor.runs, editor.baseStyle, undefined, textSelection ?? undefined)}</span>
       })()}
