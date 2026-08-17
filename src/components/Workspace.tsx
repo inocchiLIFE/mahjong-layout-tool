@@ -913,6 +913,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       ref={ref}
       className={`workspace-canvas${props.showGrid ? ' show-grid' : ''}${props.captureMode ? ' capture-hide-grid is-capturing' : ''}${props.transparentBackground ? ' capture-transparent' : ''}${isDrawingPlacementMode(props.placementMode) ? ' drawing-mode' : ''}${props.placementMode === 'eraser' ? ' eraser-mode' : ''}`}
       style={{ width: props.scene.width, height: props.scene.height }}
+      onPointerDownCapture={(event) => {
+        if (!editor) return
+        const target = event.target
+        if (target instanceof Element && target.closest('.workspace-text-editor, .text-format-context-menu')) return
+        finishTextEditor()
+      }}
       onPointerDown={beginCanvasPointer}
       onPointerMove={moveCanvasPointer}
       onPointerUp={finishCanvasPointer}
@@ -1197,9 +1203,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           style={{
             left: editor.x + camera.x,
             top: editor.y + camera.y,
-            color: props.textStyle.color,
-            fontSize: props.textStyle.fontSize,
-            fontFamily: props.textStyle.fontFamily,
+            color: editor.value ? 'transparent' : editor.baseStyle.color,
+            WebkitTextFillColor: editor.value ? 'transparent' : editor.baseStyle.color,
+            fontSize: editor.baseStyle.fontSize,
+            fontFamily: editor.baseStyle.fontFamily,
+            caretColor: editor.baseStyle.color,
           }}
           value={editor.value}
           rows={Math.max(1, editor.value.split('\n').length)}
@@ -1223,13 +1231,25 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         />
       )}
 
+      {editor && editor.value && (() => {
+        const previewFontSize = Math.max(editor.baseStyle.fontSize, ...(editor.runs.map((run) => run.fontSize)))
+        return <span
+          className="workspace-text-editor-preview export-hidden"
+          style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: previewFontSize, fontFamily: editor.baseStyle.fontFamily }}
+          aria-hidden="true"
+        >{renderTextRuns(editor.value, editor.runs, editor.baseStyle)}</span>
+      })()}
+
       {editor && textFormatMenu && (() => {
         const selectedStyle = getTextRunStyleAt(editor.value, editor.runs, textFormatMenu.start, editor.baseStyle)
         const colorChoices = Array.from(new Set([...TEXT_COLOR_PALETTE, ...customTextColors]))
         return <div
           className="text-format-context-menu export-hidden"
           style={{ left: Math.max(8, Math.min(textFormatMenu.clientX, window.innerWidth - 286)), top: Math.max(8, Math.min(textFormatMenu.clientY, window.innerHeight - 190)) }}
-          onPointerDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => {
+            event.stopPropagation()
+            if (event.target instanceof HTMLButtonElement) event.preventDefault()
+          }}
           onContextMenu={(event) => event.preventDefault()}
           role="menu"
           aria-label="選択文字の書式"
