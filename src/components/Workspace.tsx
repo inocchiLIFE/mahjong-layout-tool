@@ -121,6 +121,8 @@ interface TextFormatMenuState {
   clientY: number
   start: number
   end: number
+  anchor: { left: number; top: number; right: number; bottom: number }
+  zoom: number
 }
 
 interface DrawingState {
@@ -232,6 +234,35 @@ const renderTextRuns = (text: string, runs: TextRun[] | undefined, fallback: Tex
   return normalized.length
     ? normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily }}>{run.text}</span>)
     : text
+}
+
+const getTextFormatMenuPosition = (menu: TextFormatMenuState) => {
+  const width = 270
+  const height = 190
+  const gap = 12
+  const margin = 8
+  const zoom = menu.zoom
+  const viewportWidth = window.innerWidth / zoom
+  const viewportHeight = window.innerHeight / zoom
+  const anchor = {
+    left: menu.anchor.left / zoom,
+    top: menu.anchor.top / zoom,
+    right: menu.anchor.right / zoom,
+    bottom: menu.anchor.bottom / zoom,
+  }
+  const candidates = [
+    { left: anchor.right + gap, top: anchor.top },
+    { left: anchor.left - width - gap, top: anchor.top },
+    { left: anchor.left, top: anchor.bottom + gap },
+    { left: anchor.left, top: anchor.top - height - gap },
+    { left: menu.clientX / zoom + gap, top: menu.clientY / zoom + gap },
+  ]
+  const fits = candidates.find(({ left, top }) => left >= margin && top >= margin && left + width <= viewportWidth - margin && top + height <= viewportHeight - margin)
+  const position = fits ?? candidates[0]
+  return {
+    left: Math.max(margin, Math.min(position.left, viewportWidth - width - margin)),
+    top: Math.max(margin, Math.min(position.top, viewportHeight - height - margin)),
+  }
 }
 
 const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
@@ -810,7 +841,18 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       setTextFormatMenu(null)
       return
     }
-    setTextFormatMenu({ clientX: event.clientX, clientY: event.clientY, start, end })
+    const bounds = textarea.getBoundingClientRect()
+    const appShell = textarea.closest('.app-shell')
+    const parsedZoom = appShell ? Number.parseFloat(getComputedStyle(appShell).zoom) : 1
+    const zoom = Number.isFinite(parsedZoom) && parsedZoom > 0 ? parsedZoom : 1
+    setTextFormatMenu({
+      clientX: event.clientX,
+      clientY: event.clientY,
+      start,
+      end,
+      anchor: { left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom },
+      zoom,
+    })
   }
 
   const applyTextFormat = (style: TextRunStylePatch) => {
@@ -1243,9 +1285,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       {editor && textFormatMenu && (() => {
         const selectedStyle = getTextRunStyleAt(editor.value, editor.runs, textFormatMenu.start, editor.baseStyle)
         const colorChoices = Array.from(new Set([...TEXT_COLOR_PALETTE, ...customTextColors]))
+        const menuPosition = getTextFormatMenuPosition(textFormatMenu)
         return <div
           className="text-format-context-menu export-hidden"
-          style={{ left: Math.max(8, Math.min(textFormatMenu.clientX, window.innerWidth - 286)), top: Math.max(8, Math.min(textFormatMenu.clientY, window.innerHeight - 190)) }}
+          style={menuPosition}
           onPointerDown={(event) => {
             event.stopPropagation()
             if (event.target instanceof HTMLButtonElement) event.preventDefault()
