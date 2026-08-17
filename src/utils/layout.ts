@@ -13,6 +13,7 @@ import type {
   TileElement,
 } from '../types'
 import { DEFAULT_STROKE_PATTERN } from './stroke'
+import { normalizeTextRuns } from './textRuns'
 
 export const GRID_SIZE = 16
 export const TILE_WIDTH = 48
@@ -121,6 +122,31 @@ export const getSymbolBaseDimensions = (symbolType: SymbolType) => {
   return { width: TILE_WIDTH, height: TILE_HEIGHT }
 }
 
+/**
+ * Text elements can contain runs with different font sizes.  Measure each
+ * line from its actual runs so selection frames and hit areas follow the
+ * rendered text instead of expanding every character to the largest run.
+ */
+export const getTextElementContentDimensions = (element: Pick<TextElement, 'text' | 'color' | 'fontSize' | 'fontFamily' | 'textRuns'>) => {
+  const lines = element.text.split('\n')
+  const lineWidths = Array.from({ length: lines.length }, () => 0)
+  const lineFontSizes = Array.from({ length: lines.length }, () => element.fontSize)
+  const runs = normalizeTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily })
+  let lineIndex = 0
+  for (const run of runs) {
+    const chunks = run.text.split('\n')
+    chunks.forEach((chunk, chunkIndex) => {
+      lineWidths[lineIndex] += chunk.length * run.fontSize * 1.05
+      lineFontSizes[lineIndex] = Math.max(lineFontSizes[lineIndex], run.fontSize)
+      if (chunkIndex < chunks.length - 1) lineIndex += 1
+    })
+  }
+  return {
+    width: Math.max(44, Math.ceil(Math.max(...lineWidths)) + 16),
+    height: lineFontSizes.reduce((total, fontSize) => total + Math.ceil(fontSize * 1.5), 0) + 8,
+  }
+}
+
 export const getElementDimensions = (element: CanvasElement) => {
   if (element.kind === 'tile') return rotateDimensions(TILE_WIDTH, TILE_HEIGHT, element.rotation)
   if (element.kind === 'image' || element.kind === 'drawing' || element.kind === 'customShape') {
@@ -134,11 +160,8 @@ export const getElementDimensions = (element: CanvasElement) => {
       element.rotation,
     )
   }
-  const lines = element.text.split('\n')
-  const fontSize = Math.max(element.fontSize, ...(element.textRuns?.map((run) => run.fontSize) ?? []))
-  const width = Math.max(44, Math.ceil(Math.max(...lines.map((line) => line.length)) * fontSize * 1.05) + 16)
-  const height = Math.ceil(fontSize * 1.5) * lines.length + 8
-  return rotateDimensions(width, height, element.rotation)
+  const dimensions = getTextElementContentDimensions(element)
+  return rotateDimensions(dimensions.width, dimensions.height, element.rotation)
 }
 
 export const sortTileIds = (tileIds: string[]) =>

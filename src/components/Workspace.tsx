@@ -29,6 +29,7 @@ import {
   getArrowHeadPoints,
   getCurveControlPoint,
   getSymbolBaseDimensions,
+  getTextElementContentDimensions,
   snap,
   SYMBOL_LABELS,
   TILE_GAP,
@@ -1071,7 +1072,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       )}
 
       {props.scene.elements.map((element) => {
-        const dimensions = getElementDimensions(element)
+        const editingText = element.kind === 'text' && editor?.id === element.id
+          ? { ...element, text: editor.value, textRuns: editor.runs }
+          : null
+        const dimensions = getElementDimensions(editingText ?? element)
         const lockedLabel = element.locked ? '、ロック中' : ''
         const commonProps = {
           type: 'button' as const,
@@ -1131,10 +1135,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         }
 
         if (element.kind === 'text') {
-          const lines = element.text.split('\n')
-          const fontSize = Math.max(element.fontSize, ...(element.textRuns?.map((run) => run.fontSize) ?? []))
-          const baseWidth = Math.max(44, Math.ceil(Math.max(...lines.map((line) => line.length)) * fontSize * 1.05) + 16)
-          const baseHeight = Math.ceil(fontSize * 1.5) * lines.length + 8
+          const { width: baseWidth, height: baseHeight } = getTextElementContentDimensions(editingText ?? element)
           return (
             <button
               key={element.id}
