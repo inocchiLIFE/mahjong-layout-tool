@@ -622,27 +622,27 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
 
 /* Readability: supporting copy and compact controls should remain legible at
    the default app scale, especially in the analysis side panel. */
-.efficiency-panel { font-size: 14px; }
-.efficiency-heading strong { font-size: 16px; }
-.efficiency-count { font-size: 13px; }
-.efficiency-summary span { font-size: 14px; }
-.iishanten-type { font-size: 13px; }
-.iishanten-type.discard { font-size: 12px; }
-.efficiency-discard-heading { font-size: 14px; }
-.efficiency-discard-heading > span { font-size: 12px; }
-.efficiency-discard-heading label, .efficiency-discard-heading select { font-size: 12px; }
-.efficiency-discard-status { font-size: 13px; }
-.efficiency-discard b, .efficiency-discard em { font-size: 14px; }
-.efficiency-panel > small { font-size: 13px; line-height: 1.55; }
-.expected-value-settings label, .expected-value-options, .expected-value-error { font-size: 12px; }
-.expected-value-results article small, .expected-value-note { font-size: 12px; line-height: 1.55; }
-.meld-input { font-size: 13px; line-height: 1.45; }
-.meld-input small { font-size: 12px; line-height: 1.5; }
-.efficiency-toggle { font-size: 12px; }
-.good-shape-toggle { font-size: 13px; }
-.tenpai-shape-title, .tenpai-shape-summary { font-size: 13px; }
-.tenpai-shape-summary strong { font-size: 14px; }
-.tenpai-shape-summary small { font-size: 12px; line-height: 1.5; }
+.efficiency-panel { font-size: 16px; }
+.efficiency-heading strong { font-size: 18px; }
+.efficiency-count { font-size: 15px; }
+.efficiency-summary span { font-size: 16px; }
+.iishanten-type { font-size: 15px; }
+.iishanten-type.discard { font-size: 14px; }
+.efficiency-discard-heading { font-size: 16px; }
+.efficiency-discard-heading > span { font-size: 14px; }
+.efficiency-discard-heading label, .efficiency-discard-heading select { font-size: 14px; }
+.efficiency-discard-status { font-size: 15px; }
+.efficiency-discard b, .efficiency-discard em { font-size: 16px; }
+.efficiency-panel > small { font-size: 15px; line-height: 1.55; }
+.expected-value-settings label, .expected-value-options, .expected-value-error { font-size: 14px; }
+.expected-value-results article small, .expected-value-note { font-size: 14px; line-height: 1.55; }
+.meld-input { font-size: 15px; line-height: 1.45; }
+.meld-input small { font-size: 14px; line-height: 1.5; }
+.efficiency-toggle { font-size: 14px; }
+.good-shape-toggle { font-size: 15px; }
+.tenpai-shape-title, .tenpai-shape-summary { font-size: 15px; }
+.tenpai-shape-summary strong { font-size: 16px; }
+.tenpai-shape-summary small { font-size: 14px; line-height: 1.5; }
 
 .panel-hint, .canvas-badge, .workspace-tile-ruler-title, .workspace-tile-ruler-title small { font-size: 10px; }
 .tile-group h3, .symbol-palette-button span, .workspace-size-controls label, .workspace-size-controls input { font-size: 11px; }
@@ -726,18 +726,18 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
 .page-tab button { height: 100%; padding-inline: 8px; font-size: 18px; white-space: nowrap; }
 .page-tab .page-close-tab { width: 25px; padding: 0; font-size: 21px; }
 .page-tabs .page-add-tab { font-size: 22px; }
-.good-shape-toggle { display: flex; align-items: center; gap: 5px; margin: 8px 0; color: #176250; font-size: 13px; font-weight: 800; cursor: pointer; }
+.good-shape-toggle { display: flex; align-items: center; gap: 5px; margin: 8px 0; color: #176250; font-size: 15px; font-weight: 800; cursor: pointer; }
 .good-shape-toggle input { accent-color: #23826a; }
 .tenpai-shape-summaries { display: grid; gap: 9px; margin: 7px 0 10px; }
 .tenpai-shape-group { display: grid; gap: 4px; }
-.tenpai-shape-title { color: #695938; font-size: 13px; font-weight: 800; }
+.tenpai-shape-title { color: #695938; font-size: 15px; font-weight: 800; }
 .tenpai-shape-group.good .tenpai-shape-title { color: #176250; }
 .tenpai-shape-tiles { display: flex; flex-wrap: wrap; gap: 3px; padding: 2px 0; }
-.tenpai-shape-summary { display: grid; grid-template-columns: auto 1fr; gap: 2px 6px; padding: 6px 7px; border-left: 3px solid #9a7d45; border-radius: 4px; background: #f6f2e8; color: #695938; font-size: 13px; }
+.tenpai-shape-summary { display: grid; grid-template-columns: auto 1fr; gap: 2px 6px; padding: 6px 7px; border-left: 3px solid #9a7d45; border-radius: 4px; background: #f6f2e8; color: #695938; font-size: 15px; }
 .tenpai-shape-group.good .tenpai-shape-summary { border-left-color: #23826a; background: #edf7f1; color: #176250; }
-.tenpai-shape-summary strong { font-size: 14px; }
+.tenpai-shape-summary strong { font-size: 16px; }
 .tenpai-shape-summary span { font-weight: 800; }
-.tenpai-shape-summary small { grid-column: 1 / -1; color: inherit; font-size: 12px; line-height: 1.5; }
+.tenpai-shape-summary small { grid-column: 1 / -1; color: inherit; font-size: 14px; line-height: 1.5; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation-duration: .01ms !important; }
