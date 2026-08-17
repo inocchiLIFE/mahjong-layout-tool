@@ -1,7 +1,8 @@
 import { useRef, type DragEvent as ReactDragEvent } from 'react'
 import { TILE_GROUPS } from '../data/tiles'
-import type { CustomShapeTemplate, PlacementMode, SymbolType, TileDefinition } from '../types'
+import type { CustomShapeTemplate, PlacementMode, StrokePattern, SymbolType, TileDefinition } from '../types'
 import type { DrawingTool } from './DrawingPresetDialog'
+import { getCssBorderStyle, getStrokeDasharray } from '../utils/stroke'
 
 interface TilePaletteProps {
   onAddTile: (tileId: string) => void
@@ -12,6 +13,7 @@ interface TilePaletteProps {
   onOpenDrawingPreset: (tool: DrawingTool) => void
   symbolColors: Record<SymbolType, string>
   symbolStrokeWidths: Record<SymbolType, number>
+  symbolStrokePatterns: Record<SymbolType, StrokePattern>
   drawingColors: Record<Exclude<DrawingTool, 'eraser'>, string>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   customShapes: CustomShapeTemplate[]
@@ -70,7 +72,7 @@ const symbolChoices: Array<{ mode: PlacementMode; icon: string; label: string; h
   { mode: 'text', icon: 'T', label: 'クリック文字', hint: '自由入力' },
 ]
 
-const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: PlacementMode, color: string, size: { width: number; height: number }, strokeWidth: number) => {
+const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: PlacementMode, color: string, size: { width: number; height: number }, strokeWidth: number, strokePattern: StrokePattern) => {
   if (mode !== 'rectangle' && mode !== 'circle' && mode !== 'triangle' && mode !== 'cross' && mode !== 'wave') return
   const { width, height } = size
   const appScale = window.matchMedia('(min-width: 651px)').matches
@@ -89,25 +91,27 @@ const setSymbolDragPreview = (event: ReactDragEvent<HTMLButtonElement>, mode: Pl
   preview.style.background = 'rgba(255,255,255,.92)'
   preview.style.opacity = '.92'
   preview.style.pointerEvents = 'none'
+  const dasharray = getStrokeDasharray(strokePattern, strokeWidth)
+  const dashAttribute = dasharray ? ` stroke-dasharray="${dasharray}"` : ''
   if (mode === 'rectangle') {
-    preview.style.border = '4px solid currentColor'
+    preview.style.border = `${strokeWidth}px ${getCssBorderStyle(strokePattern)} currentColor`
     preview.style.borderRadius = '5px'
   } else if (mode === 'circle') {
-    preview.style.border = '4px solid currentColor'
+    preview.style.border = `${strokeWidth}px ${getCssBorderStyle(strokePattern)} currentColor`
     preview.style.borderRadius = '50%'
   } else if (mode === 'cross') {
-    preview.innerHTML = `<svg viewBox="0 0 48 66" width="${visualWidth}" height="${visualHeight}" aria-hidden="true"><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" /></svg>`
+    preview.innerHTML = `<svg viewBox="0 0 48 66" width="${visualWidth}" height="${visualHeight}" aria-hidden="true"><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke="currentColor" stroke-width="${strokeWidth}"${dashAttribute} stroke-linecap="round" /></svg>`
   } else if (mode === 'wave') {
-    preview.innerHTML = `<svg viewBox="0 0 240 16" width="${visualWidth}" height="${visualHeight}" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" /></svg>`
+    preview.innerHTML = `<svg viewBox="0 0 240 16" width="${visualWidth}" height="${visualHeight}" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" stroke-width="${strokeWidth}"${dashAttribute} stroke-linecap="round" /></svg>`
   } else {
-    preview.innerHTML = `<svg viewBox="0 0 99 66" width="${visualWidth}" height="${visualHeight}" aria-hidden="true"><polygon points="49.5,5 94,61 5,61" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" /></svg>`
+    preview.innerHTML = `<svg viewBox="0 0 99 66" width="${visualWidth}" height="${visualHeight}" aria-hidden="true"><polygon points="49.5,5 94,61 5,61" fill="none" stroke="currentColor" stroke-width="${strokeWidth}"${dashAttribute} stroke-linejoin="round" /></svg>`
   }
   document.body.appendChild(preview)
   event.dataTransfer.setDragImage(preview, visualWidth / 2, visualHeight / 2)
   window.requestAnimationFrame(() => preview.remove())
 }
 
-export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, onOpenDrawingPreset, symbolColors, drawingColors, symbolStrokeWidths, symbolSizes, customShapes, onInsertCustomShape, onEditCustomShape, onCustomShapeDragChange }: TilePaletteProps) => (
+export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPlacementMode, onOpenSymbolPreset, onOpenDrawingPreset, symbolColors, drawingColors, symbolStrokeWidths, symbolStrokePatterns, symbolSizes, customShapes, onInsertCustomShape, onEditCustomShape, onCustomShapeDragChange }: TilePaletteProps) => (
   <aside className={`palette-panel${trashActive ? ' trash-active' : ''}`} aria-label="牌一覧と削除エリア">
     <div className="palette-trash-message" aria-hidden={!trashActive}>
       <strong>ここで離して削除</strong>
@@ -148,7 +152,7 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
                 if (!choice.dragOnly) return
                 event.dataTransfer.setData('application/x-mahjong-symbol', choice.mode)
                 event.dataTransfer.effectAllowed = 'copy'
-                setSymbolDragPreview(event, choice.mode, symbolColors[choice.mode as SymbolType], symbolSizes[choice.mode as SymbolType], symbolStrokeWidths[choice.mode as SymbolType])
+                setSymbolDragPreview(event, choice.mode, symbolColors[choice.mode as SymbolType], symbolSizes[choice.mode as SymbolType], symbolStrokeWidths[choice.mode as SymbolType], symbolStrokePatterns[choice.mode as SymbolType])
               }}
               onContextMenu={(event) => { if (choice.dragOnly) { event.preventDefault(); onOpenSymbolPreset(choice.mode as SymbolType) } else if (['draw', 'line', 'curve', 'arrow', 'eraser'].includes(choice.mode)) { event.preventDefault(); onOpenDrawingPreset(choice.mode as DrawingTool) } }}
               aria-pressed={!choice.dragOnly && placementMode === choice.mode}

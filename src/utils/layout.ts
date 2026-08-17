@@ -12,6 +12,7 @@ import type {
   TextElement,
   TileElement,
 } from '../types'
+import { DEFAULT_STROKE_PATTERN } from './stroke'
 
 export const GRID_SIZE = 16
 export const TILE_WIDTH = 48
@@ -289,6 +290,7 @@ export const makeDrawing = (
   height,
   color: '#244a40',
   strokeWidth: 4,
+  strokePattern: DEFAULT_STROKE_PATTERN,
   drawingType,
 })
 
@@ -316,6 +318,7 @@ export const makeSymbol = (symbolType: SymbolType, x: number, y: number, zIndex:
   symbolType,
   color: symbolType === 'cross' ? '#b13f34' : '#244a40',
   strokeWidth: 4,
+  strokePattern: DEFAULT_STROKE_PATTERN,
   scale: 1,
 })
 

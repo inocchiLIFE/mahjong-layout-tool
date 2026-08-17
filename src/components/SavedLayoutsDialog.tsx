@@ -2,6 +2,7 @@ import { useEffect, useState, type DragEvent, type MouseEvent } from 'react'
 import { TILE_MAP } from '../data/tiles'
 import type { NamedSavedLayout } from '../types'
 import { getArrowHeadPoints, getCurveControlPoint, getElementDimensions } from '../utils/layout'
+import { StrokeLayers } from '../utils/stroke'
 
 const curvePath = (points: { x: number; y: number }[]) => {
   const start = points[0]
@@ -89,9 +90,9 @@ const LayoutPreview = ({ saved }: { saved: NamedSavedLayout }) => {
         if (element.kind === 'drawing') {
           return (
             <svg key={element.id} className="saved-preview-item" viewBox={`0 0 ${element.width} ${element.height}`} style={style}>
-              {element.drawingType === 'curve' ? <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" /> : <>
-                <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-                {element.drawingType === 'arrow' && <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />}
+              {element.drawingType === 'curve' ? <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers> : <>
+                <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>
+                {element.drawingType === 'arrow' && <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>}
               </>}
             </svg>
           )

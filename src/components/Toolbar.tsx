@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import type { PlacementMode, SymbolType } from '../types'
+import type { PlacementMode, StrokePattern, SymbolType } from '../types'
 import type { DrawingTool } from './DrawingPresetDialog'
 import type { IishantenType } from '../utils/iishanten'
 import type { CustomShapeTemplate } from '../types'
 import { TEXT_COLOR_PALETTE, readCustomColors, saveCustomColors } from '../utils/colors'
 import { WorkspaceSizeControls } from './WorkspaceSizeControls'
+import { STROKE_PATTERN_OPTIONS } from '../utils/stroke'
 
 interface ToolbarProps {
   canUndo: boolean
@@ -17,6 +18,7 @@ interface ToolbarProps {
   selectedShapeColor: string | null
   shapeColor: string
   shapeStrokeWidth: number
+  shapeStrokePattern: StrokePattern
   eraserSize: number
   canDuplicate: boolean
   canToggleTileFaces: boolean
@@ -40,6 +42,7 @@ interface ToolbarProps {
   onUpdateTextStyle: (style: { fontFamily?: string; fontSize?: number; color?: string }) => void
   onUpdateSelectedShapeColor: (color: string) => void
   onUpdateShapeStrokeWidth: (strokeWidth: number) => void
+  onUpdateShapeStrokePattern: (strokePattern: StrokePattern) => void
   onUpdateEraserSize: (size: number) => void
   onBringFront: () => void
   onSendBack: () => void
@@ -300,6 +303,11 @@ export const Toolbar = (props: ToolbarProps) => {
             <label className="shape-stroke-control">太さ
               <input type="range" min="1" max="12" value={Math.min(12, props.shapeStrokeWidth)} onChange={(event) => props.onUpdateShapeStrokeWidth(Number(event.target.value))} aria-label="図形と線の太さ" />
               <output>{props.shapeStrokeWidth}</output>
+            </label>
+            <label className="shape-pattern-control">パターン
+              <select value={props.shapeStrokePattern} onChange={(event) => props.onUpdateShapeStrokePattern(event.target.value as StrokePattern)} aria-label="図形と線のパターン">
+                {STROKE_PATTERN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
             </label>
             <div className="shape-color-palette" aria-label="図形色パレット">
               <small>色</small>

@@ -17,6 +17,7 @@ import type {
   PlacementMode,
   Scene,
   SymbolType,
+  StrokePattern,
   TextElement,
   DrawingType,
 } from '../types'
@@ -31,6 +32,7 @@ import {
   TILE_HEIGHT,
   TILE_WIDTH,
 } from '../utils/layout'
+import { StrokeLayers, getCssBorderStyle } from '../utils/stroke'
 
 interface EditTextRequest {
   id: string
@@ -44,9 +46,10 @@ interface WorkspaceProps {
   placementMode: PlacementMode
   eraserSize: number
   textStyle: { fontFamily: string; fontSize: number; color: string }
-  drawingStyle: { color: string; strokeWidth: number; arrowHeadSize: number }
+  drawingStyle: { color: string; strokeWidth: number; strokePattern: StrokePattern; arrowHeadSize: number }
   symbolColors: Record<SymbolType, string>
   symbolStrokeWidths: Record<SymbolType, number>
+  symbolStrokePatterns: Record<SymbolType, StrokePattern>
   symbolSizes: Record<SymbolType, { width: number; height: number }>
   customShapes: CustomShapeTemplate[]
   draggedCustomShapeId: string | null
@@ -164,6 +167,7 @@ interface DropPreview {
   label: string
   color?: string
   strokeWidth?: number
+  strokePattern?: StrokePattern
   customShape?: CustomShapeTemplate
 }
 
@@ -794,6 +798,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         symbolType,
         color: props.symbolColors[symbolType],
         strokeWidth: props.symbolStrokeWidths[symbolType],
+        strokePattern: props.symbolStrokePatterns[symbolType],
       })
       return
     }
@@ -1013,13 +1018,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 const color = element.color ?? (part.kind === 'image' ? undefined : part.color)
                 if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: partDimensions.width, height: partDimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{part.text}</span>
                 if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" draggable={false} /></span>
-                if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" strokeLinejoin="round" /></svg>
+                if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
                 const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }
-                if (part.symbolType === 'cross') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 48 66" style={style}><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" /></svg>
-                if (part.symbolType === 'triangle') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 99 66" style={style}><polygon points="49.5,5 94,61 5,61" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinejoin="round" /></svg>
-                if (part.symbolType === 'wave') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 240 16" style={style}><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" /></svg>
-                if (part.symbolType === 'circle') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${width} ${height}`} style={style}><ellipse cx={width / 2} cy={height / 2} rx={Math.max(1, width / 2 - part.strokeWidth / 2)} ry={Math.max(1, height / 2 - part.strokeWidth / 2)} fill="none" stroke={color} strokeWidth={part.strokeWidth} /></svg>
-                return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth }} />
+                if (part.symbolType === 'cross') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 48 66" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
+                if (part.symbolType === 'triangle') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 99 66" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polygon points="49.5,5 94,61 5,61" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
+                if (part.symbolType === 'wave') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 240 16" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
+                if (part.symbolType === 'circle') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${width} ${height}`} style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <ellipse cx={width / 2} cy={height / 2} rx={Math.max(1, width / 2 - part.strokeWidth / 2)} ry={Math.max(1, height / 2 - part.strokeWidth / 2)} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers></svg>
+                return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth, borderStyle: getCssBorderStyle(part.strokePattern) }} />
               })}
             </span>
             {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
@@ -1037,13 +1042,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               >
                 {element.drawingType === 'curve' ? <>
                   {element.selected && <path d={curvePath(element.points)} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" opacity=".7" />}
-                  <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" />
+                  <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d={curvePath(element.points)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers>
                 </> : <>
                   {element.selected && <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" strokeLinejoin="round" opacity=".7" />}
-                  <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+                  <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={element.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>
                   {element.drawingType === 'arrow' && <>
                     {element.selected && <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke="#277fbd" strokeWidth={element.strokeWidth + 4} strokeLinecap="round" strokeLinejoin="round" opacity=".7" />}
-                    <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+                    <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={arrowHeadPoints(element.points, element.arrowHeadSize)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>
                   </>}
                 </>}
               </svg>
@@ -1070,7 +1075,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           >
             {element.symbolType === 'cross' ? (
               <svg className="symbol-visual symbol-cross" viewBox="0 0 48 66" style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
-                <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" />
+                <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers>
               </svg>
             ) : element.symbolType === 'triangle' ? (
               <svg
@@ -1079,15 +1084,15 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 style={{ width: visualWidth, height: visualHeight, transform: visualTransform }}
                 aria-hidden="true"
               >
-                <polygon points="49.5,5 94,61 5,61" fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinejoin="round" />
+                <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polygon points="49.5,5 94,61 5,61" fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinejoin="round" transform={transform} />}</StrokeLayers>
               </svg>
             ) : element.symbolType === 'wave' ? (
               <svg className="symbol-visual symbol-wave" viewBox="0 0 240 16" style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
-                <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={element.color} strokeWidth={element.strokeWidth} strokeLinecap="round" />
+                <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers>
               </svg>
             ) : element.symbolType === 'circle' ? (
               <svg className="symbol-visual" viewBox={`0 0 ${visualWidth} ${visualHeight}`} style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
-                <ellipse cx={visualWidth / 2} cy={visualHeight / 2} rx={Math.max(1, visualWidth / 2 - element.strokeWidth / 2)} ry={Math.max(1, visualHeight / 2 - element.strokeWidth / 2)} fill="none" stroke={element.color} strokeWidth={element.strokeWidth} />
+                <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <ellipse cx={visualWidth / 2} cy={visualHeight / 2} rx={Math.max(1, visualWidth / 2 - element.strokeWidth / 2)} ry={Math.max(1, visualHeight / 2 - element.strokeWidth / 2)} fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers>
               </svg>
             ) : (
               <span
@@ -1098,6 +1103,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   transform: visualTransform,
                   color: element.color,
                   borderWidth: element.strokeWidth,
+                  borderStyle: getCssBorderStyle(element.strokePattern),
                 }}
               />
             )}
@@ -1155,26 +1161,26 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           const color = preview.color ?? (part.kind === 'image' ? undefined : part.color)
           if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: dimensions.width, height: dimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{part.text}</span>
           if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" /></span>
-          if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" strokeLinejoin="round" /></svg>
+          if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
           const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }
-          if (part.symbolType === 'cross') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 48 66" style={style}><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" /></svg>
-          if (part.symbolType === 'triangle') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 99 66" style={style}><polygon points="49.5,5 94,61 5,61" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinejoin="round" /></svg>
-          if (part.symbolType === 'wave') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 240 16" style={style}><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={color} strokeWidth={part.strokeWidth} strokeLinecap="round" /></svg>
-          if (part.symbolType === 'circle') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${width} ${height}`} style={style}><ellipse cx={width / 2} cy={height / 2} rx={Math.max(1, width / 2 - part.strokeWidth / 2)} ry={Math.max(1, height / 2 - part.strokeWidth / 2)} fill="none" stroke={color} strokeWidth={part.strokeWidth} /></svg>
-          return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth }} />
+          if (part.symbolType === 'cross') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 48 66" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
+          if (part.symbolType === 'triangle') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 99 66" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polygon points="49.5,5 94,61 5,61" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
+          if (part.symbolType === 'wave') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 240 16" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
+          if (part.symbolType === 'circle') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${width} ${height}`} style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <ellipse cx={width / 2} cy={height / 2} rx={Math.max(1, width / 2 - part.strokeWidth / 2)} ry={Math.max(1, height / 2 - part.strokeWidth / 2)} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers></svg>
+          return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth, borderStyle: getCssBorderStyle(part.strokePattern) }} />
         })}
       </span> : preview.kind === 'symbol' && preview.symbolType === 'cross' ? (
-          <svg className="drop-symbol-preview drop-symbol-cross" viewBox="0 0 48 66" aria-hidden="true"><path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
+          <svg className="drop-symbol-preview drop-symbol-cross" viewBox="0 0 48 66" aria-hidden="true"><StrokeLayers pattern={preview.strokePattern} strokeWidth={preview.strokeWidth ?? 4}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
         ) : preview.kind === 'symbol' && preview.symbolType === 'triangle' ? (
           <svg className="drop-symbol-preview drop-symbol-triangle" viewBox="0 0 99 66" aria-hidden="true">
-            <polygon points="49.5,5 94,61 5,61" fill="none" stroke="currentColor" strokeWidth="4" strokeLinejoin="round" />
+            <StrokeLayers pattern={preview.strokePattern} strokeWidth={preview.strokeWidth ?? 4}>{({ strokeWidth, strokeDasharray, transform }) => <polygon points="49.5,5 94,61 5,61" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinejoin="round" transform={transform} />}</StrokeLayers>
           </svg>
         ) : preview.kind === 'symbol' && preview.symbolType === 'wave' ? (
-          <svg className="drop-symbol-preview drop-symbol-wave" viewBox="0 0 240 16" aria-hidden="true"><path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth} strokeLinecap="round" /></svg>
+          <svg className="drop-symbol-preview drop-symbol-wave" viewBox="0 0 240 16" aria-hidden="true"><StrokeLayers pattern={preview.strokePattern} strokeWidth={preview.strokeWidth ?? 4}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
         ) : preview.kind === 'symbol' && preview.symbolType === 'circle' ? (
-          <svg className="drop-symbol-preview" viewBox={`0 0 ${preview.width} ${preview.height}`} aria-hidden="true"><ellipse cx={preview.width / 2} cy={preview.height / 2} rx={Math.max(1, preview.width / 2 - (preview.strokeWidth ?? 4) / 2)} ry={Math.max(1, preview.height / 2 - (preview.strokeWidth ?? 4) / 2)} fill="none" stroke="currentColor" strokeWidth={preview.strokeWidth ?? 4} /></svg>
+          <svg className="drop-symbol-preview" viewBox={`0 0 ${preview.width} ${preview.height}`} aria-hidden="true"><StrokeLayers pattern={preview.strokePattern} strokeWidth={preview.strokeWidth ?? 4}>{({ strokeWidth, strokeDasharray, transform }) => <ellipse cx={preview.width / 2} cy={preview.height / 2} rx={Math.max(1, preview.width / 2 - (preview.strokeWidth ?? 4) / 2)} ry={Math.max(1, preview.height / 2 - (preview.strokeWidth ?? 4) / 2)} fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers></svg>
         ) : preview.kind === 'symbol' && preview.symbolType ? (
-          <span className={`drop-symbol-preview drop-symbol-${preview.symbolType}`} aria-hidden="true" />
+          <span className={`drop-symbol-preview drop-symbol-${preview.symbolType}`} style={{ borderWidth: preview.strokeWidth ?? 4, borderStyle: getCssBorderStyle(preview.strokePattern) }} aria-hidden="true" />
         ) : <span>{preview.label}</span>}
       </div>
       })()}
@@ -1194,8 +1200,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           aria-hidden="true"
         >
           <>
-            <polyline points={drawing.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
-            {props.placementMode === 'arrow' && <polyline points={arrowHeadPoints(drawing.points, props.drawingStyle.arrowHeadSize)} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" strokeLinejoin="round" />}
+            <StrokeLayers pattern={props.drawingStyle.strokePattern} strokeWidth={props.drawingStyle.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={drawing.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={props.drawingStyle.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>
+            {props.placementMode === 'arrow' && <StrokeLayers pattern={props.drawingStyle.strokePattern} strokeWidth={props.drawingStyle.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={arrowHeadPoints(drawing.points, props.drawingStyle.arrowHeadSize)} fill="none" stroke={props.drawingStyle.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers>}
           </>
         </svg>
       )}
@@ -1203,7 +1209,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       {curveDraft && curvePreview && (
         <svg className="drawing-preview export-hidden" style={{ left: 0, top: 0, right: 'auto', bottom: 'auto', width: props.scene.width, height: props.scene.height, transform: `translate(${camera.x}px, ${camera.y}px)` }} aria-hidden="true">
           <line x1={curveDraft.start.x} y1={curveDraft.start.y} x2={curveDraft.end.x} y2={curveDraft.end.y} stroke="#72988c" strokeWidth="2" strokeDasharray="6 5" />
-          <path d={curvePath([curveDraft.start, curvePreview, curveDraft.end])} fill="none" stroke={props.drawingStyle.color} strokeWidth={props.drawingStyle.strokeWidth} strokeLinecap="round" />
+          <StrokeLayers pattern={props.drawingStyle.strokePattern} strokeWidth={props.drawingStyle.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d={curvePath([curveDraft.start, curvePreview, curveDraft.end])} fill="none" stroke={props.drawingStyle.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers>
           <circle cx={curvePreview.x} cy={curvePreview.y} r="5" fill="#fff" stroke={props.drawingStyle.color} strokeWidth="2" />
         </svg>
       )}

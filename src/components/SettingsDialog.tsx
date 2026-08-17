@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { CONTEXT_MENU_ITEMS, DEFAULT_CONTEXT_MENU_ITEMS, type ContextMenuItemId } from './contextMenuItems'
 import { DEFAULT_WORKSPACE_HEIGHT, DEFAULT_WORKSPACE_WIDTH, MAX_WORKSPACE_HEIGHT, MAX_WORKSPACE_WIDTH, MIN_WORKSPACE_HEIGHT, MIN_WORKSPACE_WIDTH, clamp } from '../utils/layout'
+import type { StrokePattern } from '../types'
+import { DEFAULT_STROKE_PATTERN, STROKE_PATTERN_OPTIONS } from '../utils/stroke'
 
 export interface AppPreferences {
   showGrid: boolean
@@ -10,6 +12,7 @@ export interface AppPreferences {
   defaultTextColor: string
   defaultShapeColor: string
   defaultShapeStrokeWidth: number
+  defaultShapeStrokePattern: StrokePattern
   uiScale: number
   popupFontScale: number
   contextMenuItems: ContextMenuItemId[]
@@ -33,6 +36,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   defaultTextColor: '#172c27',
   defaultShapeColor: '#244a40',
   defaultShapeStrokeWidth: 4,
+  defaultShapeStrokePattern: DEFAULT_STROKE_PATTERN,
   uiScale: 1.1,
   popupFontScale: 1.2,
   contextMenuItems: DEFAULT_CONTEXT_MENU_ITEMS,
@@ -106,6 +110,7 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
             <legend>図形・描画の初期設定</legend>
             <label>色 <input type="color" value={draft.defaultShapeColor} onChange={(event) => setDraft((current) => ({ ...current, defaultShapeColor: event.target.value }))} /></label>
             <label>線の太さ <input type="range" min="1" max="12" value={draft.defaultShapeStrokeWidth} onChange={(event) => setDraft((current) => ({ ...current, defaultShapeStrokeWidth: Number(event.target.value) }))} /><output>{draft.defaultShapeStrokeWidth}</output></label>
+            <label>線のパターン <select value={draft.defaultShapeStrokePattern} onChange={(event) => setDraft((current) => ({ ...current, defaultShapeStrokePattern: event.target.value as StrokePattern }))}>{STROKE_PATTERN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
           </fieldset>
 
           <fieldset>

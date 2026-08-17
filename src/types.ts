@@ -6,6 +6,8 @@ export type SymbolType = 'rectangle' | 'cross' | 'circle' | 'triangle' | 'wave'
 
 export type DrawingType = 'freehand' | 'line' | 'curve' | 'arrow'
 
+export type StrokePattern = 'solid' | 'dashed' | 'dotted' | 'dashDot' | 'double'
+
 export type PlacementMode = 'select' | 'text' | 'draw' | 'line' | 'curve' | 'arrow' | 'eraser' | SymbolType
 
 export interface CanvasPoint {
@@ -57,6 +59,7 @@ export interface SymbolElement extends CanvasElementBase {
   symbolType: SymbolType
   color: string
   strokeWidth: number
+  strokePattern?: StrokePattern
   scale: number
   scaleX?: number
   scaleY?: number
@@ -69,6 +72,7 @@ export interface DrawingElement extends CanvasElementBase {
   height: number
   color: string
   strokeWidth: number
+  strokePattern?: StrokePattern
   drawingType?: DrawingType
   arrowHeadSize?: number
 }
