@@ -35,6 +35,7 @@ import {
   TILE_HEIGHT,
   TILE_WIDTH,
 } from '../utils/layout'
+import { readCustomColors, TEXT_COLOR_PALETTE } from '../utils/colors'
 import { StrokeLayers, getCssBorderStyle } from '../utils/stroke'
 import { applyTextRunStyle, getTextRunStyleAt, normalizeTextRuns, reconcileTextRuns, type TextRunStyle, type TextRunStylePatch } from '../utils/textRuns'
 
@@ -281,6 +282,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const [draggingIds, setDraggingIds] = useState<Set<string>>(() => new Set())
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null)
   const [placementPreview, setPlacementPreview] = useState<DropPreview | null>(null)
+  const [customTextColors, setCustomTextColors] = useState(readCustomColors)
 
   const createTextEditorState = (value: string, x: number, y: number, id?: string, runs?: TextRun[], baseStyle: TextRunStyle = props.textStyle): TextEditorState => ({
     id,
@@ -324,6 +326,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', up)
     }
+  }, [])
+
+  useEffect(() => {
+    const refreshCustomColors = () => setCustomTextColors(readCustomColors())
+    window.addEventListener('mahjong-custom-colors-changed', refreshCustomColors)
+    return () => window.removeEventListener('mahjong-custom-colors-changed', refreshCustomColors)
   }, [])
 
   useEffect(() => {
@@ -1217,7 +1225,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
       {editor && textFormatMenu && (() => {
         const selectedStyle = getTextRunStyleAt(editor.value, editor.runs, textFormatMenu.start, editor.baseStyle)
-        const colorChoices = ['#b13f34', '#244a40', '#1d5fa7', '#8a5a13', '#7a2f83', '#172c27']
+        const colorChoices = Array.from(new Set([...TEXT_COLOR_PALETTE, ...customTextColors]))
         return <div
           className="text-format-context-menu export-hidden"
           style={{ left: Math.max(8, Math.min(textFormatMenu.clientX, window.innerWidth - 286)), top: Math.max(8, Math.min(textFormatMenu.clientY, window.innerHeight - 190)) }}
@@ -1239,7 +1247,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             </select>
           </div>
           <div className="text-format-context-colors" aria-label="文字色">
-            {colorChoices.map((color) => <button key={color} type="button" style={{ backgroundColor: color }} className={selectedStyle.color.toLowerCase() === color ? 'active' : ''} onClick={() => applyTextFormat({ color })} aria-label={`${color}に変更`} />)}
+            {colorChoices.map((color) => <button key={color} type="button" style={{ backgroundColor: color }} className={selectedStyle.color.toLowerCase() === color.toLowerCase() ? 'active' : ''} onClick={() => applyTextFormat({ color })} aria-label={`${color}に変更`} />)}
             <label className="text-format-custom-color" title="その他の色"><input type="color" value={selectedStyle.color} onChange={(event) => applyTextFormat({ color: event.target.value })} aria-label="その他の文字色" />＋</label>
           </div>
         </div>
