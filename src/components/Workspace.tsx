@@ -1742,7 +1742,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           </div>
           <div className="text-format-context-colors" aria-label="文字背景色">
             <small className="text-format-color-label">背景</small>
-            <button type="button" className={!selectedStyle.backgroundColor ? 'active text-format-clear-color' : 'text-format-clear-color'} onClick={() => applyTextFormat({ backgroundColor: null })} aria-label="文字背景色をなしにする">なし</button>
+            <button type="button" className={!selectedStyle.backgroundColor ? 'active text-format-clear-color' : 'text-format-clear-color'} onClick={() => applyTextFormat({ backgroundColor: null })} aria-label="文字背景色をなしにする">無</button>
             {TEXT_BACKGROUND_PALETTE.map((color) => <button key={color} type="button" style={{ backgroundColor: color }} className={selectedStyle.backgroundColor?.toLowerCase() === color ? 'active' : ''} onClick={() => applyTextFormat({ backgroundColor: color })} aria-label={`${color}の文字背景色`} />)}
             <label className="text-format-custom-color" title="その他の背景色"><input type="color" value={selectedStyle.backgroundColor ?? '#fff3c4'} onChange={(event) => applyTextFormat({ backgroundColor: event.target.value })} aria-label="その他の文字背景色" />＋</label>
           </div>
