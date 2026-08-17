@@ -1193,6 +1193,18 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   }
 
   const openWorkspaceContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target
+    const editingText = target instanceof Element
+      ? target.closest('.placed-text.editing')
+      : null
+    const pointIsInsideEditingText = !editingText && Array.from(event.currentTarget.querySelectorAll('.placed-text.editing')).some((item) => {
+      const bounds = item.getBoundingClientRect()
+      return event.clientX >= bounds.left && event.clientX <= bounds.right && event.clientY >= bounds.top && event.clientY <= bounds.bottom
+    })
+    if (editor && (editingText || pointIsInsideEditingText) && (textSelection || textFormatSelectionRef.current)) {
+      openTextFormatMenu(event)
+      return
+    }
     event.preventDefault()
     const canvas = event.currentTarget.getBoundingClientRect()
     props.onOpenContextMenu({
@@ -1266,9 +1278,17 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       onPointerDownCapture={(event) => {
         if (!editor) return
         const target = event.target
+        const editingText = target instanceof Element
+          ? target.closest('.placed-text.editing')
+          : null
+        const pointIsInsideEditingText = event.button === 2 && !editingText && Array.from(event.currentTarget.querySelectorAll('.placed-text.editing')).some((item) => {
+          const bounds = item.getBoundingClientRect()
+          return event.clientX >= bounds.left && event.clientX <= bounds.right && event.clientY >= bounds.top && event.clientY <= bounds.bottom
+        })
         if (target instanceof Element && (
           target.closest('.workspace-text-editor, .workspace-text-editor-preview, .text-format-context-menu')
-          || (event.button === 2 && target.closest('.placed-text.editing'))
+          || (event.button === 2 && editingText)
+          || pointIsInsideEditingText
         )) return
         finishTextEditor()
       }}
