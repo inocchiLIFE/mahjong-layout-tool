@@ -116,6 +116,11 @@ interface TextEditorState {
   baseStyle: TextRunStyle
 }
 
+interface TextSelectionRange {
+  start: number
+  end: number
+}
+
 interface TextFormatMenuState {
   clientX: number
   clientY: number
@@ -229,11 +234,43 @@ const curvePath = (points: CanvasPoint[]) => {
 
 const isDrawingPlacementMode = (mode: PlacementMode) => mode === 'draw' || mode === 'line' || mode === 'curve' || mode === 'arrow' || mode === 'marker'
 
-const renderTextRuns = (text: string, runs: TextRun[] | undefined, fallback: TextRunStyle, colorOverride?: string): ReactNode => {
+const renderTextRuns = (
+  text: string,
+  runs: TextRun[] | undefined,
+  fallback: TextRunStyle,
+  colorOverride?: string,
+  selection?: TextSelectionRange,
+): ReactNode => {
   const normalized = normalizeTextRuns(text, runs, fallback)
-  return normalized.length
-    ? normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily }}>{run.text}</span>)
-    : text
+  if (!normalized.length) return text
+  if (!selection || selection.start >= selection.end) {
+    return normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily }}>{run.text}</span>)
+  }
+
+  const selectedStart = Math.max(0, Math.min(selection.start, text.length))
+  const selectedEnd = Math.max(selectedStart, Math.min(selection.end, text.length))
+  let offset = 0
+  return normalized.flatMap((run, runIndex) => {
+    const runStart = offset
+    const runEnd = offset + run.text.length
+    offset = runEnd
+    const boundaries = [runStart, Math.max(runStart, Math.min(selectedStart, runEnd)), Math.max(runStart, Math.min(selectedEnd, runEnd)), runEnd]
+      .filter((boundary, index, values) => index === 0 || boundary !== values[index - 1])
+    return boundaries.slice(0, -1).map((segmentStart, segmentIndex) => {
+      const segmentEnd = boundaries[segmentIndex + 1]
+      const selected = segmentStart < selectedEnd && segmentEnd > selectedStart
+      return <span
+        key={`${runIndex}-${segmentIndex}-${segmentStart}-${segmentEnd}`}
+        style={{
+          color: selected ? '#082b26' : colorOverride ?? run.color,
+          fontSize: run.fontSize,
+          fontFamily: run.fontFamily,
+          backgroundColor: selected ? '#dcae5e' : undefined,
+          borderRadius: selected ? 2 : undefined,
+        }}
+      >{run.text.slice(segmentStart - runStart, segmentEnd - runStart)}</span>
+    })
+  })
 }
 
 const getTextFormatMenuPosition = (menu: TextFormatMenuState) => {
@@ -305,6 +342,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const spaceDownRef = useRef(false)
   const [marquee, setMarquee] = useState<MarqueeState | null>(null)
   const [editor, setEditor] = useState<TextEditorState | null>(null)
+  const [textSelection, setTextSelection] = useState<TextSelectionRange | null>(null)
   const [textFormatMenu, setTextFormatMenu] = useState<TextFormatMenuState | null>(null)
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
   const [curveDraft, setCurveDraft] = useState<CurveDraftState | null>(null)
@@ -325,6 +363,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   })
 
   const restoreTextSelection = (start: number, end: number) => {
+    setTextSelection({ start, end })
     window.requestAnimationFrame(() => {
       const input = textEditorRef.current
       if (!input) return
@@ -372,6 +411,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     )
     if (item && !item.locked) {
       setEditor(createTextEditorState(item.text, item.x, item.y, item.id, item.textRuns, { color: item.color, fontSize: item.fontSize, fontFamily: item.fontFamily }))
+      setTextSelection(null)
       setTextFormatMenu(null)
     }
   }, [props.editTextRequest, props.scene.elements])
@@ -823,6 +863,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
 
     if (props.placementMode === 'text') {
+      setTextSelection(null)
       setEditor(createTextEditorState('', state.startX, state.startY))
     } else if (props.placementMode !== 'select' && !isDrawingPlacementMode(props.placementMode) && props.placementMode !== 'eraser') {
       props.onPlaceSymbol(props.placementMode, state.startX, state.startY)
@@ -838,9 +879,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     event.preventDefault()
     event.stopPropagation()
     if (!editor || start === end) {
+      setTextSelection(null)
       setTextFormatMenu(null)
       return
     }
+    setTextSelection({ start, end })
     const bounds = textarea.getBoundingClientRect()
     const appShell = textarea.closest('.app-shell')
     const parsedZoom = appShell ? Number.parseFloat(getComputedStyle(appShell).zoom) : 1
@@ -860,7 +903,6 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const { start, end } = textFormatMenu
     const runs = applyTextRunStyle(editor.value, editor.runs, start, end, style, editor.baseStyle)
     setEditor({ ...editor, runs })
-    setTextFormatMenu(null)
     restoreTextSelection(start, end)
   }
 
@@ -869,6 +911,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const text = editor.value.trim()
     if (!cancelled && text) props.onCommitText(text, editor.x, editor.y, editor.id, normalizeTextRuns(text, editor.runs, editor.baseStyle))
     setEditor(null)
+    setTextSelection(null)
     setTextFormatMenu(null)
     props.onFinishTextEditing()
   }
@@ -973,6 +1016,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           x: toCanvasCoordinate(event.clientX, bounds.left, camera.x),
           y: toCanvasCoordinate(event.clientY, bounds.top, camera.y),
         }
+        setTextSelection(null)
         setEditor(createTextEditorState('', point.x, point.y))
       }}
       onDragEnter={updateDropPreview}
@@ -1096,7 +1140,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               key={element.id}
               {...commonProps}
               className={`${commonProps.className}${editor?.id === element.id ? ' editing' : ''}`}
-              onDoubleClick={() => !element.locked && setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily }))}
+              onDoubleClick={() => {
+                if (element.locked) return
+                setTextSelection(null)
+                setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily }))
+              }}
               aria-label={`文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
             >
               <span
@@ -1257,7 +1305,17 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           aria-label="文字を入力"
           onPointerDown={(event) => event.stopPropagation()}
           onContextMenu={openTextFormatMenu}
-          onChange={(event) => setEditor({ ...editor, value: event.target.value, runs: reconcileTextRuns(editor.value, event.target.value, editor.runs, editor.baseStyle) })}
+          onSelect={(event) => {
+            const start = Math.min(event.currentTarget.selectionStart, event.currentTarget.selectionEnd)
+            const end = Math.max(event.currentTarget.selectionStart, event.currentTarget.selectionEnd)
+            setTextSelection(start === end ? null : { start, end })
+          }}
+          onChange={(event) => {
+            const start = Math.min(event.currentTarget.selectionStart, event.currentTarget.selectionEnd)
+            const end = Math.max(event.currentTarget.selectionStart, event.currentTarget.selectionEnd)
+            setTextSelection(start === end ? null : { start, end })
+            setEditor({ ...editor, value: event.target.value, runs: reconcileTextRuns(editor.value, event.target.value, editor.runs, editor.baseStyle) })
+          }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
               event.preventDefault()
@@ -1279,7 +1337,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           className="workspace-text-editor-preview export-hidden"
           style={{ left: editor.x + camera.x, top: editor.y + camera.y, fontSize: previewFontSize, fontFamily: editor.baseStyle.fontFamily }}
           aria-hidden="true"
-        >{renderTextRuns(editor.value, editor.runs, editor.baseStyle)}</span>
+        >{renderTextRuns(editor.value, editor.runs, editor.baseStyle, undefined, textSelection ?? undefined)}</span>
       })()}
 
       {editor && textFormatMenu && (() => {
