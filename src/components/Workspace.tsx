@@ -502,9 +502,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
   const updateTextSelectionFromPreview = (input: HTMLTextAreaElement, anchor: number, focus: number) => {
     input.focus({ preventScroll: true })
-    input.setSelectionRange(anchor, focus, anchor === focus ? 'none' : anchor < focus ? 'forward' : 'backward')
     const start = Math.min(anchor, focus)
     const end = Math.max(anchor, focus)
+    // Keep the native selection in forward order. The visual selection only
+    // needs the normalized range, while some embedded browsers collapse a
+    // hidden textarea when setSelectionRange is given a backward direction.
+    input.setSelectionRange(start, end, start === end ? 'none' : 'forward')
     textFormatSelectionRef.current = start === end ? null : { start, end }
     syncTextSelection(input)
   }
