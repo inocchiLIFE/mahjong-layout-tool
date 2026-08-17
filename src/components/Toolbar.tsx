@@ -13,7 +13,7 @@ interface ToolbarProps {
   hasItems: boolean
   hasSelection: boolean
   canEditText: boolean
-  textStyle: { fontFamily: string; fontSize: number; fontWeight: 400 | 700; color: string }
+  textStyle: { fontFamily: string; fontSize: number; fontWeight: 400 | 700; color: string; textDecoration: 'none' | 'underline'; backgroundColor: string | null }
   isEditingSelectedText: boolean
   selectedShapeColor: string | null
   shapeColor: string
@@ -39,7 +39,7 @@ interface ToolbarProps {
   onRotate: () => void
   onToggleTileFaces: () => void
   onEditSelectedText: () => void
-  onUpdateTextStyle: (style: { fontFamily?: string; fontSize?: number; fontWeight?: 400 | 700; color?: string }) => void
+  onUpdateTextStyle: (style: { fontFamily?: string; fontSize?: number; fontWeight?: 400 | 700; color?: string; textDecoration?: 'none' | 'underline'; backgroundColor?: string | null }) => void
   onUpdateSelectedShapeColor: (color: string) => void
   onUpdateShapeStrokeWidth: (strokeWidth: number) => void
   onUpdateShapeStrokePattern: (strokePattern: StrokePattern) => void
@@ -156,6 +156,7 @@ export const Toolbar = (props: ToolbarProps) => {
 
   const activeColor = props.selectedShapeColor ?? props.textStyle.color
   const isEditingShape = props.selectedShapeColor !== null
+  const textBackgroundColors = ['#fff3c4', '#d9f1e7', '#dbeafe', '#fce7f3', '#ede9fe', '#e5e7eb']
   const updateColor = (color: string) => {
     if (isEditingShape) props.onUpdateSelectedShapeColor(color)
     else props.onUpdateTextStyle({ color })
@@ -254,6 +255,7 @@ export const Toolbar = (props: ToolbarProps) => {
             </select>
             <div className="font-ribbon-controls">
               <button type="button" aria-label="太字を切り替え" aria-pressed={props.textStyle.fontWeight === 700} className={props.textStyle.fontWeight === 700 ? 'active' : ''} disabled={isEditingShape} onClick={() => props.onUpdateTextStyle({ fontWeight: props.textStyle.fontWeight === 700 ? 400 : 700 })}>B</button>
+              <button type="button" aria-label="下線を切り替え" aria-pressed={props.textStyle.textDecoration === 'underline'} className={props.textStyle.textDecoration === 'underline' ? 'active' : ''} disabled={isEditingShape} onClick={() => props.onUpdateTextStyle({ textDecoration: props.textStyle.textDecoration === 'underline' ? 'none' : 'underline' })}>U̲</button>
               <button type="button" aria-label="文字サイズを小さく" disabled={isEditingShape} onClick={() => props.onUpdateTextStyle({ fontSize: Math.max(12, props.textStyle.fontSize - 2) })}>A−</button>
               <input
                 type="number"
@@ -296,6 +298,13 @@ export const Toolbar = (props: ToolbarProps) => {
               <div className="text-color-swatches">
                 {TEXT_COLOR_PALETTE.map((color) => <button key={color} type="button" className={props.textStyle.color.toLowerCase() === color ? 'active' : ''} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字色`} onClick={() => props.onUpdateTextStyle({ color })} />)}
                 {customColors.map((color) => <button key={color} type="button" className={`custom${props.textStyle.color.toLowerCase() === color ? ' active' : ''}`} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字色`} onClick={() => props.onUpdateTextStyle({ color })} />)}
+              </div>
+            </div>
+            <div className="text-color-palette" aria-label="文字背景色パレット">
+              <small>背景</small>
+              <div className="text-color-swatches">
+                <button type="button" className={`text-background-none${!props.textStyle.backgroundColor ? ' active' : ''}`} title="背景なし" aria-label="文字背景色なし" onClick={() => props.onUpdateTextStyle({ backgroundColor: null })} disabled={isEditingShape}>なし</button>
+                {textBackgroundColors.map((color) => <button key={color} type="button" className={props.textStyle.backgroundColor?.toLowerCase() === color ? 'active' : ''} style={{ backgroundColor: color }} title={color} aria-label={`${color}の文字背景色`} onClick={() => props.onUpdateTextStyle({ backgroundColor: color })} disabled={isEditingShape} />)}
               </div>
             </div>
           </div>

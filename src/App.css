@@ -191,11 +191,11 @@
 .tool-button.danger:hover:not(:disabled) { background: #f7e7e4; border-color: #e2bbb4; color: #a23b2d; }
 .tool-button:disabled, .text-add-button:disabled { opacity: .36; cursor: not-allowed; }
 
-.font-ribbon { order: -1; align-self: stretch; display: grid; grid-template-columns: 112px 164px; grid-template-rows: 14px 29px 20px; gap: 3px 5px; min-width: 286px; margin-right: 5px; padding-right: 8px; border-right: 1px solid rgba(21, 65, 55, .12); }
+.font-ribbon { order: -1; align-self: stretch; display: grid; grid-template-columns: 112px 164px; grid-template-rows: 14px 29px 20px 20px; gap: 3px 5px; min-width: 286px; margin-right: 5px; padding-right: 8px; border-right: 1px solid rgba(21, 65, 55, .12); }
 .font-ribbon-label { grid-column: 1 / -1; color: #84958f; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
 .font-ribbon select { grid-column: 1; grid-row: 2; }
 .font-ribbon-controls { grid-column: 2; grid-row: 2; }
-.text-color-palette { grid-column: 1 / -1; grid-row: 3; }
+.text-color-palette { grid-column: 1 / -1; }
 .shape-style-ribbon { order: -1; align-self: stretch; display: grid; grid-template-columns: auto minmax(88px, 1fr) auto; grid-template-rows: 14px 28px; gap: 3px 6px; min-width: 340px; margin-right: 5px; padding-left: 8px; padding-right: 8px; border-left: 1px solid rgba(21, 65, 55, .12); border-right: 1px solid rgba(21, 65, 55, .12); }
 .shape-style-label { grid-column: 1 / -1; color: #84958f; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
 .shape-stroke-control { display: flex; align-items: center; gap: 5px; color: #607a72; font-size: 10px; font-weight: 800; white-space: nowrap; }
@@ -416,7 +416,6 @@
 .text-visual { left: 0; top: 0; padding: 4px 8px; line-height: 1.35; letter-spacing: .03em; text-align: left; white-space: pre-wrap; }
 .placed-symbol { color: #244a40; }
 .symbol-visual { box-sizing: border-box; }
-.symbol-rectangle { border-style: solid; border-color: currentColor; border-radius: 5px; }
 .symbol-circle { border-style: solid; border-color: currentColor; border-radius: 50%; }
 .symbol-cross { font-family: "Yu Gothic", sans-serif; font-weight: 700; line-height: 1; }
 .symbol-triangle { overflow: visible; }
@@ -430,7 +429,6 @@
 .custom-shape-drop-content { position: absolute; inset: 0; display: block; opacity: .82; pointer-events: none; }
 .drop-preview-symbol { border: 0; border-radius: 0; background: transparent; color: #244a40; opacity: .78; }
 .drop-symbol-preview { box-sizing: border-box; display: block; width: 100%; height: 100%; color: currentColor; }
-.drop-symbol-rectangle { border: 4px solid currentColor; border-radius: 5px; }
 .drop-symbol-circle { border: 4px solid currentColor; border-radius: 50%; }
 .drop-symbol-cross { display: grid; place-items: center; font: 700 49px/1 "Yu Gothic", sans-serif; }
 .drop-symbol-triangle { overflow: visible; }
@@ -451,8 +449,11 @@
 .text-format-context-colors { display: flex; align-items: center; gap: 5px; padding-top: 2px; }
 .text-format-context-colors button { width: 21px; height: 21px; padding: 0; border: 1px solid rgba(23, 44, 39, .28); border-radius: 4px; cursor: pointer; }
 .text-format-context-colors button.active { outline: 2px solid #23826a; outline-offset: 1px; }
+.text-format-context-colors .text-format-clear-color { width: auto; min-width: 30px; padding: 0 4px; color: #607a72; background: #fff; font-size: 9px; }
+.text-format-color-label { min-width: 28px; color: #607a72; font-size: 10px; font-weight: 800; }
 .text-format-custom-color { position: relative; display: grid; place-items: center; width: 21px; height: 21px; box-sizing: border-box; border: 1px solid #c8d8d0; border-radius: 4px; color: #31574d; background: #fff; font: 800 13px/1 sans-serif; cursor: pointer; }
 .text-format-custom-color input { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; cursor: pointer; }
+.text-background-none { min-width: 34px; padding: 0 4px; color: #607a72; background: #fff; font-size: 9px; }
 .workspace-resize-handle { position: absolute; right: 0; bottom: 0; z-index: 10001; width: 24px; height: 24px; border: 0; border-radius: 10px 0 4px 0; background: linear-gradient(135deg, transparent 38%, #55776e 39%, #55776e 48%, transparent 49%, transparent 61%, #55776e 62%, #55776e 71%, transparent 72%); cursor: nwse-resize; touch-action: none; }
 .element-resize-handle { position: absolute; z-index: 10002; width: 20px; height: 20px; padding: 0; border: 2px solid #fff; border-radius: 4px; background: #18745d; box-shadow: 0 0 0 1px #0d5746, 0 2px 5px rgba(0,0,0,.2); cursor: nwse-resize; touch-action: none; }
 .is-capturing .export-hidden { display: none !important; }

@@ -83,8 +83,8 @@ const LayoutPreview = ({ saved }: { saved: NamedSavedLayout }) => {
             : tile && <img key={element.id} className="saved-preview-item" src={tile.asset} alt="" style={style} />
         }
         if (element.kind === 'text') {
-          const textRuns = normalizeTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight })
-          return <span key={element.id} className="saved-preview-item saved-preview-text" style={{ ...style, color: element.color, fontFamily: element.fontFamily, fontWeight: element.fontWeight }}>{textRuns.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight }}>{run.text}</span>)}</span>
+          const textRuns = normalizeTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null })
+          return <span key={element.id} className="saved-preview-item saved-preview-text" style={{ ...style, color: element.color, fontFamily: element.fontFamily, fontWeight: element.fontWeight }}>{textRuns.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight, textDecoration: run.textDecoration ?? 'none', backgroundColor: run.backgroundColor ?? undefined }}>{run.text}</span>)}</span>
         }
         if (element.kind === 'image') {
           return <img key={element.id} className="saved-preview-item" src={element.src} alt="" style={{ ...style, opacity: element.opacity }} />

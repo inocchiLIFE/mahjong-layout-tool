@@ -11,6 +11,8 @@ export interface AppPreferences {
   defaultTextFontSize: number
   defaultTextFontWeight: 400 | 700
   defaultTextColor: string
+  defaultTextDecoration: 'none' | 'underline'
+  defaultTextBackgroundColor: string | null
   defaultShapeColor: string
   defaultShapeStrokeWidth: number
   defaultShapeStrokePattern: StrokePattern
@@ -36,6 +38,8 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   defaultTextFontSize: 35,
   defaultTextFontWeight: 400,
   defaultTextColor: '#172c27',
+  defaultTextDecoration: 'none',
+  defaultTextBackgroundColor: null,
   defaultShapeColor: '#244a40',
   defaultShapeStrokeWidth: 4,
   defaultShapeStrokePattern: DEFAULT_STROKE_PATTERN,
@@ -106,7 +110,14 @@ export const SettingsDialog = ({ preferences, onSave, onClose }: SettingsDialogP
             </label>
             <label>文字サイズ <input type="number" min="12" max="72" value={draft.defaultTextFontSize} onChange={(event) => setDraft((current) => ({ ...current, defaultTextFontSize: Math.min(72, Math.max(12, Number(event.target.value) || 12)) }))} /></label>
             <label><input type="checkbox" checked={draft.defaultTextFontWeight === 700} onChange={(event) => setDraft((current) => ({ ...current, defaultTextFontWeight: event.target.checked ? 700 : 400 }))} /> 太字で入力する</label>
+            <label><input type="checkbox" checked={draft.defaultTextDecoration === 'underline'} onChange={(event) => setDraft((current) => ({ ...current, defaultTextDecoration: event.target.checked ? 'underline' : 'none' }))} /> 下線を付けて入力する</label>
             <label>文字色 <input type="color" value={draft.defaultTextColor} onChange={(event) => setDraft((current) => ({ ...current, defaultTextColor: event.target.value }))} /></label>
+            <label>文字背景色
+              <span className="color-field">
+                <input type="color" value={draft.defaultTextBackgroundColor ?? '#fff3c4'} onChange={(event) => setDraft((current) => ({ ...current, defaultTextBackgroundColor: event.target.value }))} />
+                {draft.defaultTextBackgroundColor && <button type="button" onClick={() => setDraft((current) => ({ ...current, defaultTextBackgroundColor: null }))}>なし</button>}
+              </span>
+            </label>
           </fieldset>
 
           <fieldset>

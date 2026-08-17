@@ -52,7 +52,7 @@ interface WorkspaceProps {
   allowTileOverlap: boolean
   placementMode: PlacementMode
   eraserSize: number
-  textStyle: { fontFamily: string; fontSize: number; fontWeight: 400 | 700; color: string }
+  textStyle: { fontFamily: string; fontSize: number; fontWeight: 400 | 700; color: string; textDecoration: 'none' | 'underline'; backgroundColor: string | null }
   drawingStyle: { color: string; strokeWidth: number; strokePattern: StrokePattern; opacity?: number; arrowHeadSize: number }
   symbolColors: Record<SymbolType, string>
   symbolStrokeWidths: Record<SymbolType, number>
@@ -135,6 +135,7 @@ interface TextFormatMenuState {
 interface DrawingState {
   pointerId: number
   points: CanvasPoint[]
+  straight: boolean
 }
 
 interface EraserState {
@@ -246,7 +247,7 @@ const renderTextRuns = (
   const normalized = normalizeTextRuns(text, runs, fallback)
   if (!normalized.length) return text
   if (!selection || selection.start >= selection.end) {
-    return normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight }}>{run.text}</span>)
+    return normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight, textDecoration: run.textDecoration ?? 'none', backgroundColor: run.backgroundColor ?? undefined }}>{run.text}</span>)
   }
 
   const selectedStart = Math.max(0, Math.min(selection.start, text.length))
@@ -268,7 +269,8 @@ const renderTextRuns = (
           fontSize: run.fontSize,
           fontFamily: run.fontFamily,
           fontWeight: run.fontWeight,
-          backgroundColor: selected ? '#dcae5e' : undefined,
+          textDecoration: run.textDecoration ?? 'none',
+          backgroundColor: selected ? '#dcae5e' : run.backgroundColor ?? undefined,
           borderRadius: selected ? 2 : undefined,
         }}
       >{run.text.slice(segmentStart - runStart, segmentEnd - runStart)}</span>
@@ -278,7 +280,7 @@ const renderTextRuns = (
 
 const getTextFormatMenuPosition = (menu: TextFormatMenuState) => {
   const width = 270
-  const height = 190
+  const height = 280
   const gap = 12
   const margin = 8
   const zoom = menu.zoom
@@ -346,6 +348,8 @@ const constrainStraightLine = (start: CanvasPoint, end: CanvasPoint): CanvasPoin
   if (horizontal) return [snappedStart, { x: snap(end.x, true), y: snappedStart.y }]
   return [snappedStart, { x: snappedStart.x, y: snap(end.y, true) }]
 }
+
+const TEXT_BACKGROUND_PALETTE = ['#fff3c4', '#d9f1e7', '#dbeafe', '#fce7f3', '#ede9fe', '#e5e7eb']
 
 /** Keep the curve handle perpendicular to its chord: horizontal curves bend
  * vertically, while vertically drawn curves bend along the horizontal axis. */
@@ -461,7 +465,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       (element): element is TextElement => element.id === props.editTextRequest?.id && element.kind === 'text',
     )
     if (item && !item.locked) {
-      setEditor(createTextEditorState(item.text, item.x, item.y, item.id, item.textRuns, { color: item.color, fontSize: item.fontSize, fontFamily: item.fontFamily, fontWeight: item.fontWeight }))
+      setEditor(createTextEditorState(item.text, item.x, item.y, item.id, item.textRuns, { color: item.color, fontSize: item.fontSize, fontFamily: item.fontFamily, fontWeight: item.fontWeight, textDecoration: item.textDecoration ?? 'none', backgroundColor: item.backgroundColor ?? null }))
       setTextSelection(null)
       setTextCaretIndex(0)
       setTextFormatMenu(null)
@@ -833,7 +837,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
     if (isDrawingPlacementMode(props.placementMode)) {
       const point = canvasPoint(event)
-      const state = { pointerId: event.pointerId, points: [point] }
+      const state = { pointerId: event.pointerId, points: [point], straight: props.placementMode === 'marker' && event.shiftKey }
       drawingRef.current = state
       setDrawing(state)
       props.onClearSelection()
@@ -868,10 +872,14 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       const point = canvasPoint(event)
       const previous = activeDrawing.points.at(-1)
       if (!previous || Math.hypot(point.x - previous.x, point.y - previous.y) >= 2) {
+        const straightMarker = props.placementMode === 'marker' && (activeDrawing.straight || event.shiftKey)
         const next = {
           ...activeDrawing,
+          straight: activeDrawing.straight || straightMarker,
           points: props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow'
             ? constrainStraightLine(activeDrawing.points[0], point)
+            : straightMarker
+              ? [activeDrawing.points[0], point]
             : [...activeDrawing.points, point],
         }
         drawingRef.current = next
@@ -917,8 +925,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const activeDrawing = drawingRef.current
     if (activeDrawing?.pointerId === event.pointerId) {
       const point = canvasPoint(event)
+      const straightMarker = props.placementMode === 'marker' && (activeDrawing.straight || event.shiftKey)
       const points = props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow'
         ? constrainStraightLine(activeDrawing.points[0], point)
+        : straightMarker
+          ? [activeDrawing.points[0], point]
         : [...activeDrawing.points, point]
       drawingRef.current = null
       setDrawing(null)
@@ -1248,7 +1259,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 if (element.locked) return
                 setTextSelection(null)
                 setTextCaretIndex(0)
-                setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight }))
+                setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null }))
               }}
               aria-label={`文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
             >
@@ -1264,7 +1275,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   transform: `rotate(${element.rotation}deg)`,
                   transformOrigin: 'top left',
                 }}
-              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight })}</span>
+              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null })}</span>
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1295,10 +1306,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               {element.elements.map((part) => {
                 const partDimensions = getElementDimensions(part)
                 const color = element.color ?? (part.kind === 'image' ? undefined : part.color)
-                if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: partDimensions.width, height: partDimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight }, color)}</span>
+                if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: partDimensions.width, height: partDimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight, textDecoration: part.textDecoration ?? 'none', backgroundColor: part.backgroundColor ?? null }, color)}</span>
                 if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" draggable={false} /></span>
                 if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
                 const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }
+                if (part.symbolType === 'rectangle') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${width} ${height}`} style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <rect x={strokeWidth / 2} y={strokeWidth / 2} width={Math.max(1, width - strokeWidth)} height={Math.max(1, height - strokeWidth)} rx="5" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers></svg>
                 if (part.symbolType === 'cross') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 48 66" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
                 if (part.symbolType === 'triangle') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 99 66" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polygon points="49.5,5 94,61 5,61" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
                 if (part.symbolType === 'wave') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 240 16" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
@@ -1353,7 +1365,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             }}
             aria-label={`${SYMBOL_LABELS[element.symbolType]}${element.selected ? '、選択中' : ''}${lockedLabel}`}
           >
-            {element.symbolType === 'cross' ? (
+            {element.symbolType === 'rectangle' ? (
+              <svg className="symbol-visual symbol-rectangle" viewBox={`0 0 ${visualWidth} ${visualHeight}`} style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
+                <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <rect x={strokeWidth / 2} y={strokeWidth / 2} width={Math.max(1, visualWidth - strokeWidth)} height={Math.max(1, visualHeight - strokeWidth)} rx="5" fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers>
+              </svg>
+            ) : element.symbolType === 'cross' ? (
               <svg className="symbol-visual symbol-cross" viewBox="0 0 48 66" style={{ width: visualWidth, height: visualHeight, transform: visualTransform }} aria-hidden="true">
                 <StrokeLayers pattern={element.strokePattern} strokeWidth={element.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={element.color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers>
               </svg>
@@ -1404,6 +1420,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             fontSize: editorPreviewFontSize,
             fontFamily: editor.baseStyle.fontFamily,
             fontWeight: editor.baseStyle.fontWeight,
+            textDecoration: editor.baseStyle.textDecoration,
+            backgroundColor: 'transparent',
             caretColor: 'transparent',
           }}
           value={editor.value}
@@ -1480,6 +1498,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           <strong>選択部分を編集</strong>
           <div className="text-format-context-row">
             <button type="button" className={selectedStyle.fontWeight === 700 ? 'active' : ''} aria-pressed={selectedStyle.fontWeight === 700} onClick={() => applyTextFormat({ fontWeight: selectedStyle.fontWeight === 700 ? 400 : 700 })} aria-label="太字を切り替え">B</button>
+            <button type="button" className={selectedStyle.textDecoration === 'underline' ? 'active' : ''} aria-pressed={selectedStyle.textDecoration === 'underline'} onClick={() => applyTextFormat({ textDecoration: selectedStyle.textDecoration === 'underline' ? 'none' : 'underline' })} aria-label="下線を切り替え">U̲</button>
             <button type="button" onClick={() => applyTextFormat({ fontSize: Math.max(12, selectedStyle.fontSize - 2) })} aria-label="文字を小さく">A−</button>
             <output>{selectedStyle.fontSize}px</output>
             <button type="button" onClick={() => applyTextFormat({ fontSize: Math.min(72, selectedStyle.fontSize + 2) })} aria-label="文字を大きく">A+</button>
@@ -1493,6 +1512,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           <div className="text-format-context-colors" aria-label="文字色">
             {colorChoices.map((color) => <button key={color} type="button" style={{ backgroundColor: color }} className={selectedStyle.color.toLowerCase() === color.toLowerCase() ? 'active' : ''} onClick={() => applyTextFormat({ color })} aria-label={`${color}に変更`} />)}
             <label className="text-format-custom-color" title="その他の色"><input type="color" value={selectedStyle.color} onChange={(event) => applyTextFormat({ color: event.target.value })} aria-label="その他の文字色" />＋</label>
+          </div>
+          <div className="text-format-context-colors" aria-label="文字背景色">
+            <small className="text-format-color-label">背景</small>
+            <button type="button" className={!selectedStyle.backgroundColor ? 'active text-format-clear-color' : 'text-format-clear-color'} onClick={() => applyTextFormat({ backgroundColor: null })} aria-label="文字背景色をなしにする">なし</button>
+            {TEXT_BACKGROUND_PALETTE.map((color) => <button key={color} type="button" style={{ backgroundColor: color }} className={selectedStyle.backgroundColor?.toLowerCase() === color ? 'active' : ''} onClick={() => applyTextFormat({ backgroundColor: color })} aria-label={`${color}の文字背景色`} />)}
+            <label className="text-format-custom-color" title="その他の背景色"><input type="color" value={selectedStyle.backgroundColor ?? '#fff3c4'} onChange={(event) => applyTextFormat({ backgroundColor: event.target.value })} aria-label="その他の文字背景色" />＋</label>
           </div>
         </div>
       })()}
@@ -1517,17 +1542,20 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         {preview.customShape.elements.filter((part) => part.kind !== 'tile' && part.kind !== 'customShape').map((part) => {
           const dimensions = getElementDimensions(part)
           const color = preview.color ?? (part.kind === 'image' ? undefined : part.color)
-          if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: dimensions.width, height: dimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight }, color)}</span>
+          if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: dimensions.width, height: dimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily, fontWeight: part.fontWeight, textDecoration: part.textDecoration ?? 'none', backgroundColor: part.backgroundColor ?? null }, color)}</span>
           if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" /></span>
           if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
           const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }
+          if (part.symbolType === 'rectangle') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${width} ${height}`} style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <rect x={strokeWidth / 2} y={strokeWidth / 2} width={Math.max(1, width - strokeWidth)} height={Math.max(1, height - strokeWidth)} rx="5" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers></svg>
           if (part.symbolType === 'cross') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 48 66" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
           if (part.symbolType === 'triangle') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 99 66" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polygon points="49.5,5 94,61 5,61" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
           if (part.symbolType === 'wave') return <svg key={part.id} className="custom-shape-part" viewBox="0 0 240 16" style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 0 8 q 6 -5 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0 t 12 0" fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
           if (part.symbolType === 'circle') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${width} ${height}`} style={style}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <ellipse cx={width / 2} cy={height / 2} rx={Math.max(1, width / 2 - part.strokeWidth / 2)} ry={Math.max(1, height / 2 - part.strokeWidth / 2)} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers></svg>
           return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth, borderStyle: getCssBorderStyle(part.strokePattern) }} />
         })}
-      </span> : preview.kind === 'symbol' && preview.symbolType === 'cross' ? (
+      </span> : preview.kind === 'symbol' && preview.symbolType === 'rectangle' ? (
+          <svg className="drop-symbol-preview" viewBox={`0 0 ${preview.width} ${preview.height}`} aria-hidden="true"><StrokeLayers pattern={preview.strokePattern} strokeWidth={preview.strokeWidth ?? 4}>{({ strokeWidth, strokeDasharray, transform }) => <rect x={strokeWidth / 2} y={strokeWidth / 2} width={Math.max(1, preview.width - strokeWidth)} height={Math.max(1, preview.height - strokeWidth)} rx="5" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} transform={transform} />}</StrokeLayers></svg>
+        ) : preview.kind === 'symbol' && preview.symbolType === 'cross' ? (
           <svg className="drop-symbol-preview drop-symbol-cross" viewBox="0 0 48 66" aria-hidden="true"><StrokeLayers pattern={preview.strokePattern} strokeWidth={preview.strokeWidth ?? 4}>{({ strokeWidth, strokeDasharray, transform }) => <path d="M 7 7 L 41 59 M 41 7 L 7 59" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" transform={transform} />}</StrokeLayers></svg>
         ) : preview.kind === 'symbol' && preview.symbolType === 'triangle' ? (
           <svg className="drop-symbol-preview drop-symbol-triangle" viewBox="0 0 99 66" aria-hidden="true">

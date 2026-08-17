@@ -1,16 +1,23 @@
-import type { TextRun } from '../types'
+import type { TextDecoration, TextRun } from '../types'
 
 export interface TextRunStyle {
   color: string
   fontSize: number
   fontFamily: string
   fontWeight: 400 | 700
+  textDecoration: TextDecoration
+  backgroundColor: string | null
 }
 
 export type TextRunStylePatch = Partial<TextRunStyle>
 
 const sameStyle = (left: TextRun, right: TextRun) =>
-  left.color === right.color && left.fontSize === right.fontSize && left.fontFamily === right.fontFamily && left.fontWeight === right.fontWeight
+  left.color === right.color
+  && left.fontSize === right.fontSize
+  && left.fontFamily === right.fontFamily
+  && left.fontWeight === right.fontWeight
+  && (left.textDecoration ?? 'none') === (right.textDecoration ?? 'none')
+  && (left.backgroundColor ?? null) === (right.backgroundColor ?? null)
 
 const mergeRuns = (runs: TextRun[]) => runs.reduce<TextRun[]>((result, run) => {
   if (!run.text) return result
@@ -34,6 +41,8 @@ export const normalizeTextRuns = (text: string, runs: TextRun[] | undefined, fal
       fontSize: typeof run.fontSize === 'number' ? run.fontSize : fallback.fontSize,
       fontFamily: typeof run.fontFamily === 'string' ? run.fontFamily : fallback.fontFamily,
       fontWeight: run.fontWeight === 700 ? 700 : run.fontWeight === 400 ? 400 : fallback.fontWeight,
+      textDecoration: run.textDecoration === 'underline' ? 'underline' : fallback.textDecoration,
+      backgroundColor: typeof run.backgroundColor === 'string' ? run.backgroundColor : run.backgroundColor === null ? null : fallback.backgroundColor,
     })
     offset += available.length
   }
@@ -64,7 +73,14 @@ export const getTextRunStyleAt = (text: string, runs: TextRun[] | undefined, ind
   const target = Math.max(0, Math.min(index, Math.max(0, text.length - 1)))
   let offset = 0
   for (const run of normalized) {
-    if (target < offset + run.text.length) return { color: run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight }
+    if (target < offset + run.text.length) return {
+      color: run.color,
+      fontSize: run.fontSize,
+      fontFamily: run.fontFamily,
+      fontWeight: run.fontWeight,
+      textDecoration: run.textDecoration ?? 'none',
+      backgroundColor: run.backgroundColor ?? null,
+    }
     offset += run.text.length
   }
   return { ...fallback }

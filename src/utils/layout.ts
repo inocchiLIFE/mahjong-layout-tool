@@ -127,11 +127,11 @@ export const getSymbolBaseDimensions = (symbolType: SymbolType) => {
  * line from its actual runs so selection frames and hit areas follow the
  * rendered text instead of expanding every character to the largest run.
  */
-export const getTextElementContentDimensions = (element: Pick<TextElement, 'text' | 'color' | 'fontSize' | 'fontFamily' | 'fontWeight' | 'textRuns'>) => {
+export const getTextElementContentDimensions = (element: Pick<TextElement, 'text' | 'color' | 'fontSize' | 'fontFamily' | 'fontWeight' | 'textRuns' | 'textDecoration' | 'backgroundColor'>) => {
   const lines = element.text.split('\n')
   const lineWidths = Array.from({ length: lines.length }, () => 0)
   const lineFontSizes = Array.from({ length: lines.length }, () => element.fontSize)
-  const runs = normalizeTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight })
+  const runs = normalizeTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null })
   let lineIndex = 0
   for (const run of runs) {
     const chunks = run.text.split('\n')
@@ -297,6 +297,8 @@ export const makeText = (text: string, x: number, y: number, zIndex: number): Te
   fontSize: 35,
   fontFamily: 'sans-serif',
   fontWeight: 400,
+  textDecoration: 'none',
+  backgroundColor: null,
 })
 
 export const makeDrawing = (

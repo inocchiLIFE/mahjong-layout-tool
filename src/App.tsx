@@ -73,7 +73,7 @@ import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 import { generateIishanten, generateIishantenQuestion, generateRandomIishanten, IISHANTEN_LABELS, type IishantenType } from './utils/iishanten'
 import { detectOpenMelds } from './utils/detectMelds'
 import { DEFAULT_STROKE_PATTERN, isStrokePattern } from './utils/stroke'
-import { normalizeTextRuns } from './utils/textRuns'
+import { normalizeTextRuns, type TextRunStyle } from './utils/textRuns'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const PAGE_DECK_KEY = 'mahjong-layout-tool:page-deck-v1'
@@ -99,6 +99,8 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   defaultTextFontSize: 35,
   defaultTextFontWeight: 400,
   defaultTextColor: '#172c27',
+  defaultTextDecoration: 'none',
+  defaultTextBackgroundColor: null,
   defaultShapeColor: '#244a40',
   defaultShapeStrokeWidth: 4,
   defaultShapeStrokePattern: DEFAULT_STROKE_PATTERN,
@@ -135,7 +137,11 @@ const normalizeTextColor = (value: unknown) => {
 
 const normalizeFontWeight = (value: unknown): 400 | 700 => value === 700 ? 700 : 400
 
-const parseTextRuns = (value: unknown, text: string, fallback: Pick<TextRun, 'color' | 'fontSize' | 'fontFamily' | 'fontWeight'>) => {
+const normalizeTextDecoration = (value: unknown): 'none' | 'underline' => value === 'underline' ? 'underline' : 'none'
+
+const normalizeTextBackgroundColor = (value: unknown): string | null => typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : null
+
+const parseTextRuns = (value: unknown, text: string, fallback: TextRunStyle) => {
   if (!Array.isArray(value)) return undefined
   const runs = value.flatMap((run) => {
     if (!run || typeof run !== 'object') return []
@@ -147,6 +153,8 @@ const parseTextRuns = (value: unknown, text: string, fallback: Pick<TextRun, 'co
       fontSize: typeof candidate.fontSize === 'number' ? clamp(candidate.fontSize, 12, 72) : fallback.fontSize,
       fontFamily: typeof candidate.fontFamily === 'string' ? candidate.fontFamily : fallback.fontFamily,
       fontWeight: candidate.fontWeight === 700 ? 700 : candidate.fontWeight === 400 ? 400 : fallback.fontWeight,
+      textDecoration: normalizeTextDecoration(candidate.textDecoration ?? fallback.textDecoration),
+      backgroundColor: candidate.backgroundColor === null ? null : normalizeTextBackgroundColor(candidate.backgroundColor) ?? fallback.backgroundColor,
     }]
   })
   return normalizeTextRuns(text, runs, fallback)
@@ -214,6 +222,8 @@ const parseElement = (value: unknown): CanvasElement | null => {
     const fontFamily = typeof item.fontFamily === 'string' ? item.fontFamily : 'sans-serif'
     const fontWeight = normalizeFontWeight(item.fontWeight)
     const color = normalizeTextColor(item.color)
+    const textDecoration = normalizeTextDecoration(item.textDecoration)
+    const backgroundColor = normalizeTextBackgroundColor(item.backgroundColor)
     return {
       ...base,
       kind: 'text',
@@ -222,7 +232,9 @@ const parseElement = (value: unknown): CanvasElement | null => {
       fontSize,
       fontFamily,
       fontWeight,
-      textRuns: parseTextRuns(item.textRuns, item.text, { color, fontSize, fontFamily, fontWeight }),
+      textDecoration,
+      backgroundColor,
+      textRuns: parseTextRuns(item.textRuns, item.text, { color, fontSize, fontFamily, fontWeight, textDecoration, backgroundColor }),
     }
   }
   if (item.kind === 'symbol' && isSymbolType(item.symbolType)) {
@@ -418,6 +430,8 @@ const readPreferences = (): AppPreferences => {
       defaultTextFontSize: typeof saved.defaultTextFontSize === 'number' ? clamp(saved.defaultTextFontSize, 12, 72) : DEFAULT_PREFERENCES.defaultTextFontSize,
       defaultTextFontWeight: normalizeFontWeight(saved.defaultTextFontWeight),
       defaultTextColor: typeof saved.defaultTextColor === 'string' ? saved.defaultTextColor : DEFAULT_PREFERENCES.defaultTextColor,
+      defaultTextDecoration: normalizeTextDecoration(saved.defaultTextDecoration),
+      defaultTextBackgroundColor: saved.defaultTextBackgroundColor === null ? null : normalizeTextBackgroundColor(saved.defaultTextBackgroundColor) ?? DEFAULT_PREFERENCES.defaultTextBackgroundColor,
       defaultShapeColor: typeof saved.defaultShapeColor === 'string' ? saved.defaultShapeColor : DEFAULT_PREFERENCES.defaultShapeColor,
       defaultShapeStrokeWidth: typeof saved.defaultShapeStrokeWidth === 'number' ? clamp(saved.defaultShapeStrokeWidth, 1, 12) : DEFAULT_PREFERENCES.defaultShapeStrokeWidth,
       defaultShapeStrokePattern: isStrokePattern(saved.defaultShapeStrokePattern) ? saved.defaultShapeStrokePattern : DEFAULT_PREFERENCES.defaultShapeStrokePattern,
@@ -552,7 +566,7 @@ const App = () => {
   const [rulerCount, setRulerCount] = useState(() => initialLayout?.scene.elements.filter((element) => element.kind === 'tile').length ?? 0)
   const [showGrid, setShowGrid] = useState(initialLayout?.settings.showGrid ?? preferences.showGrid)
   const snapToGrid = true
-  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, fontWeight: preferences.defaultTextFontWeight, color: preferences.defaultTextColor })
+  const [defaultTextStyle, setDefaultTextStyle] = useState({ fontFamily: preferences.defaultFontFamily, fontSize: preferences.defaultTextFontSize, fontWeight: preferences.defaultTextFontWeight, color: preferences.defaultTextColor, textDecoration: preferences.defaultTextDecoration, backgroundColor: preferences.defaultTextBackgroundColor })
   const [defaultShapeColor, setDefaultShapeColor] = useState(preferences.defaultShapeColor)
   const [defaultShapeStrokeWidth, setDefaultShapeStrokeWidth] = useState(preferences.defaultShapeStrokeWidth)
   const [defaultShapeStrokePattern, setDefaultShapeStrokePattern] = useState<StrokePattern>(preferences.defaultShapeStrokePattern)
@@ -653,7 +667,7 @@ const App = () => {
   const applySharedPreferences = (next: AppPreferences) => {
     setPreferences(next)
     setShowGrid(next.showGrid)
-    setDefaultTextStyle((current) => ({ ...current, fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, fontWeight: next.defaultTextFontWeight, color: next.defaultTextColor }))
+    setDefaultTextStyle((current) => ({ ...current, fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, fontWeight: next.defaultTextFontWeight, color: next.defaultTextColor, textDecoration: next.defaultTextDecoration, backgroundColor: next.defaultTextBackgroundColor }))
     setDefaultShapeColor(next.defaultShapeColor)
     setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
     setDefaultShapeStrokePattern(next.defaultShapeStrokePattern)
@@ -741,7 +755,7 @@ const App = () => {
         const next = readPreferences()
         setPreferences(next)
         setShowGrid(next.showGrid)
-        setDefaultTextStyle({ fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, fontWeight: next.defaultTextFontWeight, color: next.defaultTextColor })
+        setDefaultTextStyle({ fontFamily: next.defaultFontFamily, fontSize: next.defaultTextFontSize, fontWeight: next.defaultTextFontWeight, color: next.defaultTextColor, textDecoration: next.defaultTextDecoration, backgroundColor: next.defaultTextBackgroundColor })
         setDefaultShapeColor(next.defaultShapeColor)
         setDefaultShapeStrokeWidth(next.defaultShapeStrokeWidth)
         setDefaultShapeStrokePattern(next.defaultShapeStrokePattern)
@@ -1434,6 +1448,8 @@ const App = () => {
       fontSize?: number
       fontFamily?: string
       fontWeight?: 400 | 700
+      textDecoration?: 'none' | 'underline'
+      backgroundColor?: string | null
       strokeWidth?: number
       opacity?: number
       customShapeColor?: string | null
@@ -1452,6 +1468,8 @@ const App = () => {
               fontSize: clamp(properties.fontSize ?? element.fontSize, 12, 72),
               fontFamily: properties.fontFamily ?? element.fontFamily,
               fontWeight: normalizeFontWeight(properties.fontWeight ?? element.fontWeight),
+              textDecoration: properties.textDecoration ?? element.textDecoration ?? 'none',
+              backgroundColor: properties.backgroundColor === undefined ? element.backgroundColor ?? null : properties.backgroundColor,
               textRuns: undefined,
             }
         } else if (element.kind === 'symbol') {
@@ -1941,7 +1959,7 @@ const App = () => {
         hasItems={scene.elements.length > 0}
         hasSelection={selected.some((element) => !element.locked)}
         canEditText={Boolean(selectedText)}
-        textStyle={selectedText ? { fontFamily: selectedText.fontFamily, fontSize: selectedText.fontSize, fontWeight: selectedText.fontWeight, color: selectedText.color } : defaultTextStyle}
+        textStyle={selectedText ? { fontFamily: selectedText.fontFamily, fontSize: selectedText.fontSize, fontWeight: selectedText.fontWeight, color: selectedText.color, textDecoration: selectedText.textDecoration ?? 'none', backgroundColor: selectedText.backgroundColor ?? null } : defaultTextStyle}
         isEditingSelectedText={Boolean(selectedText)}
         selectedShapeColor={selectedColoredElement?.color ?? null}
         shapeColor={selectedColoredElement?.color ?? defaultShapeColor}
@@ -1985,11 +2003,18 @@ const App = () => {
             defaultTextFontSize: style.fontSize === undefined ? defaultTextStyle.fontSize : clamp(style.fontSize, 12, 72),
             defaultTextFontWeight: style.fontWeight === undefined ? defaultTextStyle.fontWeight : normalizeFontWeight(style.fontWeight),
             defaultTextColor: style.color ?? defaultTextStyle.color,
+            defaultTextDecoration: style.textDecoration ?? defaultTextStyle.textDecoration,
+            defaultTextBackgroundColor: style.backgroundColor === undefined ? defaultTextStyle.backgroundColor : style.backgroundColor,
           })
         }}
         onUpdateSelectedShapeColor={(color) => {
           applySharedPreferences({ ...preferences, defaultShapeColor: color })
           if (selectedColoredElement) updateElementColor(selectedColoredElement.id, color)
+          else if (placementMode === 'marker') {
+            const next = { ...drawingPresets, marker: { ...drawingPresets.marker, color } }
+            setDrawingPresets(next)
+            localStorage.setItem(DRAWING_PRESETS_KEY, JSON.stringify(next))
+          }
         }}
         onUpdateShapeStrokeWidth={(strokeWidth) => { if (!updateSelectedShapeStrokeWidth(strokeWidth)) updateDefaultShapeStrokeWidth(strokeWidth) }}
         onUpdateShapeStrokePattern={(strokePattern) => { if (!updateSelectedShapeStrokePattern(strokePattern)) updateDefaultShapeStrokePattern(strokePattern) }}

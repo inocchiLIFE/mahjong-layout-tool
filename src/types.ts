@@ -8,6 +8,8 @@ export type DrawingType = 'freehand' | 'line' | 'curve' | 'arrow' | 'marker'
 
 export type StrokePattern = 'solid' | 'dashed' | 'dotted' | 'dashDot' | 'double'
 
+export type TextDecoration = 'none' | 'underline'
+
 export type PlacementMode = 'select' | 'text' | 'draw' | 'line' | 'curve' | 'arrow' | 'marker' | 'eraser' | SymbolType
 
 export interface CanvasPoint {
@@ -53,6 +55,8 @@ export interface TextElement extends CanvasElementBase {
   fontSize: number
   fontFamily: string
   fontWeight: 400 | 700
+  textDecoration?: TextDecoration
+  backgroundColor?: string | null
   textRuns?: TextRun[]
 }
 
@@ -62,6 +66,8 @@ export interface TextRun {
   fontSize: number
   fontFamily: string
   fontWeight: 400 | 700
+  textDecoration?: TextDecoration
+  backgroundColor?: string | null
 }
 
 export interface SymbolElement extends CanvasElementBase {

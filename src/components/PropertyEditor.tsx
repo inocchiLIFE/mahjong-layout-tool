@@ -25,6 +25,8 @@ interface PropertyEditorProps {
     fontSize?: number
     fontFamily?: string
     fontWeight?: 400 | 700
+    textDecoration?: 'none' | 'underline'
+    backgroundColor?: string | null
     strokeWidth?: number
     opacity?: number
     customShapeColor?: string | null
@@ -38,6 +40,8 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
   const [fontSize, setFontSize] = useState(element.kind === 'text' ? element.fontSize : 22)
   const [fontFamily, setFontFamily] = useState(element.kind === 'text' ? element.fontFamily : 'sans-serif')
   const [fontWeight, setFontWeight] = useState<400 | 700>(element.kind === 'text' ? element.fontWeight : 400)
+  const [textDecoration, setTextDecoration] = useState<'none' | 'underline'>(element.kind === 'text' ? element.textDecoration ?? 'none' : 'none')
+  const [backgroundColor, setBackgroundColor] = useState<string | null>(element.kind === 'text' ? element.backgroundColor ?? null : null)
   const [strokeWidth, setStrokeWidth] = useState(element.kind === 'symbol' || element.kind === 'drawing' ? element.strokeWidth : 4)
   const [opacity, setOpacity] = useState(element.kind === 'image' ? element.opacity : 1)
   const [customColors, setCustomColors] = useState(readCustomColors)
@@ -73,6 +77,8 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
       fontSize: element.kind === 'text' ? fontSize : undefined,
       fontFamily: element.kind === 'text' ? fontFamily : undefined,
       fontWeight: element.kind === 'text' ? fontWeight : undefined,
+      textDecoration: element.kind === 'text' ? textDecoration : undefined,
+      backgroundColor: element.kind === 'text' ? backgroundColor : undefined,
       strokeWidth: element.kind === 'symbol' || element.kind === 'drawing' ? strokeWidth : undefined,
       opacity: element.kind === 'image' ? opacity : undefined,
     })
@@ -112,6 +118,13 @@ export const PropertyEditor = ({ element, onSave, onClose }: PropertyEditorProps
               </select>
             </label>
             <label><input type="checkbox" checked={fontWeight === 700} onChange={(event) => setFontWeight(event.target.checked ? 700 : 400)} /> 太字</label>
+            <label><input type="checkbox" checked={textDecoration === 'underline'} onChange={(event) => setTextDecoration(event.target.checked ? 'underline' : 'none')} /> 下線</label>
+            <label>文字背景色
+              <span className="color-field">
+                <input type="color" value={backgroundColor ?? '#fff3c4'} onChange={(event) => setBackgroundColor(event.target.value)} />
+                {backgroundColor && <button type="button" onClick={() => setBackgroundColor(null)}>なし</button>}
+              </span>
+            </label>
           </>
         )}
 
