@@ -39,6 +39,7 @@ import type {
   SymbolType,
   StrokePattern,
   TextElement,
+  TextRun,
   TileElement,
 } from './types'
 import {
@@ -72,6 +73,7 @@ import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 import { generateIishanten, generateIishantenQuestion, generateRandomIishanten, IISHANTEN_LABELS, type IishantenType } from './utils/iishanten'
 import { detectOpenMelds } from './utils/detectMelds'
 import { DEFAULT_STROKE_PATTERN, isStrokePattern } from './utils/stroke'
+import { normalizeTextRuns } from './utils/textRuns'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const PAGE_DECK_KEY = 'mahjong-layout-tool:page-deck-v1'
@@ -128,6 +130,22 @@ const normalizeTextColor = (value: unknown) => {
   const normalized = value.toLowerCase().replace(/\s/g, '')
   if (normalized === '#fff' || normalized === '#ffffff' || normalized === '#f4f0df') return '#172c27'
   return value
+}
+
+const parseTextRuns = (value: unknown, text: string, fallback: Pick<TextRun, 'color' | 'fontSize' | 'fontFamily'>) => {
+  if (!Array.isArray(value)) return undefined
+  const runs = value.flatMap((run) => {
+    if (!run || typeof run !== 'object') return []
+    const candidate = run as Record<string, unknown>
+    if (typeof candidate.text !== 'string') return []
+    return [{
+      text: candidate.text,
+      color: typeof candidate.color === 'string' ? candidate.color : fallback.color,
+      fontSize: typeof candidate.fontSize === 'number' ? clamp(candidate.fontSize, 12, 72) : fallback.fontSize,
+      fontFamily: typeof candidate.fontFamily === 'string' ? candidate.fontFamily : fallback.fontFamily,
+    }]
+  })
+  return normalizeTextRuns(text, runs, fallback)
 }
 
 const distanceToSegment = (point: CanvasPoint, start: CanvasPoint, end: CanvasPoint) => {
@@ -188,13 +206,17 @@ const parseElement = (value: unknown): CanvasElement | null => {
     }
   }
   if (item.kind === 'text' && typeof item.text === 'string') {
+    const fontSize = typeof item.fontSize === 'number' ? clamp(item.fontSize, 12, 72) : 22
+    const fontFamily = typeof item.fontFamily === 'string' ? item.fontFamily : 'sans-serif'
+    const color = normalizeTextColor(item.color)
     return {
       ...base,
       kind: 'text',
       text: item.text,
-      color: normalizeTextColor(item.color),
-      fontSize: typeof item.fontSize === 'number' ? clamp(item.fontSize, 12, 72) : 22,
-      fontFamily: typeof item.fontFamily === 'string' ? item.fontFamily : 'sans-serif',
+      color,
+      fontSize,
+      fontFamily,
+      textRuns: parseTextRuns(item.textRuns, item.text, { color, fontSize, fontFamily }),
     }
   }
   if (item.kind === 'symbol' && isSymbolType(item.symbolType)) {
@@ -1102,18 +1124,18 @@ const App = () => {
     notify(`${sortableTiles.length}枚を理牌しました${detectedMelds.length ? `（副露${detectedMelds.length}組を保持）` : ''}`)
   }
 
-  const commitText = (text: string, x = 40, y?: number, id?: string) => {
+  const commitText = (text: string, x = 40, y?: number, id?: string, textRuns?: TextRun[]) => {
     if (id) {
       history.commit({
         ...scene,
         elements: scene.elements.map((element) => element.id === id && element.kind === 'text' && !element.locked
-          ? { ...element, text }
+          ? { ...element, text, textRuns: textRuns?.length ? textRuns : undefined }
           : element),
       })
       return
     }
     const textCount = scene.elements.filter((element) => element.kind === 'text').length
-    const item = { ...makeText(text, x, y ?? Math.min(scene.height - 50, 180 + textCount * 48), nextZIndex()), ...defaultTextStyle }
+    const item = { ...makeText(text, x, y ?? Math.min(scene.height - 50, 180 + textCount * 48), nextZIndex()), ...defaultTextStyle, textRuns: textRuns?.length ? textRuns : undefined }
     history.commit({ ...scene, elements: [...scene.elements, item] })
   }
 
@@ -1421,6 +1443,7 @@ const App = () => {
               color: properties.color ?? element.color,
               fontSize: clamp(properties.fontSize ?? element.fontSize, 12, 72),
               fontFamily: properties.fontFamily ?? element.fontFamily,
+              textRuns: undefined,
             }
         } else if (element.kind === 'symbol') {
           updated = {
@@ -1456,7 +1479,7 @@ const App = () => {
       elements: scene.elements.map((element) => {
         if (element.id !== id || element.locked) return element
         if (element.kind !== 'text' && element.kind !== 'symbol' && element.kind !== 'drawing') return element
-        return { ...element, color }
+        return element.kind === 'text' ? { ...element, color, textRuns: undefined } : { ...element, color }
       }),
     })
   }

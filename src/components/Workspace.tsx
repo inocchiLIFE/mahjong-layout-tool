@@ -5,7 +5,9 @@ import {
   useRef,
   useState,
   type DragEvent as ReactDragEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from 'react'
 import { TILE_MAP } from '../data/tiles'
 import type {
@@ -19,6 +21,7 @@ import type {
   SymbolType,
   StrokePattern,
   TextElement,
+  TextRun,
   DrawingType,
 } from '../types'
 import {
@@ -33,6 +36,7 @@ import {
   TILE_WIDTH,
 } from '../utils/layout'
 import { StrokeLayers, getCssBorderStyle } from '../utils/stroke'
+import { applyTextRunStyle, getTextRunStyleAt, normalizeTextRuns, reconcileTextRuns, type TextRunStyle, type TextRunStylePatch } from '../utils/textRuns'
 
 interface EditTextRequest {
   id: string
@@ -68,7 +72,7 @@ interface WorkspaceProps {
   onTrashHover: (active: boolean) => void
   onPlaceSymbol: (symbolType: SymbolType, x: number, y: number, returnToSelect?: boolean) => void
   onCommitDrawing: (points: CanvasPoint[], drawingType?: DrawingType) => void
-  onCommitText: (text: string, x: number, y: number, id?: string) => void
+  onCommitText: (text: string, x: number, y: number, id?: string, textRuns?: TextRun[]) => void
   onFinishTextEditing: () => void
   onToggleTileFace: (id: string) => void
   onOpenContextMenu: (state: ContextMenuState) => void
@@ -107,6 +111,15 @@ interface TextEditorState {
   x: number
   y: number
   value: string
+  runs: TextRun[]
+  baseStyle: TextRunStyle
+}
+
+interface TextFormatMenuState {
+  clientX: number
+  clientY: number
+  start: number
+  end: number
 }
 
 interface DrawingState {
@@ -213,6 +226,13 @@ const curvePath = (points: CanvasPoint[]) => {
 
 const isDrawingPlacementMode = (mode: PlacementMode) => mode === 'draw' || mode === 'line' || mode === 'curve' || mode === 'arrow' || mode === 'marker'
 
+const renderTextRuns = (text: string, runs: TextRun[] | undefined, fallback: TextRunStyle, colorOverride?: string): ReactNode => {
+  const normalized = normalizeTextRuns(text, runs, fallback)
+  return normalized.length
+    ? normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily }}>{run.text}</span>)
+    : text
+}
+
 const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
   return getArrowHeadPoints(points, size).map((point) => `${point.x},${point.y}`).join(' ')
 }
@@ -246,12 +266,14 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const marqueeRef = useRef<MarqueeState | null>(null)
   const drawingRef = useRef<DrawingState | null>(null)
   const eraserRef = useRef<EraserState | null>(null)
+  const textEditorRef = useRef<HTMLTextAreaElement>(null)
   const elementResizeRef = useRef<ElementResizeState | null>(null)
   const imageCropEdgeRef = useRef<ImageCropEdgeState | null>(null)
   const panRef = useRef<PanState | null>(null)
   const spaceDownRef = useRef(false)
   const [marquee, setMarquee] = useState<MarqueeState | null>(null)
   const [editor, setEditor] = useState<TextEditorState | null>(null)
+  const [textFormatMenu, setTextFormatMenu] = useState<TextFormatMenuState | null>(null)
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
   const [curveDraft, setCurveDraft] = useState<CurveDraftState | null>(null)
   const [curvePreview, setCurvePreview] = useState<CanvasPoint | null>(null)
@@ -259,6 +281,24 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const [draggingIds, setDraggingIds] = useState<Set<string>>(() => new Set())
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null)
   const [placementPreview, setPlacementPreview] = useState<DropPreview | null>(null)
+
+  const createTextEditorState = (value: string, x: number, y: number, id?: string, runs?: TextRun[], baseStyle: TextRunStyle = props.textStyle): TextEditorState => ({
+    id,
+    x,
+    y,
+    value,
+    runs: normalizeTextRuns(value, runs, baseStyle),
+    baseStyle,
+  })
+
+  const restoreTextSelection = (start: number, end: number) => {
+    window.requestAnimationFrame(() => {
+      const input = textEditorRef.current
+      if (!input) return
+      input.focus()
+      input.setSelectionRange(start, end)
+    })
+  }
 
   // Exporting always starts from the top-left of the logical workspace, not
   // from the user's current panned viewport. Restore the viewport afterwards.
@@ -291,7 +331,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     const item = props.scene.elements.find(
       (element): element is TextElement => element.id === props.editTextRequest?.id && element.kind === 'text',
     )
-    if (item && !item.locked) setEditor({ id: item.id, x: item.x, y: item.y, value: item.text })
+    if (item && !item.locked) {
+      setEditor(createTextEditorState(item.text, item.x, item.y, item.id, item.textRuns, { color: item.color, fontSize: item.fontSize, fontFamily: item.fontFamily }))
+      setTextFormatMenu(null)
+    }
   }, [props.editTextRequest, props.scene.elements])
 
   useEffect(() => {
@@ -741,7 +784,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
 
     if (props.placementMode === 'text') {
-      setEditor({ x: state.startX, y: state.startY, value: '' })
+      setEditor(createTextEditorState('', state.startX, state.startY))
     } else if (props.placementMode !== 'select' && !isDrawingPlacementMode(props.placementMode) && props.placementMode !== 'eraser') {
       props.onPlaceSymbol(props.placementMode, state.startX, state.startY)
     } else {
@@ -749,11 +792,34 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     }
   }
 
+  const openTextFormatMenu = (event: ReactMouseEvent<HTMLTextAreaElement>) => {
+    const textarea = event.currentTarget
+    const start = Math.min(textarea.selectionStart, textarea.selectionEnd)
+    const end = Math.max(textarea.selectionStart, textarea.selectionEnd)
+    event.preventDefault()
+    event.stopPropagation()
+    if (!editor || start === end) {
+      setTextFormatMenu(null)
+      return
+    }
+    setTextFormatMenu({ clientX: event.clientX, clientY: event.clientY, start, end })
+  }
+
+  const applyTextFormat = (style: TextRunStylePatch) => {
+    if (!editor || !textFormatMenu) return
+    const { start, end } = textFormatMenu
+    const runs = applyTextRunStyle(editor.value, editor.runs, start, end, style, editor.baseStyle)
+    setEditor({ ...editor, runs })
+    setTextFormatMenu(null)
+    restoreTextSelection(start, end)
+  }
+
   const finishTextEditor = (cancelled = false) => {
     if (!editor) return
     const text = editor.value.trim()
-    if (!cancelled && text) props.onCommitText(text, editor.x, editor.y, editor.id)
+    if (!cancelled && text) props.onCommitText(text, editor.x, editor.y, editor.id, normalizeTextRuns(text, editor.runs, editor.baseStyle))
     setEditor(null)
+    setTextFormatMenu(null)
     props.onFinishTextEditing()
   }
 
@@ -851,7 +917,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           x: toCanvasCoordinate(event.clientX, bounds.left, camera.x),
           y: toCanvasCoordinate(event.clientY, bounds.top, camera.y),
         }
-        setEditor({ x: point.x, y: point.y, value: '' })
+        setEditor(createTextEditorState('', point.x, point.y))
       }}
       onDragEnter={updateDropPreview}
       onDragOver={(event) => {
@@ -966,14 +1032,15 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
         if (element.kind === 'text') {
           const lines = element.text.split('\n')
-          const baseWidth = Math.max(44, Math.ceil(Math.max(...lines.map((line) => line.length)) * element.fontSize * 1.05) + 16)
-          const baseHeight = Math.ceil(element.fontSize * 1.5) * lines.length + 8
+          const fontSize = Math.max(element.fontSize, ...(element.textRuns?.map((run) => run.fontSize) ?? []))
+          const baseWidth = Math.max(44, Math.ceil(Math.max(...lines.map((line) => line.length)) * fontSize * 1.05) + 16)
+          const baseHeight = Math.ceil(fontSize * 1.5) * lines.length + 8
           return (
             <button
               key={element.id}
               {...commonProps}
               className={`${commonProps.className}${editor?.id === element.id ? ' editing' : ''}`}
-              onDoubleClick={() => !element.locked && setEditor({ id: element.id, x: element.x, y: element.y, value: element.text })}
+              onDoubleClick={() => !element.locked && setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily }))}
               aria-label={`文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
             >
               <span
@@ -987,7 +1054,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   transform: `rotate(${element.rotation}deg)`,
                   transformOrigin: 'top left',
                 }}
-              >{element.text}</span>
+              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily })}</span>
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1018,7 +1085,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               {element.elements.map((part) => {
                 const partDimensions = getElementDimensions(part)
                 const color = element.color ?? (part.kind === 'image' ? undefined : part.color)
-                if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: partDimensions.width, height: partDimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{part.text}</span>
+                if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: partDimensions.width, height: partDimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily }, color)}</span>
                 if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" draggable={false} /></span>
                 if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
                 const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }
@@ -1117,6 +1184,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
       {editor && (
         <textarea
+          ref={textEditorRef}
           className="workspace-text-editor export-hidden"
           style={{
             left: editor.x + camera.x,
@@ -1130,7 +1198,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           autoFocus
           aria-label="文字を入力"
           onPointerDown={(event) => event.stopPropagation()}
-          onChange={(event) => setEditor({ ...editor, value: event.target.value })}
+          onContextMenu={openTextFormatMenu}
+          onChange={(event) => setEditor({ ...editor, value: event.target.value, runs: reconcileTextRuns(editor.value, event.target.value, editor.runs, editor.baseStyle) })}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
               event.preventDefault()
@@ -1138,9 +1207,43 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             }
             if (event.key === 'Escape') finishTextEditor(true)
           }}
-          onBlur={() => finishTextEditor()}
+          onBlur={(event) => {
+            const nextTarget = event.relatedTarget
+            if (nextTarget instanceof HTMLElement && nextTarget.closest('.text-format-context-menu')) return
+            finishTextEditor()
+          }}
         />
       )}
+
+      {editor && textFormatMenu && (() => {
+        const selectedStyle = getTextRunStyleAt(editor.value, editor.runs, textFormatMenu.start, editor.baseStyle)
+        const colorChoices = ['#b13f34', '#244a40', '#1d5fa7', '#8a5a13', '#7a2f83', '#172c27']
+        return <div
+          className="text-format-context-menu export-hidden"
+          style={{ left: Math.max(8, Math.min(textFormatMenu.clientX, window.innerWidth - 286)), top: Math.max(8, Math.min(textFormatMenu.clientY, window.innerHeight - 190)) }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.preventDefault()}
+          role="menu"
+          aria-label="選択文字の書式"
+        >
+          <strong>選択部分を編集</strong>
+          <div className="text-format-context-row">
+            <button type="button" onClick={() => applyTextFormat({ fontSize: Math.max(12, selectedStyle.fontSize - 2) })} aria-label="文字を小さく">A−</button>
+            <output>{selectedStyle.fontSize}px</output>
+            <button type="button" onClick={() => applyTextFormat({ fontSize: Math.min(72, selectedStyle.fontSize + 2) })} aria-label="文字を大きく">A+</button>
+            <select value={selectedStyle.fontFamily} onChange={(event) => applyTextFormat({ fontFamily: event.target.value })} aria-label="フォント">
+              <option value="sans-serif">ゴシック体</option>
+              <option value="serif">明朝体</option>
+              <option value="cursive">手書き風</option>
+              <option value="monospace">等幅</option>
+            </select>
+          </div>
+          <div className="text-format-context-colors" aria-label="文字色">
+            {colorChoices.map((color) => <button key={color} type="button" style={{ backgroundColor: color }} className={selectedStyle.color.toLowerCase() === color ? 'active' : ''} onClick={() => applyTextFormat({ color })} aria-label={`${color}に変更`} />)}
+            <label className="text-format-custom-color" title="その他の色"><input type="color" value={selectedStyle.color} onChange={(event) => applyTextFormat({ color: event.target.value })} aria-label="その他の文字色" />＋</label>
+          </div>
+        </div>
+      })()}
 
       {marquee?.visible && <div className="selection-marquee export-hidden" style={marqueeStyle} />}
 
@@ -1162,7 +1265,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         {preview.customShape.elements.filter((part) => part.kind !== 'tile' && part.kind !== 'customShape').map((part) => {
           const dimensions = getElementDimensions(part)
           const color = preview.color ?? (part.kind === 'image' ? undefined : part.color)
-          if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: dimensions.width, height: dimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{part.text}</span>
+          if (part.kind === 'text') return <span key={part.id} className="custom-shape-part custom-shape-text" style={{ left: part.x, top: part.y, width: dimensions.width, height: dimensions.height, color, fontSize: part.fontSize, fontFamily: part.fontFamily, transform: `rotate(${part.rotation}deg)` }}>{renderTextRuns(part.text, part.textRuns, { color: part.color, fontSize: part.fontSize, fontFamily: part.fontFamily }, color)}</span>
           if (part.kind === 'image') return <span key={part.id} className="custom-shape-part custom-shape-image" style={{ left: part.x, top: part.y, width: part.width, height: part.height, opacity: part.opacity, transform: `rotate(${part.rotation}deg)` }}><img src={part.src} alt="" /></span>
           if (part.kind === 'drawing') return <svg key={part.id} className="custom-shape-part" viewBox={`0 0 ${part.width} ${part.height}`} style={{ left: part.x, top: part.y, width: part.width, height: part.height, transform: `rotate(${part.rotation}deg)` }}><StrokeLayers pattern={part.strokePattern} strokeWidth={part.strokeWidth}>{({ strokeWidth, strokeDasharray, transform }) => <polyline points={part.points.map((point) => `${point.x},${point.y}`).join(' ')} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={strokeDasharray} strokeLinecap="round" strokeLinejoin="round" transform={transform} />}</StrokeLayers></svg>
           const base = getSymbolBaseDimensions(part.symbolType); const width = base.width * (part.scaleX ?? part.scale); const height = base.height * (part.scaleY ?? part.scale); const style = { left: part.x, top: part.y, width, height, transform: `rotate(${part.rotation}deg)` }

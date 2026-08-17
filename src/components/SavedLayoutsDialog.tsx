@@ -3,6 +3,7 @@ import { TILE_MAP } from '../data/tiles'
 import type { NamedSavedLayout } from '../types'
 import { getArrowHeadPoints, getCurveControlPoint, getElementDimensions } from '../utils/layout'
 import { StrokeLayers } from '../utils/stroke'
+import { normalizeTextRuns } from '../utils/textRuns'
 
 const curvePath = (points: { x: number; y: number }[]) => {
   const start = points[0]
@@ -82,7 +83,8 @@ const LayoutPreview = ({ saved }: { saved: NamedSavedLayout }) => {
             : tile && <img key={element.id} className="saved-preview-item" src={tile.asset} alt="" style={style} />
         }
         if (element.kind === 'text') {
-          return <span key={element.id} className="saved-preview-item saved-preview-text" style={{ ...style, color: element.color, fontFamily: element.fontFamily }}>{element.text}</span>
+          const textRuns = normalizeTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily })
+          return <span key={element.id} className="saved-preview-item saved-preview-text" style={{ ...style, color: element.color, fontFamily: element.fontFamily }}>{textRuns.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: run.color, fontSize: run.fontSize, fontFamily: run.fontFamily }}>{run.text}</span>)}</span>
         }
         if (element.kind === 'image') {
           return <img key={element.id} className="saved-preview-item" src={element.src} alt="" style={{ ...style, opacity: element.opacity }} />

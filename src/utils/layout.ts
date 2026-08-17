@@ -135,8 +135,9 @@ export const getElementDimensions = (element: CanvasElement) => {
     )
   }
   const lines = element.text.split('\n')
-  const width = Math.max(44, Math.ceil(Math.max(...lines.map((line) => line.length)) * element.fontSize * 1.05) + 16)
-  const height = Math.ceil(element.fontSize * 1.5) * lines.length + 8
+  const fontSize = Math.max(element.fontSize, ...(element.textRuns?.map((run) => run.fontSize) ?? []))
+  const width = Math.max(44, Math.ceil(Math.max(...lines.map((line) => line.length)) * fontSize * 1.05) + 16)
+  const height = Math.ceil(fontSize * 1.5) * lines.length + 8
   return rotateDimensions(width, height, element.rotation)
 }
 
