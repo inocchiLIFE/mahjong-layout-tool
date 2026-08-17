@@ -510,6 +510,14 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   }
 
   const handleTextPreviewPointerDown = (event: ReactPointerEvent<HTMLSpanElement>) => {
+    if (event.button === 2) {
+      // Preserve the preview selection while the browser prepares its context
+      // menu. Otherwise the right-button press can collapse the hidden input's
+      // native range before onContextMenu runs.
+      event.preventDefault()
+      event.stopPropagation()
+      return
+    }
     if (event.button !== 0) return
     event.preventDefault()
     event.stopPropagation()
@@ -1289,7 +1297,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           target.closest('.workspace-text-editor, .workspace-text-editor-preview, .text-format-context-menu')
           || (event.button === 2 && editingText)
           || pointIsInsideEditingText
-        )) return
+        )) {
+          if (event.button === 2 && (editingText || pointIsInsideEditingText)) event.preventDefault()
+          return
+        }
         finishTextEditor()
       }}
       onPointerDown={beginCanvasPointer}
@@ -1383,6 +1394,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             height: dimensions.height,
           },
           onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => {
+            if (event.button === 2 && element.kind === 'text' && editor?.id === element.id) {
+              event.preventDefault()
+              event.stopPropagation()
+              return
+            }
             if (props.placementMode === 'eraser') {
               event.preventDefault()
               event.stopPropagation()
