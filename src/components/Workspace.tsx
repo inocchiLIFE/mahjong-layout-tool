@@ -1266,7 +1266,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
       onPointerDownCapture={(event) => {
         if (!editor) return
         const target = event.target
-        if (target instanceof Element && target.closest('.workspace-text-editor, .workspace-text-editor-preview, .text-format-context-menu')) return
+        if (target instanceof Element && (
+          target.closest('.workspace-text-editor, .workspace-text-editor-preview, .text-format-context-menu')
+          || (event.button === 2 && target.closest('.placed-text.editing'))
+        )) return
         finishTextEditor()
       }}
       onPointerDown={beginCanvasPointer}
@@ -1413,6 +1416,13 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 setTextSelection(null)
                 setTextCaretIndex(0)
                 setEditor(createTextEditorState(element.text, element.x, element.y, element.id, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null }))
+              }}
+              onContextMenu={(event) => {
+                if (editor?.id === element.id) {
+                  openTextFormatMenu(event)
+                  return
+                }
+                openContextMenu(event, element)
               }}
               aria-label={`文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
             >
