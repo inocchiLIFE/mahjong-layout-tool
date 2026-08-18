@@ -688,6 +688,16 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
 .dora-indicator-add:disabled { opacity: .55; cursor: not-allowed; }
 .dora-indicator-add:hover:not(:disabled) { border-color: #23826a; background: #eef8f2; }
 
+/* Keep discard cards readable when the analysis panel is wide. */
+.efficiency-discards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 12px; }
+.efficiency-discard { padding: 9px; border: 1px solid #d6e3db; border-radius: 8px; box-shadow: 0 2px 7px rgba(30, 74, 59, .06); }
+.efficiency-discard-summary { grid-template-columns: 14px 32px minmax(0, 1fr) 25px; align-items: start; gap: 7px; min-height: 45px; }
+.efficiency-discard-main { display: grid; gap: 4px; min-width: 0; }
+.efficiency-discard-status { align-items: center; gap: 4px 7px; line-height: 1.25; }
+.efficiency-discard-status .iishanten-type.discard { margin: 0; padding: 2px 5px; border-radius: 4px; color: #176250; background: #e1f0e9; font-size: 13px; white-space: nowrap; }
+.efficiency-discard-main > em { display: block; width: max-content; max-width: 100%; overflow: hidden; color: #a23b2d; background: #fff3ef; border-radius: 4px; padding: 2px 5px; font-size: 14px; line-height: 1.25; text-overflow: ellipsis; }
+.efficiency-discard-waits { margin: 8px 1px 2px 53px; padding-top: 7px; }
+
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } }
 
