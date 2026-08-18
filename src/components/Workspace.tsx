@@ -422,8 +422,8 @@ const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
   return getArrowHeadPoints(points, size).map((point) => `${point.x},${point.y}`).join(' ')
 }
 
-/** Near-horizontal and near-vertical lines snap their endpoints to the grid,
- * making clean axes easy without changing ordinary diagonal lines. */
+/** Near-horizontal and near-vertical straight drawings snap their endpoints to
+ * the grid, making clean axes easy without changing ordinary diagonal lines. */
 const constrainStraightLine = (start: CanvasPoint, end: CanvasPoint): CanvasPoint[] => {
   const deltaX = end.x - start.x
   const deltaY = end.y - start.y
@@ -1025,10 +1025,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         const next = {
           ...activeDrawing,
           straight: activeDrawing.straight || straightMarker,
-          points: props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow'
+          points: props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' || straightMarker
             ? constrainStraightLine(activeDrawing.points[0], point)
-            : straightMarker
-              ? [activeDrawing.points[0], point]
             : [...activeDrawing.points, point],
         }
         drawingRef.current = next
@@ -1075,10 +1073,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (activeDrawing?.pointerId === event.pointerId) {
       const point = canvasPoint(event)
       const straightMarker = props.placementMode === 'marker' && (activeDrawing.straight || event.shiftKey)
-      const points = props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow'
+      const points = props.placementMode === 'line' || props.placementMode === 'curve' || props.placementMode === 'arrow' || straightMarker
         ? constrainStraightLine(activeDrawing.points[0], point)
-        : straightMarker
-          ? [activeDrawing.points[0], point]
         : [...activeDrawing.points, point]
       drawingRef.current = null
       setDrawing(null)
