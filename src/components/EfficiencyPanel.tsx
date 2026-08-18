@@ -30,6 +30,7 @@ const MeldTiles = ({ kind, tileIds }: { kind: MeldKind; tileIds: string[] }) => 
 }
 
 const formatShanten = (shanten: number) => shanten === -1 ? '和了' : shanten === 0 ? '聴牌' : `${shanten}シャンテン`
+const MAX_DORA_INDICATORS = 5
 
 export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds: string[]; melds: MahjongMeld[]; onClose: () => void; onResize: (width: number) => void }) => {
   const panelRef = useRef<HTMLElement>(null)
@@ -43,7 +44,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   const [hiddenDiscardIds, setHiddenDiscardIds] = useState<string[]>([])
   const [draggedDiscardId, setDraggedDiscardId] = useState<string | null>(null)
   const [expectedSettings, setExpectedSettings] = useState<ExpectedValueSettings>(() => ({
-    roundWind: 'ton', seatWind: 'ton', turn: 3, doraIndicator: null, visibleCounts: {},
+    roundWind: 'ton', seatWind: 'ton', turn: 3, doraIndicator: null, doraIndicators: [''], visibleCounts: {},
     includeRedDora: true, includeUraDora: true, allowShantenBack: true, allowHandChange: true,
   }))
   const startResize = (event: PointerEvent<HTMLButtonElement>) => {
@@ -80,6 +81,12 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
       }
     }, 30)
   }
+  const doraIndicators = (expectedSettings.doraIndicators ?? (expectedSettings.doraIndicator ? [expectedSettings.doraIndicator] : []))
+  const updateDoraIndicators = (next: string[]) => setExpectedSettings((current) => ({
+    ...current,
+    doraIndicator: next[0] || null,
+    doraIndicators: next,
+  }))
   const sortedDiscards = discards
     .filter((discard): discard is { discardTileId: string; result: NonNullable<typeof discard.result> } => discard.result !== null && discard.result.shanten <= (result?.shanten ?? Number.MAX_SAFE_INTEGER))
     .sort((left, right) => {
@@ -180,7 +187,16 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
             <label>場風<select value={expectedSettings.roundWind} onChange={(event) => setExpectedSettings({ ...expectedSettings, roundWind: event.target.value as Wind })}>{([['ton', '東'], ['nan', '南'], ['sha', '西'], ['pei', '北']] as const).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
             <label>自風<select value={expectedSettings.seatWind} onChange={(event) => setExpectedSettings({ ...expectedSettings, seatWind: event.target.value as Wind })}>{([['ton', '東'], ['nan', '南'], ['sha', '西'], ['pei', '北']] as const).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
             <label>巡目<input type="number" min="1" max="18" value={expectedSettings.turn} onChange={(event) => setExpectedSettings({ ...expectedSettings, turn: Math.max(1, Math.min(18, Number(event.target.value) || 1)) })} /></label>
-            <label>ドラ表示牌<select value={expectedSettings.doraIndicator ?? ''} onChange={(event) => setExpectedSettings({ ...expectedSettings, doraIndicator: event.target.value || null })}><option value="">なし</option>{EXPECTED_VALUE_TILE_IDS.map((id) => <option key={id} value={id}>{TILE_MAP.get(id)?.label}</option>)}</select></label>
+            <div className="dora-indicator-field">
+              <span>ドラ表示牌（{doraIndicators.filter(Boolean).length}/{MAX_DORA_INDICATORS}）</span>
+              {doraIndicators.map((indicator, index) => <div className="dora-indicator-row" key={`dora-indicator-${index}`}>
+                <select aria-label={`ドラ表示牌${index + 1}`} value={indicator} onChange={(event) => updateDoraIndicators(doraIndicators.map((current, currentIndex) => currentIndex === index ? event.target.value : current))}>
+                  <option value="">なし</option>{EXPECTED_VALUE_TILE_IDS.map((id) => <option key={id} value={id}>{TILE_MAP.get(id)?.label}</option>)}
+                </select>
+                {doraIndicators.length > 1 && <button type="button" className="dora-indicator-remove" onClick={() => updateDoraIndicators(doraIndicators.filter((_, currentIndex) => currentIndex !== index))} aria-label={`ドラ表示牌${index + 1}を削除`}>×</button>}
+              </div>)}
+              <button type="button" className="dora-indicator-add" onClick={() => updateDoraIndicators([...doraIndicators, ''])} disabled={doraIndicators.length >= MAX_DORA_INDICATORS}>＋ドラ表示牌を追加</button>
+            </div>
           </div>
           <div className="expected-value-options">
             <label><input type="checkbox" checked={expectedSettings.includeRedDora} onChange={(event) => setExpectedSettings({ ...expectedSettings, includeRedDora: event.target.checked })} />赤ドラ</label>

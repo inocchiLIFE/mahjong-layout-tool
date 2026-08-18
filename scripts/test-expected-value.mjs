@@ -53,6 +53,13 @@ const pinfuWithDora = scoreWinningHand(
 )
 assert.equal(pinfuWithDora?.points, 8000, 'one dora raises 4 han 20 fu to mangan')
 
+const pinfuWithTwoDora = scoreWinningHand(
+  ['man2', 'man3', 'man4', 'man3', 'man4', 'man5', 'pin3', 'pin4', 'pin5', 'sou6', 'sou7', 'sou8', 'pin6', 'pin6'],
+  'man2',
+  { ...scoreSettings, doraIndicators: ['pin4', 'pin4'] },
+)
+assert.ok(pinfuWithTwoDora?.yaku.includes('ドラ2'), 'multiple dora indicators are counted')
+
 const sevenPairs = scoreWinningHand(
   ['man1', 'man1', 'man3', 'man3', 'man5', 'man5', 'man7', 'man7', 'pin2', 'pin2', 'pin4', 'pin4', 'pin6', 'pin6'],
   'pin6',

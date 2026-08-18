@@ -25,6 +25,8 @@ export interface ExpectedValueSettings {
   seatWind: Wind
   turn: number
   doraIndicator: string | null
+  /** Additional dora indicators. doraIndicator is kept for compatibility with older callers. */
+  doraIndicators?: string[]
   visibleCounts: Record<string, number>
   includeRedDora: boolean
   includeUraDora: boolean
@@ -65,6 +67,11 @@ const removeOne = (tileIds: string[], target: string) => {
 const uniqueTiles = (tileIds: string[]) => [...new Set(tileIds)]
 const clampProbability = (value: number) => Math.max(0, Math.min(1, value))
 
+const configuredDoraIndicators = (settings: Pick<ExpectedValueSettings, 'doraIndicator' | 'doraIndicators'>) => {
+  const indicators = (settings.doraIndicators ?? []).filter(Boolean)
+  return indicators.length > 0 ? indicators : settings.doraIndicator ? [settings.doraIndicator] : []
+}
+
 const tileCounts = (tileIds: string[]) => {
   const counts = new Map<string, number>()
   normalizeHand(tileIds).forEach((tileId) => counts.set(tileId, (counts.get(tileId) ?? 0) + 1))
@@ -79,7 +86,10 @@ const replacementDistance = (tileIds: string[], originCounts: Map<string, number
 const createDeadCounts = (settings: ExpectedValueSettings) => {
   const counts = new Map<string, number>()
   for (const tileId of EXPECTED_VALUE_TILE_IDS) counts.set(tileId, Math.max(0, Math.min(4, settings.visibleCounts[tileId] ?? 0)))
-  if (settings.doraIndicator) counts.set(settings.doraIndicator, Math.min(4, (counts.get(settings.doraIndicator) ?? 0) + 1))
+  for (const indicator of configuredDoraIndicators(settings)) {
+    const tileId = TILE_MAP.get(indicator)?.baseId ?? indicator
+    counts.set(tileId, Math.min(4, (counts.get(tileId) ?? 0) + 1))
+  }
   return counts
 }
 
@@ -118,6 +128,7 @@ const createHandGraph = (origin: string[], originShanten: number, settings: Expe
     roundWind: settings.roundWind,
     seatWind: settings.seatWind,
     doraIndicator: settings.doraIndicator,
+    doraIndicators: configuredDoraIndicators(settings),
     includeRedDora: settings.includeRedDora,
     includeUraDora: settings.includeUraDora,
     riichi,

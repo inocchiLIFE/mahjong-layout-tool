@@ -678,6 +678,16 @@ kbd { padding: 2px 5px; border: 1px solid #cbd4cd; border-bottom-width: 2px; bor
 .help-grid strong, .help-feature-list strong { font-size: 12px; }
 .reference-links span, .license-notice dt, .license-notice dd, .license-links a { font-size: 11px; }
 
+/* Multiple dora indicators can be entered for kan-dora situations. */
+.dora-indicator-field { display: grid; gap: 3px; min-width: 0; color: #526d64; font-size: 14px; font-weight: 700; }
+.dora-indicator-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.dora-indicator-row select { flex: 1 1 auto; min-width: 0; }
+.dora-indicator-remove { flex: 0 0 28px; width: 28px; height: 28px; padding: 0; border: 1px solid #bdd1c7; border-radius: 4px; color: #8c2f24; background: #fff; font-size: 18px; line-height: 1; cursor: pointer; }
+.dora-indicator-remove:hover { border-color: #c26a5f; background: #fff4f1; }
+.dora-indicator-add { min-height: 27px; padding: 2px 6px; border: 1px solid #b9cdc3; border-radius: 4px; color: #31574d; background: #f7faf8; font-size: 14px; font-weight: 700; cursor: pointer; }
+.dora-indicator-add:disabled { opacity: .55; cursor: not-allowed; }
+.dora-indicator-add:hover:not(:disabled) { border-color: #23826a; background: #eef8f2; }
+
 @keyframes fade-in { from { opacity: 0; } }
 @keyframes toast-in { from { opacity: 0; transform: translateY(10px); } }
 

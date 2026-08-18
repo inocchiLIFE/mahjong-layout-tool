@@ -10,6 +10,8 @@ export interface ScoreSettings {
   roundWind: Wind
   seatWind: Wind
   doraIndicator: string | null
+  /** Additional dora indicators. doraIndicator is kept for compatibility with older callers. */
+  doraIndicators?: string[]
   includeRedDora: boolean
   includeUraDora: boolean
   riichi: boolean
@@ -32,9 +34,14 @@ const isTerminal = (index: number) => index < 27 && (index % 9 === 0 || index % 
 const isTerminalOrHonor = (index: number) => isHonor(index) || isTerminal(index)
 const round100 = (value: number) => Math.ceil(value / 100) * 100
 
+const configuredDoraIndicators = (settings: Pick<ScoreSettings, 'doraIndicator' | 'doraIndicators'>) => {
+  const indicators = (settings.doraIndicators ?? []).filter(Boolean)
+  return indicators.length > 0 ? indicators : settings.doraIndicator ? [settings.doraIndicator] : []
+}
+
 const nextDoraIndex = (indicator: string | null) => {
   if (!indicator) return -1
-  const index = tileIdToIndex(indicator)
+  const index = tileIdToIndex(TILE_MAP.get(indicator)?.baseId ?? indicator)
   if (index < 0) return -1
   if (index < 27) return Math.floor(index / 9) * 9 + ((index % 9 + 1) % 9)
   if (index <= 30) return 27 + ((index - 27 + 1) % 4)
@@ -85,8 +92,10 @@ const enumerateNormal = (counts: number[], fixedMelds: Meld[] = []): Decompositi
 
 const baseDoraHan = (tileIds: string[], counts: number[], settings: ScoreSettings) => {
   let han = 0
-  const dora = nextDoraIndex(settings.doraIndicator)
-  if (dora >= 0) han += counts[dora]
+  for (const indicator of configuredDoraIndicators(settings)) {
+    const dora = nextDoraIndex(indicator)
+    if (dora >= 0) han += counts[dora]
+  }
   if (settings.includeRedDora) han += tileIds.filter((id) => TILE_MAP.get(id)?.isRed).length
   return han
 }
@@ -239,13 +248,16 @@ export const scoreWinningHand = (tileIds: string[], winningTileId: string, setti
   if (!scores.length) return null
   const best = scores.sort((left, right) => right.points - left.points)[0]
   if (!settings.includeUraDora || !settings.riichi || best.yakuman) return best
-  const visibleIndicator = settings.doraIndicator ? tileIdToIndex(settings.doraIndicator) : -1
+  const visibleIndicators = configuredDoraIndicators(settings).map((indicator) => tileIdToIndex(TILE_MAP.get(indicator)?.baseId ?? indicator)).filter((index) => index >= 0)
+  const visibleIndicatorCounts = new Map<number, number>()
+  visibleIndicators.forEach((index) => visibleIndicatorCounts.set(index, (visibleIndicatorCounts.get(index) ?? 0) + 1))
+  const uraIndicatorCount = Math.max(1, visibleIndicators.length)
   let weightedPoints = 0
   let indicatorCopies = 0
   for (let indicator = 0; indicator < 34; indicator += 1) {
-    const available = Math.max(0, 4 - counts[indicator] - (visibleIndicator === indicator ? 1 : 0))
+    const available = Math.max(0, 4 - counts[indicator] - (visibleIndicatorCounts.get(indicator) ?? 0))
     if (!available) continue
-    const uraHan = counts[nextDoraFromIndex(indicator)]
+    const uraHan = counts[nextDoraFromIndex(indicator)] * uraIndicatorCount
     weightedPoints += totalTsumoPoints(best.han + uraHan, best.fu, settings.seatWind === 'ton') * available
     indicatorCopies += available
   }
