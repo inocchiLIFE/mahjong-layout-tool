@@ -121,14 +121,12 @@
   border-bottom: 1px solid var(--line);
   box-shadow: 0 5px 20px rgba(28, 55, 47, .08);
 }
-.ribbon-tabs { position: relative; display: flex; align-items: end; gap: 1px; min-height: 29px; padding: 0 12px; overflow-x: auto; background: #edf3ef; border-bottom: 1px solid #d3dfd8; scrollbar-width: none; -ms-overflow-style: none; }
-.ribbon-tabs::-webkit-scrollbar { width: 0; height: 0; }
+.ribbon-tabs { position: relative; display: flex; align-items: end; gap: 1px; min-height: 29px; padding: 0 12px; overflow-x: auto; background: #edf3ef; border-bottom: 1px solid #d3dfd8; scrollbar-width: thin; }
 .ribbon-tabs button { flex: 0 0 auto; height: 27px; padding: 0 11px; border: 1px solid transparent; border-bottom: 0; border-radius: 5px 5px 0 0; color: #3e5d53; background: transparent; font: 700 10px Inter, "Yu Gothic UI", sans-serif; cursor: pointer; }
 .ribbon-tabs button:hover { background: rgba(255, 255, 255, .65); }
 .ribbon-tabs button.active { position: relative; top: 1px; color: #174f40; background: rgba(251, 250, 244, .96); border-color: #d3dfd8; }
 .ribbon-tabs .ribbon-help-button { border-bottom: 1px solid #c7d6cf; border-radius: 5px; font-size: 13px; }
-.ribbon-content { display: flex; align-items: stretch; min-height: 72px; padding: 4px 12px 6px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
-.ribbon-content::-webkit-scrollbar { width: 0; height: 0; }
+.ribbon-content { display: flex; align-items: stretch; min-height: 72px; padding: 4px 12px 6px; overflow-x: auto; scrollbar-width: thin; }
 .toolbar.collapsed .ribbon-content { display: none; }
 
 .tool-group {
