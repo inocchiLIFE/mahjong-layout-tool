@@ -13,6 +13,8 @@ interface ToolbarProps {
   hasItems: boolean
   hasSelection: boolean
   canEditText: boolean
+  canToggleSpoiler: boolean
+  allSelectedSpoiler: boolean
   textStyle: { fontFamily: string; fontSize: number; fontWeight: 400 | 700; color: string; textDecoration: 'none' | 'underline'; backgroundColor: string | null }
   isEditingSelectedText: boolean
   selectedShapeColor: string | null
@@ -39,6 +41,7 @@ interface ToolbarProps {
   onRotate: () => void
   onToggleTileFaces: () => void
   onEditSelectedText: () => void
+  onToggleSpoiler: () => void
   onUpdateTextStyle: (style: { fontFamily?: string; fontSize?: number; fontWeight?: 400 | 700; color?: string; textDecoration?: 'none' | 'underline'; backgroundColor?: string | null }) => void
   onUpdateSelectedShapeColor: (color: string) => void
   onUpdateShapeStrokeWidth: (strokeWidth: number) => void
@@ -236,6 +239,7 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="回転" icon="↻" onClick={props.onRotate} disabled={!props.hasSelection} />
           <ToolButton label="理牌" icon="≡" onClick={props.onSortSelectedTiles} disabled={!props.canSortSelectedTiles} />
           <ToolButton label="文字編集" icon="Aa" onClick={props.onEditSelectedText} disabled={!props.canEditText} />
+          <ToolButton label={props.allSelectedSpoiler ? 'スポイラー解除' : 'スポイラー'} icon="▮" onClick={props.onToggleSpoiler} disabled={!props.canToggleSpoiler} active={props.allSelectedSpoiler} />
           <ToolButton label="選択を削除" icon="⌫" onClick={props.onDeleteSelected} disabled={!props.hasSelection} />
           <ToolButton label="すべて削除" icon="×" onClick={props.onClear} disabled={!props.hasItems} danger />
           <div className="font-ribbon" aria-label="フォント">

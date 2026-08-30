@@ -1962,6 +1962,8 @@ const App = () => {
   }, [])
 
   const selected = scene.elements.filter((element) => element.selected)
+  const editableSelection = selected.filter((element) => !element.locked)
+  const allSelectedSpoiler = editableSelection.length > 0 && editableSelection.every((element) => Boolean(element.spoiler))
   const selectedText = selected.length === 1 && selected[0].kind === 'text' && !selected[0].locked ? selected[0] : null
   const selectedColoredElement = selected.length === 1 && (selected[0].kind === 'symbol' || selected[0].kind === 'drawing') && !selected[0].locked ? selected[0] : null
   const selectedEditable = selected.length === 1 && selected[0].kind !== 'tile' && !selected[0].locked ? selected[0] : null
@@ -1998,6 +2000,8 @@ const App = () => {
         hasItems={scene.elements.length > 0}
         hasSelection={selected.some((element) => !element.locked)}
         canEditText={Boolean(selectedText)}
+        canToggleSpoiler={editableSelection.length > 0}
+        allSelectedSpoiler={allSelectedSpoiler}
         textStyle={selectedText ? { fontFamily: selectedText.fontFamily, fontSize: selectedText.fontSize, fontWeight: selectedText.fontWeight, color: selectedText.color, textDecoration: selectedText.textDecoration ?? 'none', backgroundColor: selectedText.backgroundColor ?? null } : defaultTextStyle}
         isEditingSelectedText={Boolean(selectedText)}
         selectedShapeColor={selectedColoredElement?.color ?? null}
@@ -2027,6 +2031,10 @@ const App = () => {
         onRotate={rotateSelected}
         onToggleTileFaces={toggleSelectedTileFaces}
         onEditSelectedText={() => selectedText && setEditTextRequest({ id: selectedText.id, token: Date.now() })}
+        onToggleSpoiler={() => {
+          const target = editableSelection[0]
+          if (target) toggleElementSpoiler(target.id)
+        }}
         onUpdateTextStyle={(style) => {
           if (selectedText) {
             if (style.color !== undefined) {
