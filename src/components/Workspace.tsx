@@ -469,7 +469,6 @@ const SpoilerCover = ({ onReveal }: { onReveal: () => void }) => <span
   role="button"
   aria-label="非表示部分。クリックで表示、再度クリックで非表示"
   tabIndex={0}
-  onPointerDown={(event) => event.stopPropagation()}
   onClick={(event) => { event.preventDefault(); event.stopPropagation(); onReveal() }}
   onKeyDown={(event) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -510,6 +509,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const propsRef = useRef(props)
   propsRef.current = props
   const dragRef = useRef<DragState | null>(null)
+  // A pointer drag also produces a click event in the browser.  Spoiler
+  // elements use click to reveal/hide, so remember whether the preceding
+  // gesture actually moved the element and suppress that synthetic click.
+  const suppressSpoilerClickRef = useRef(false)
   const marqueeRef = useRef<MarqueeState | null>(null)
   const drawingRef = useRef<DrawingState | null>(null)
   const eraserRef = useRef<EraserState | null>(null)
@@ -797,6 +800,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (!toggleOnClick) props.onSelectElement(element.id, event.shiftKey)
     if (element.locked) return
 
+    suppressSpoilerClickRef.current = false
     event.currentTarget.setPointerCapture(event.pointerId)
     const selectedElements = props.scene.elements.filter((item) => item.selected && !item.locked)
     const group = element.selected
@@ -914,6 +918,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (droppedInTrash) currentProps.onMoveElements(drag.starts)
     if (!drag.moved && drag.toggleOnClick) currentProps.onSelectElement(drag.primaryId, false)
     if (!drag.moved && drag.clearOnClick) currentProps.onClearSelection()
+    suppressSpoilerClickRef.current = drag.moved
     dragRef.current = null
     setDraggingIds(new Set())
     currentProps.onTrashHover(false)
@@ -1521,7 +1526,11 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             if (!isDrawingPlacementMode(props.placementMode)) beginElementDrag(event, element)
           },
           onClick: (event: ReactMouseEvent<HTMLButtonElement>) => {
-            if (!spoilerRevealed || element.locked) return
+            if (suppressSpoilerClickRef.current) {
+              suppressSpoilerClickRef.current = false
+              return
+            }
+            if (!element.spoiler || element.locked) return
             event.preventDefault()
             event.stopPropagation()
             toggleElementSpoilerVisibility(element.id)
@@ -1857,7 +1866,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             <button type="button" onClick={() => applyTextFormat({ fontSize: Math.max(12, selectedStyle.fontSize - 2) })} aria-label="文字を小さく">A−</button>
             <output>{selectedStyle.fontSize}px</output>
             <button type="button" onClick={() => applyTextFormat({ fontSize: Math.min(72, selectedStyle.fontSize + 2) })} aria-label="文字を大きく">A+</button>
-            <button type="button" className={selectedSpoiler ? 'active' : ''} aria-pressed={selectedSpoiler} onClick={() => applyTextFormat({ spoiler: !selectedSpoiler })} aria-label="スポイラーを切り替え" title="クリックで表示する非表示文字">▮</button>
+            <button type="button" className={selectedSpoiler ? 'active' : ''} aria-pressed={selectedSpoiler} onClick={() => applyTextFormat({ spoiler: !selectedSpoiler })} aria-label="隠し表示を切り替え" title="クリックで表示する非表示文字">▮</button>
             <select value={selectedStyle.fontFamily} onChange={(event) => applyTextFormat({ fontFamily: event.target.value })} aria-label="フォント">
               <option value="sans-serif">ゴシック体</option>
               <option value="serif">明朝体</option>
