@@ -78,8 +78,6 @@ interface WorkspaceProps {
   onCommitText: (text: string, x: number, y: number, id?: string, textRuns?: TextRun[]) => void
   onFinishTextEditing: () => void
   onToggleTileFace: (id: string) => void
-  onRevealSpoiler: (id: string) => void
-  onRevealTextSpoiler: (id: string, start: number, end: number) => void
   onOpenContextMenu: (state: ContextMenuState) => void
   onResizeElement: (id: string, width: number, height: number) => void
   onCropImage: (id: string, crop: { x: number; y: number; width: number; height: number }, width: number, height: number, x: number, y: number) => void
@@ -245,7 +243,12 @@ const renderTextRuns = (
   fallback: TextRunStyle,
   colorOverride?: string,
   selection?: TextSelectionRange,
-  options: { revealSpoilers?: boolean; onRevealSpoiler?: (start: number, end: number) => void } = {},
+  options: {
+    revealSpoilers?: boolean
+    isSpoilerRevealed?: (start: number, end: number) => boolean
+    onRevealSpoiler?: (start: number, end: number) => void
+    onHideSpoiler?: (start: number, end: number) => void
+  } = {},
 ): ReactNode => {
   const normalized = normalizeTextRuns(text, runs, fallback)
   if (!normalized.length) return text
@@ -255,14 +258,21 @@ const renderTextRuns = (
       const start = offset
       const end = offset + run.text.length
       offset = end
-      const hidden = Boolean(run.spoiler) && !options.revealSpoilers
+      const revealed = Boolean(run.spoiler) && (Boolean(options.revealSpoilers) || Boolean(options.isSpoilerRevealed?.(start, end)))
+      const hidden = Boolean(run.spoiler) && !revealed
+      const canToggle = Boolean(run.spoiler) && (hidden ? Boolean(options.onRevealSpoiler) : Boolean(options.onHideSpoiler))
       return <span
         key={`${index}-${run.text}`}
         className={hidden ? 'text-spoiler-run' : undefined}
-        style={{ color: hidden ? 'transparent' : colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight, textDecoration: run.textDecoration ?? 'none', backgroundColor: hidden ? '#2f343a' : run.backgroundColor ?? undefined }}
-        title={hidden ? 'クリックで表示' : undefined}
-        onPointerDown={hidden && options.onRevealSpoiler ? (event) => event.stopPropagation() : undefined}
-        onClick={hidden && options.onRevealSpoiler ? (event) => { event.preventDefault(); event.stopPropagation(); options.onRevealSpoiler?.(start, end) } : undefined}
+        style={{ color: hidden ? 'transparent' : colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight, textDecoration: run.textDecoration ?? 'none', backgroundColor: hidden ? '#2f343a' : run.backgroundColor ?? undefined, pointerEvents: canToggle ? 'auto' : undefined }}
+        title={hidden ? 'クリックで表示' : revealed && options.onHideSpoiler ? 'クリックで再び非表示' : undefined}
+        onPointerDown={canToggle ? (event) => event.stopPropagation() : undefined}
+        onClick={canToggle ? (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          if (hidden) options.onRevealSpoiler?.(start, end)
+          else options.onHideSpoiler?.(start, end)
+        } : undefined}
       >{run.text}</span>
     })
   }
@@ -279,9 +289,11 @@ const renderTextRuns = (
     return boundaries.slice(0, -1).map((segmentStart, segmentIndex) => {
       const segmentEnd = boundaries[segmentIndex + 1]
       const selected = segmentStart < selectedEnd && segmentEnd > selectedStart
-      const hidden = Boolean(run.spoiler) && !options.revealSpoilers
       const globalStart = segmentStart
       const globalEnd = segmentEnd
+      const revealed = Boolean(run.spoiler) && (Boolean(options.revealSpoilers) || Boolean(options.isSpoilerRevealed?.(globalStart, globalEnd)))
+      const hidden = Boolean(run.spoiler) && !revealed
+      const canToggle = Boolean(run.spoiler) && (hidden ? Boolean(options.onRevealSpoiler) : Boolean(options.onHideSpoiler))
       return <span
         key={`${runIndex}-${segmentIndex}-${segmentStart}-${segmentEnd}`}
         className={hidden ? 'text-spoiler-run' : undefined}
@@ -293,10 +305,16 @@ const renderTextRuns = (
           textDecoration: run.textDecoration ?? 'none',
           backgroundColor: hidden ? '#2f343a' : selected ? '#dcae5e' : run.backgroundColor ?? undefined,
           borderRadius: selected ? 2 : undefined,
+          pointerEvents: canToggle ? 'auto' : undefined,
         }}
-        title={hidden ? 'クリックで表示' : undefined}
-        onPointerDown={hidden && options.onRevealSpoiler ? (event) => event.stopPropagation() : undefined}
-        onClick={hidden && options.onRevealSpoiler ? (event) => { event.preventDefault(); event.stopPropagation(); options.onRevealSpoiler?.(globalStart, globalEnd) } : undefined}
+        title={hidden ? 'クリックで表示' : revealed && options.onHideSpoiler ? 'クリックで再び非表示' : undefined}
+        onPointerDown={canToggle ? (event) => event.stopPropagation() : undefined}
+        onClick={canToggle ? (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          if (hidden) options.onRevealSpoiler?.(globalStart, globalEnd)
+          else options.onHideSpoiler?.(globalStart, globalEnd)
+        } : undefined}
       >{run.text.slice(segmentStart - runStart, segmentEnd - runStart)}</span>
     })
   })
@@ -449,7 +467,7 @@ const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
 const SpoilerCover = ({ onReveal }: { onReveal: () => void }) => <span
   className="spoiler-cover"
   role="button"
-  aria-label="非表示部分。クリックで表示"
+  aria-label="非表示部分。クリックで表示、再度クリックで非表示"
   tabIndex={0}
   onPointerDown={(event) => event.stopPropagation()}
   onClick={(event) => { event.preventDefault(); event.stopPropagation(); onReveal() }}
@@ -478,6 +496,8 @@ const constrainStraightLine = (start: CanvasPoint, end: CanvasPoint): CanvasPoin
 }
 
 const TEXT_BACKGROUND_PALETTE = ['#fff3c4', '#d9f1e7', '#dbeafe', '#fce7f3', '#ede9fe', '#e5e7eb']
+
+const spoilerRangeKey = (elementId: string, start: number, end: number) => `${elementId}:${start}:${end}`
 
 /** Keep the curve handle perpendicular to its chord: horizontal curves bend
  * vertically, while vertically drawn curves bend along the horizontal axis. */
@@ -515,6 +535,40 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null)
   const [placementPreview, setPlacementPreview] = useState<DropPreview | null>(null)
   const [customTextColors, setCustomTextColors] = useState(readCustomColors)
+  // Revealing a spoiler is a view-only action.  Keep that state outside the
+  // scene so saving or reloading a layout keeps its spoiler setting intact.
+  const [revealedSpoilerIds, setRevealedSpoilerIds] = useState<Set<string>>(() => new Set())
+  const [revealedTextSpoilers, setRevealedTextSpoilers] = useState<Set<string>>(() => new Set())
+
+  useEffect(() => {
+    const activeElementIds = new Set(props.scene.elements.filter((element) => element.spoiler).map((element) => element.id))
+    const activeTextRanges = new Set<string>()
+    for (const element of props.scene.elements) {
+      if (element.kind !== 'text') continue
+      const fallback: TextRunStyle = {
+        color: element.color,
+        fontSize: element.fontSize,
+        fontFamily: element.fontFamily,
+        fontWeight: element.fontWeight,
+        textDecoration: element.textDecoration ?? 'none',
+        backgroundColor: element.backgroundColor ?? null,
+      }
+      let offset = 0
+      for (const run of normalizeTextRuns(element.text, element.textRuns, fallback)) {
+        const end = offset + run.text.length
+        if (run.spoiler) activeTextRanges.add(spoilerRangeKey(element.id, offset, end))
+        offset = end
+      }
+    }
+    setRevealedSpoilerIds((current) => {
+      const next = new Set([...current].filter((id) => activeElementIds.has(id)))
+      return next.size === current.size ? current : next
+    })
+    setRevealedTextSpoilers((current) => {
+      const next = new Set([...current].filter((key) => activeTextRanges.has(key)))
+      return next.size === current.size ? current : next
+    })
+  }, [props.scene.elements])
 
   const createTextEditorState = (value: string, x: number, y: number, id?: string, runs?: TextRun[], baseStyle: TextRunStyle = props.textStyle): TextEditorState => ({
     id,
@@ -524,6 +578,25 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     runs: normalizeTextRuns(value, runs, baseStyle),
     baseStyle,
   })
+
+  const toggleElementSpoilerVisibility = (id: string) => {
+    setRevealedSpoilerIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleTextSpoilerVisibility = (id: string, start: number, end: number) => {
+    const key = spoilerRangeKey(id, start, end)
+    setRevealedTextSpoilers((current) => {
+      const next = new Set(current)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const syncTextSelection = (input: HTMLTextAreaElement) => {
     const selectionStart = input.selectionStart
@@ -1416,6 +1489,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           : null
         const dimensions = getElementDimensions(editingText ?? element)
         const lockedLabel = element.locked ? '、ロック中' : ''
+        const spoilerRevealed = Boolean(element.spoiler) && revealedSpoilerIds.has(element.id)
         const commonProps = {
           type: 'button' as const,
           className: `placed-item placed-${element.kind}${element.selected ? ' selected' : ''}${draggingIds.has(element.id) ? ' dragging' : ''}${element.locked ? ' locked' : ''}`,
@@ -1446,6 +1520,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             }
             if (!isDrawingPlacementMode(props.placementMode)) beginElementDrag(event, element)
           },
+          onClick: (event: ReactMouseEvent<HTMLButtonElement>) => {
+            if (!spoilerRevealed || element.locked) return
+            event.preventDefault()
+            event.stopPropagation()
+            toggleElementSpoilerVisibility(element.id)
+          },
           onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => openContextMenu(event, element),
         }
 
@@ -1473,7 +1553,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   style={{ transform: `translate(-50%, -50%) rotate(${element.rotation}deg)` }}
                 />
               )}
-              {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
+              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1501,7 +1581,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 }
                 openContextMenu(event, element)
               }}
-              aria-label={element.spoiler || textHasSpoilerRuns ? `非表示の文字（クリックで表示）${element.selected ? '、選択中' : ''}${lockedLabel}` : `文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
+              aria-label={element.spoiler || textHasSpoilerRuns ? `非表示の文字（クリックで表示、再度クリックで非表示）${element.selected ? '、選択中' : ''}${lockedLabel}` : `文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
             >
               <span
                 className="text-visual"
@@ -1515,8 +1595,12 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   transform: `rotate(${element.rotation}deg)`,
                   transformOrigin: 'top left',
                 }}
-              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null }, undefined, undefined, { onRevealSpoiler: (start, end) => props.onRevealTextSpoiler(element.id, start, end) })}</span>
-              {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
+              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null }, undefined, undefined, {
+                isSpoilerRevealed: (start, end) => revealedTextSpoilers.has(spoilerRangeKey(element.id, start, end)),
+                onRevealSpoiler: !element.locked ? (start, end) => toggleTextSpoilerVisibility(element.id, start, end) : undefined,
+                onHideSpoiler: !element.locked ? (start, end) => toggleTextSpoilerVisibility(element.id, start, end) : undefined,
+              })}</span>
+              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1529,7 +1613,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               <span className="image-crop-frame" style={{ width: element.width, height: element.height, opacity: element.opacity, transform: `translate(-50%, -50%) rotate(${element.rotation}deg)` }}>
                 <img className="image-crop-source" src={element.src} alt="" draggable={false} style={{ width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `${-crop.x / crop.width * 100}%`, top: `${-crop.y / crop.height * 100}%` }} />
               </span>
-              {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
+              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1560,7 +1644,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth, borderStyle: getCssBorderStyle(part.strokePattern) }} />
               })}
             </span>
-            {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
+            {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
             {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
           </button>
         }
@@ -1587,7 +1671,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   </>}
                 </>}
               </svg>
-              {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
+              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1647,7 +1731,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 }}
               />
             )}
-            {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
+            {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
             {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
           </button>
         )

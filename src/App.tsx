@@ -73,7 +73,7 @@ import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 import { generateIishanten, generateIishantenQuestion, generateRandomIishanten, IISHANTEN_LABELS, type IishantenType } from './utils/iishanten'
 import { detectOpenMelds } from './utils/detectMelds'
 import { DEFAULT_STROKE_PATTERN, isStrokePattern } from './utils/stroke'
-import { applyTextRunStyle, normalizeTextRuns, type TextRunStyle } from './utils/textRuns'
+import { normalizeTextRuns, type TextRunStyle } from './utils/textRuns'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const PAGE_DECK_KEY = 'mahjong-layout-tool:page-deck-v1'
@@ -1463,39 +1463,6 @@ const App = () => {
     })
   }
 
-  const revealElementSpoiler = (id: string) => {
-    const target = scene.elements.find((element) => element.id === id)
-    if (!target || !target.spoiler || target.locked) return
-    history.commit({
-      ...scene,
-      elements: scene.elements.map((element) => {
-        if (element.id !== id) return element
-        if (element.kind !== 'text') return { ...element, spoiler: false }
-        return { ...element, spoiler: false, textRuns: element.textRuns?.map((run) => ({ ...run, spoiler: false })) }
-      }),
-    })
-  }
-
-  const updateTextSpoiler = (id: string, start: number, end: number, spoiler: boolean) => {
-    history.commit({
-      ...scene,
-      elements: scene.elements.map((element) => {
-        if (element.id !== id || element.kind !== 'text' || element.locked) return element
-        const fallback: TextRunStyle = {
-          color: element.color,
-          fontSize: element.fontSize,
-          fontFamily: element.fontFamily,
-          fontWeight: element.fontWeight,
-          textDecoration: element.textDecoration ?? 'none',
-          backgroundColor: element.backgroundColor ?? null,
-        }
-        return { ...element, textRuns: applyTextRunStyle(element.text, element.textRuns, start, end, { spoiler }, fallback) }
-      }),
-    })
-  }
-
-  const revealTextSpoiler = (id: string, start: number, end: number) => updateTextSpoiler(id, start, end, false)
-
   const moveSelectedLayers = (direction: 'front' | 'back') => {
     const targets = scene.elements.filter((element) => element.selected && !element.locked && element.kind !== 'image')
     if (!targets.length) return
@@ -2218,8 +2185,6 @@ const App = () => {
               onCommitText={commitText}
               onFinishTextEditing={() => setEditTextRequest(null)}
               onToggleTileFace={toggleTileFace}
-              onRevealSpoiler={revealElementSpoiler}
-              onRevealTextSpoiler={revealTextSpoiler}
               onOpenContextMenu={openContextMenu}
               onResizeElement={resizeElement}
               onCropImage={cropImage}
