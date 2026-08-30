@@ -39,7 +39,7 @@ import {
 } from '../utils/layout'
 import { readCustomColors, TEXT_COLOR_PALETTE } from '../utils/colors'
 import { StrokeLayers, getCssBorderStyle } from '../utils/stroke'
-import { applyTextRunStyle, getTextRunStyleAt, normalizeTextRuns, reconcileTextRuns, type TextRunStyle, type TextRunStylePatch } from '../utils/textRuns'
+import { applyTextRunStyle, getTextRunStyleAt, isTextRunRangeSpoiler, normalizeTextRuns, reconcileTextRuns, type TextRunStyle, type TextRunStylePatch } from '../utils/textRuns'
 
 interface EditTextRequest {
   id: string
@@ -78,6 +78,8 @@ interface WorkspaceProps {
   onCommitText: (text: string, x: number, y: number, id?: string, textRuns?: TextRun[]) => void
   onFinishTextEditing: () => void
   onToggleTileFace: (id: string) => void
+  onRevealSpoiler: (id: string) => void
+  onRevealTextSpoiler: (id: string, start: number, end: number) => void
   onOpenContextMenu: (state: ContextMenuState) => void
   onResizeElement: (id: string, width: number, height: number) => void
   onCropImage: (id: string, crop: { x: number; y: number; width: number; height: number }, width: number, height: number, x: number, y: number) => void
@@ -243,11 +245,26 @@ const renderTextRuns = (
   fallback: TextRunStyle,
   colorOverride?: string,
   selection?: TextSelectionRange,
+  options: { revealSpoilers?: boolean; onRevealSpoiler?: (start: number, end: number) => void } = {},
 ): ReactNode => {
   const normalized = normalizeTextRuns(text, runs, fallback)
   if (!normalized.length) return text
   if (!selection || selection.start >= selection.end) {
-    return normalized.map((run, index) => <span key={`${index}-${run.text}`} style={{ color: colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight, textDecoration: run.textDecoration ?? 'none', backgroundColor: run.backgroundColor ?? undefined }}>{run.text}</span>)
+    let offset = 0
+    return normalized.map((run, index) => {
+      const start = offset
+      const end = offset + run.text.length
+      offset = end
+      const hidden = Boolean(run.spoiler) && !options.revealSpoilers
+      return <span
+        key={`${index}-${run.text}`}
+        className={hidden ? 'text-spoiler-run' : undefined}
+        style={{ color: hidden ? 'transparent' : colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight, textDecoration: run.textDecoration ?? 'none', backgroundColor: hidden ? '#2f343a' : run.backgroundColor ?? undefined }}
+        title={hidden ? 'クリックで表示' : undefined}
+        onPointerDown={hidden && options.onRevealSpoiler ? (event) => event.stopPropagation() : undefined}
+        onClick={hidden && options.onRevealSpoiler ? (event) => { event.preventDefault(); event.stopPropagation(); options.onRevealSpoiler?.(start, end) } : undefined}
+      >{run.text}</span>
+    })
   }
 
   const selectedStart = Math.max(0, Math.min(selection.start, text.length))
@@ -262,17 +279,24 @@ const renderTextRuns = (
     return boundaries.slice(0, -1).map((segmentStart, segmentIndex) => {
       const segmentEnd = boundaries[segmentIndex + 1]
       const selected = segmentStart < selectedEnd && segmentEnd > selectedStart
+      const hidden = Boolean(run.spoiler) && !options.revealSpoilers
+      const globalStart = segmentStart
+      const globalEnd = segmentEnd
       return <span
         key={`${runIndex}-${segmentIndex}-${segmentStart}-${segmentEnd}`}
+        className={hidden ? 'text-spoiler-run' : undefined}
         style={{
-          color: selected ? '#082b26' : colorOverride ?? run.color,
+          color: hidden ? 'transparent' : selected ? '#082b26' : colorOverride ?? run.color,
           fontSize: run.fontSize,
           fontFamily: run.fontFamily,
           fontWeight: run.fontWeight,
           textDecoration: run.textDecoration ?? 'none',
-          backgroundColor: selected ? '#dcae5e' : run.backgroundColor ?? undefined,
+          backgroundColor: hidden ? '#2f343a' : selected ? '#dcae5e' : run.backgroundColor ?? undefined,
           borderRadius: selected ? 2 : undefined,
         }}
+        title={hidden ? 'クリックで表示' : undefined}
+        onPointerDown={hidden && options.onRevealSpoiler ? (event) => event.stopPropagation() : undefined}
+        onClick={hidden && options.onRevealSpoiler ? (event) => { event.preventDefault(); event.stopPropagation(); options.onRevealSpoiler?.(globalStart, globalEnd) } : undefined}
       >{run.text.slice(segmentStart - runStart, segmentEnd - runStart)}</span>
     })
   })
@@ -421,6 +445,22 @@ const getTextOffsetAtPoint = (root: HTMLElement, clientX: number, clientY: numbe
 const arrowHeadPoints = (points: CanvasPoint[], size = 30) => {
   return getArrowHeadPoints(points, size).map((point) => `${point.x},${point.y}`).join(' ')
 }
+
+const SpoilerCover = ({ onReveal }: { onReveal: () => void }) => <span
+  className="spoiler-cover"
+  role="button"
+  aria-label="非表示部分。クリックで表示"
+  tabIndex={0}
+  onPointerDown={(event) => event.stopPropagation()}
+  onClick={(event) => { event.preventDefault(); event.stopPropagation(); onReveal() }}
+  onKeyDown={(event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      event.stopPropagation()
+      onReveal()
+    }
+  }}
+ />
 
 /** Near-horizontal and near-vertical straight drawings snap their endpoints to
  * the grid, making clean axes easy without changing ordinary diagonal lines. */
@@ -1433,6 +1473,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   style={{ transform: `translate(-50%, -50%) rotate(${element.rotation}deg)` }}
                 />
               )}
+              {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1440,6 +1481,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
         if (element.kind === 'text') {
           const { width: baseWidth, height: baseHeight } = getTextElementContentDimensions(editingText ?? element)
+          const textHasSpoilerRuns = normalizeTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null }).some((run) => run.spoiler)
           return (
             <button
               key={element.id}
@@ -1459,7 +1501,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 }
                 openContextMenu(event, element)
               }}
-              aria-label={`文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
+              aria-label={element.spoiler || textHasSpoilerRuns ? `非表示の文字（クリックで表示）${element.selected ? '、選択中' : ''}${lockedLabel}` : `文字「${element.text}」${element.selected ? '、選択中' : ''}${lockedLabel}`}
             >
               <span
                 className="text-visual"
@@ -1473,7 +1515,8 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   transform: `rotate(${element.rotation}deg)`,
                   transformOrigin: 'top left',
                 }}
-              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null })}</span>
+              >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null }, undefined, undefined, { onRevealSpoiler: (start, end) => props.onRevealTextSpoiler(element.id, start, end) })}</span>
+              {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1486,6 +1529,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               <span className="image-crop-frame" style={{ width: element.width, height: element.height, opacity: element.opacity, transform: `translate(-50%, -50%) rotate(${element.rotation}deg)` }}>
                 <img className="image-crop-source" src={element.src} alt="" draggable={false} style={{ width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `${-crop.x / crop.width * 100}%`, top: `${-crop.y / crop.height * 100}%` }} />
               </span>
+              {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1516,6 +1560,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth, borderStyle: getCssBorderStyle(part.strokePattern) }} />
               })}
             </span>
+            {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
             {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
           </button>
         }
@@ -1542,6 +1587,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   </>}
                 </>}
               </svg>
+              {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1601,6 +1647,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 }}
               />
             )}
+            {element.spoiler && <SpoilerCover onReveal={() => props.onRevealSpoiler(element.id)} />}
             {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
           </button>
         )
@@ -1677,7 +1724,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
           onPointerCancel={handleTextPreviewPointerUp}
           onContextMenu={openTextFormatMenu}
           aria-hidden="true"
-        >{renderTextRuns(editor.value, editor.runs, editor.baseStyle, undefined, textSelection ?? undefined)}</span>
+        >{renderTextRuns(editor.value, editor.runs, editor.baseStyle, undefined, textSelection ?? undefined, { revealSpoilers: true })}</span>
       })()}
 
       {editor && !editor.value && <span
@@ -1699,6 +1746,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
 
       {editor && textFormatMenu && (() => {
         const selectedStyle = getTextRunStyleAt(editor.value, editor.runs, textFormatMenu.start, editor.baseStyle)
+        const selectedSpoiler = isTextRunRangeSpoiler(editor.value, editor.runs, textFormatMenu.start, textFormatMenu.end, editor.baseStyle)
         const colorChoices = Array.from(new Set([...TEXT_COLOR_PALETTE, ...customTextColors]))
         const menuPosition = getTextFormatMenuPosition(textFormatMenu)
         return <div
@@ -1725,6 +1773,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
             <button type="button" onClick={() => applyTextFormat({ fontSize: Math.max(12, selectedStyle.fontSize - 2) })} aria-label="文字を小さく">A−</button>
             <output>{selectedStyle.fontSize}px</output>
             <button type="button" onClick={() => applyTextFormat({ fontSize: Math.min(72, selectedStyle.fontSize + 2) })} aria-label="文字を大きく">A+</button>
+            <button type="button" className={selectedSpoiler ? 'active' : ''} aria-pressed={selectedSpoiler} onClick={() => applyTextFormat({ spoiler: !selectedSpoiler })} aria-label="スポイラーを切り替え" title="クリックで表示する非表示文字">▮</button>
             <select value={selectedStyle.fontFamily} onChange={(event) => applyTextFormat({ fontFamily: event.target.value })} aria-label="フォント">
               <option value="sans-serif">ゴシック体</option>
               <option value="serif">明朝体</option>

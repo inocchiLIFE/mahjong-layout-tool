@@ -37,6 +37,8 @@ export interface CanvasElementBase {
   selected: boolean
   zIndex: number
   locked: boolean
+  /** Hide the element behind a click-to-reveal spoiler cover. */
+  spoiler?: boolean
 }
 
 export interface TileElement extends CanvasElementBase {
@@ -68,6 +70,8 @@ export interface TextRun {
   fontWeight: 400 | 700
   textDecoration?: TextDecoration
   backgroundColor?: string | null
+  /** Hide this text range behind a click-to-reveal spoiler cover. */
+  spoiler?: boolean
 }
 
 export interface SymbolElement extends CanvasElementBase {

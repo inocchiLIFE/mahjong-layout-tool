@@ -7,6 +7,7 @@ export interface TextRunStyle {
   fontWeight: 400 | 700
   textDecoration: TextDecoration
   backgroundColor: string | null
+  spoiler?: boolean
 }
 
 export type TextRunStylePatch = Partial<TextRunStyle>
@@ -18,6 +19,7 @@ const sameStyle = (left: TextRun, right: TextRun) =>
   && left.fontWeight === right.fontWeight
   && (left.textDecoration ?? 'none') === (right.textDecoration ?? 'none')
   && (left.backgroundColor ?? null) === (right.backgroundColor ?? null)
+  && Boolean(left.spoiler) === Boolean(right.spoiler)
 
 const mergeRuns = (runs: TextRun[]) => runs.reduce<TextRun[]>((result, run) => {
   if (!run.text) return result
@@ -43,6 +45,7 @@ export const normalizeTextRuns = (text: string, runs: TextRun[] | undefined, fal
       fontWeight: run.fontWeight === 700 ? 700 : run.fontWeight === 400 ? 400 : fallback.fontWeight,
       textDecoration: run.textDecoration === 'underline' ? 'underline' : fallback.textDecoration,
       backgroundColor: typeof run.backgroundColor === 'string' ? run.backgroundColor : run.backgroundColor === null ? null : fallback.backgroundColor,
+      spoiler: Boolean(run.spoiler),
     })
     offset += available.length
   }
@@ -80,6 +83,7 @@ export const getTextRunStyleAt = (text: string, runs: TextRun[] | undefined, ind
       fontWeight: run.fontWeight,
       textDecoration: run.textDecoration ?? 'none',
       backgroundColor: run.backgroundColor ?? null,
+      spoiler: Boolean(run.spoiler),
     }
     offset += run.text.length
   }
@@ -103,6 +107,34 @@ export const applyTextRunStyle = (
     ...sliceTextRuns(text, normalized, left, right, fallback).map((run) => ({ ...run, ...patch })),
     ...sliceTextRuns(text, normalized, right, text.length, fallback),
   ])
+}
+
+/** Return whether every character in a range is already hidden. */
+export const isTextRunRangeSpoiler = (
+  text: string,
+  runs: TextRun[] | undefined,
+  start: number,
+  end: number,
+  fallback: TextRunStyle,
+) => {
+  const left = Math.max(0, Math.min(start, end))
+  const right = Math.min(text.length, Math.max(start, end))
+  if (!text || left >= right) return false
+  const normalized = normalizeTextRuns(text, runs, fallback)
+  let offset = 0
+  let covered = 0
+  for (const run of normalized) {
+    const runEnd = offset + run.text.length
+    const overlapStart = Math.max(left, offset)
+    const overlapEnd = Math.min(right, runEnd)
+    if (overlapStart < overlapEnd) {
+      covered += overlapEnd - overlapStart
+      if (!run.spoiler) return false
+    }
+    offset = runEnd
+    if (offset >= right) break
+  }
+  return covered === right - left
 }
 
 /** Preserve the old formatting around a simple insertion/deletion in the editor. */

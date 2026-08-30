@@ -73,7 +73,7 @@ import { readLargeValue, writeLargeValue } from './utils/largeStorage'
 import { generateIishanten, generateIishantenQuestion, generateRandomIishanten, IISHANTEN_LABELS, type IishantenType } from './utils/iishanten'
 import { detectOpenMelds } from './utils/detectMelds'
 import { DEFAULT_STROKE_PATTERN, isStrokePattern } from './utils/stroke'
-import { normalizeTextRuns, type TextRunStyle } from './utils/textRuns'
+import { applyTextRunStyle, normalizeTextRuns, type TextRunStyle } from './utils/textRuns'
 
 const AUTO_SAVE_KEY = 'mahjong-layout-tool:auto-v1'
 const PAGE_DECK_KEY = 'mahjong-layout-tool:page-deck-v1'
@@ -92,6 +92,7 @@ const DEFAULT_MARKER_PRESET: DrawingPreset = { color: DEFAULT_MARKER_COLOR, stro
 const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visible-v1'
 const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
 const CONTEXT_MENU_WAVE_MIGRATION_KEY = 'mahjong-layout-tool:context-wave-migration-v1'
+const CONTEXT_MENU_SPOILER_MIGRATION_KEY = 'mahjong-layout-tool:context-spoiler-migration-v1'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   allowTileOverlap: true,
@@ -155,6 +156,7 @@ const parseTextRuns = (value: unknown, text: string, fallback: TextRunStyle) => 
       fontWeight: candidate.fontWeight === 700 ? 700 : candidate.fontWeight === 400 ? 400 : fallback.fontWeight,
       textDecoration: normalizeTextDecoration(candidate.textDecoration ?? fallback.textDecoration),
       backgroundColor: candidate.backgroundColor === null ? null : normalizeTextBackgroundColor(candidate.backgroundColor) ?? fallback.backgroundColor,
+      spoiler: Boolean(candidate.spoiler),
     }]
   })
   return normalizeTextRuns(text, runs, fallback)
@@ -205,6 +207,7 @@ const parseElement = (value: unknown): CanvasElement | null => {
     selected: Boolean(item.selected),
     zIndex: typeof item.zIndex === 'number' ? item.zIndex : 1,
     locked: Boolean(item.locked),
+    spoiler: Boolean(item.spoiler),
   }
   if (item.kind === 'tile' && typeof item.tileId === 'string' && TILE_MAP.has(item.tileId)) {
     return {
@@ -423,6 +426,11 @@ const readPreferences = (): AppPreferences => {
       : DEFAULT_PREFERENCES.contextMenuItems
     const addWaveToExistingMenu = localStorage.getItem(CONTEXT_MENU_WAVE_MIGRATION_KEY) !== 'done'
     if (addWaveToExistingMenu) localStorage.setItem(CONTEXT_MENU_WAVE_MIGRATION_KEY, 'done')
+    const addSpoilerToExistingMenu = localStorage.getItem(CONTEXT_MENU_SPOILER_MIGRATION_KEY) !== 'done'
+    if (addSpoilerToExistingMenu) localStorage.setItem(CONTEXT_MENU_SPOILER_MIGRATION_KEY, 'done')
+    const migratedContextMenuItems = [...savedContextMenuItems]
+    if (addWaveToExistingMenu && !migratedContextMenuItems.includes('wave')) migratedContextMenuItems.push('wave')
+    if (addSpoilerToExistingMenu && !migratedContextMenuItems.includes('spoiler')) migratedContextMenuItems.push('spoiler')
     return {
       showGrid: typeof saved.showGrid === 'boolean' ? saved.showGrid : DEFAULT_PREFERENCES.showGrid,
       allowTileOverlap: typeof saved.allowTileOverlap === 'boolean' ? saved.allowTileOverlap : DEFAULT_PREFERENCES.allowTileOverlap,
@@ -437,7 +445,7 @@ const readPreferences = (): AppPreferences => {
       defaultShapeStrokePattern: isStrokePattern(saved.defaultShapeStrokePattern) ? saved.defaultShapeStrokePattern : DEFAULT_PREFERENCES.defaultShapeStrokePattern,
       uiScale: typeof saved.uiScale === 'number' ? clamp(saved.uiScale, 0.9, 1.3) : DEFAULT_PREFERENCES.uiScale,
       popupFontScale: typeof saved.popupFontScale === 'number' ? clamp(saved.popupFontScale, 1, 1.5) : DEFAULT_PREFERENCES.popupFontScale,
-      contextMenuItems: addWaveToExistingMenu && !savedContextMenuItems.includes('wave') ? [...savedContextMenuItems, 'wave'] : savedContextMenuItems,
+      contextMenuItems: migratedContextMenuItems,
       defaultWorkspaceWidth: typeof saved.defaultWorkspaceWidth === 'number' ? clamp(saved.defaultWorkspaceWidth, MIN_WORKSPACE_WIDTH, MAX_WORKSPACE_WIDTH) : DEFAULT_PREFERENCES.defaultWorkspaceWidth,
       defaultWorkspaceHeight: typeof saved.defaultWorkspaceHeight === 'number' ? clamp(saved.defaultWorkspaceHeight, MIN_WORKSPACE_HEIGHT, MAX_WORKSPACE_HEIGHT) : DEFAULT_PREFERENCES.defaultWorkspaceHeight,
       headerColor: typeof saved.headerColor === 'string' && /^#[0-9a-f]{6}$/i.test(saved.headerColor) ? saved.headerColor : DEFAULT_PREFERENCES.headerColor,
@@ -1424,6 +1432,62 @@ const App = () => {
     })
   }
 
+  const getSpoilerTargets = (id: string) => {
+    const selectedTargets = scene.elements.filter((element) => element.selected && !element.locked)
+    return selectedTargets.some((element) => element.id === id)
+      ? selectedTargets
+      : scene.elements.filter((element) => element.id === id && !element.locked)
+  }
+
+  const toggleElementSpoiler = (id: string) => {
+    const targets = getSpoilerTargets(id)
+    if (!targets.length) return
+    const shouldHide = targets.some((element) => !element.spoiler)
+    const targetIds = new Set(targets.map((element) => element.id))
+    history.commit({
+      ...scene,
+      elements: scene.elements.map((element) => {
+        if (!targetIds.has(element.id)) return element
+        if (shouldHide) return { ...element, spoiler: true }
+        if (element.kind !== 'text') return { ...element, spoiler: false }
+        return { ...element, spoiler: false, textRuns: element.textRuns?.map((run) => ({ ...run, spoiler: false })) }
+      }),
+    })
+  }
+
+  const revealElementSpoiler = (id: string) => {
+    const target = scene.elements.find((element) => element.id === id)
+    if (!target || !target.spoiler || target.locked) return
+    history.commit({
+      ...scene,
+      elements: scene.elements.map((element) => {
+        if (element.id !== id) return element
+        if (element.kind !== 'text') return { ...element, spoiler: false }
+        return { ...element, spoiler: false, textRuns: element.textRuns?.map((run) => ({ ...run, spoiler: false })) }
+      }),
+    })
+  }
+
+  const updateTextSpoiler = (id: string, start: number, end: number, spoiler: boolean) => {
+    history.commit({
+      ...scene,
+      elements: scene.elements.map((element) => {
+        if (element.id !== id || element.kind !== 'text' || element.locked) return element
+        const fallback: TextRunStyle = {
+          color: element.color,
+          fontSize: element.fontSize,
+          fontFamily: element.fontFamily,
+          fontWeight: element.fontWeight,
+          textDecoration: element.textDecoration ?? 'none',
+          backgroundColor: element.backgroundColor ?? null,
+        }
+        return { ...element, textRuns: applyTextRunStyle(element.text, element.textRuns, start, end, { spoiler }, fallback) }
+      }),
+    })
+  }
+
+  const revealTextSpoiler = (id: string, start: number, end: number) => updateTextSpoiler(id, start, end, false)
+
   const moveSelectedLayers = (direction: 'front' | 'back') => {
     const targets = scene.elements.filter((element) => element.selected && !element.locked && element.kind !== 'image')
     if (!targets.length) return
@@ -2146,6 +2210,8 @@ const App = () => {
               onCommitText={commitText}
               onFinishTextEditing={() => setEditTextRequest(null)}
               onToggleTileFace={toggleTileFace}
+              onRevealSpoiler={revealElementSpoiler}
+              onRevealTextSpoiler={revealTextSpoiler}
               onOpenContextMenu={openContextMenu}
               onResizeElement={resizeElement}
               onCropImage={cropImage}
@@ -2218,6 +2284,7 @@ const App = () => {
           onToggleFace={() => contextElement && toggleTileFace(contextElement.id)}
           onToggleLock={() => contextElement && toggleLock(contextElement.id)}
           onEditProperties={() => contextElement && setPropertyElementId(contextElement.id)}
+          onToggleSpoiler={() => contextElement && toggleElementSpoiler(contextElement.id)}
           onBringFront={() => moveSelectedLayers('front')}
           onSendBack={() => moveSelectedLayers('back')}
           onClear={() => { history.commit({ ...EMPTY_SCENE, width: scene.width, height: scene.height }); setRulerCount(0) }}
