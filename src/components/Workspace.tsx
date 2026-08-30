@@ -265,8 +265,7 @@ const renderTextRuns = (
         key={`${index}-${run.text}`}
         className={hidden ? 'text-spoiler-run' : undefined}
         style={{ color: hidden ? 'transparent' : colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight, textDecoration: run.textDecoration ?? 'none', backgroundColor: hidden ? '#2f343a' : run.backgroundColor ?? undefined, pointerEvents: canToggle ? 'auto' : undefined }}
-        title={hidden ? 'クリックで表示' : revealed && options.onHideSpoiler ? 'クリックで再び非表示' : undefined}
-        onPointerDown={canToggle ? (event) => event.stopPropagation() : undefined}
+        title={hidden ? 'クリックで表示・ドラッグで移動' : revealed && options.onHideSpoiler ? 'クリックで再び非表示・ドラッグで移動' : undefined}
         onClick={canToggle ? (event) => {
           event.preventDefault()
           event.stopPropagation()
@@ -307,8 +306,7 @@ const renderTextRuns = (
           borderRadius: selected ? 2 : undefined,
           pointerEvents: canToggle ? 'auto' : undefined,
         }}
-        title={hidden ? 'クリックで表示' : revealed && options.onHideSpoiler ? 'クリックで再び非表示' : undefined}
-        onPointerDown={canToggle ? (event) => event.stopPropagation() : undefined}
+        title={hidden ? 'クリックで表示・ドラッグで移動' : revealed && options.onHideSpoiler ? 'クリックで再び非表示・ドラッグで移動' : undefined}
         onClick={canToggle ? (event) => {
           event.preventDefault()
           event.stopPropagation()

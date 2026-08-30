@@ -418,7 +418,8 @@
 .text-visual, .symbol-visual { position: absolute; left: 50%; top: 50%; transform-origin: center; pointer-events: none; }
 .symbol-visual { display: grid; place-items: center; }
 .text-visual { left: 0; top: 0; padding: 4px 8px; line-height: 1.35; letter-spacing: .03em; text-align: left; white-space: pre-wrap; }
-.text-spoiler-run { border-radius: 3px; color: transparent !important; background: #2f343a !important; cursor: pointer; pointer-events: auto; text-shadow: none !important; user-select: none; -webkit-user-select: none; }
+.text-spoiler-run { border-radius: 3px; color: transparent !important; background: #2f343a !important; cursor: grab; pointer-events: auto; text-shadow: none !important; user-select: none; -webkit-user-select: none; }
+.text-spoiler-run:active { cursor: grabbing; }
 .text-spoiler-run:hover { background: #454b52 !important; }
 .placed-symbol { color: #244a40; }
 .symbol-visual { box-sizing: border-box; }
