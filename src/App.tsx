@@ -431,6 +431,12 @@ const readPreferences = (): AppPreferences => {
     const migratedContextMenuItems = [...savedContextMenuItems]
     if (addWaveToExistingMenu && !migratedContextMenuItems.includes('wave')) migratedContextMenuItems.push('wave')
     if (addSpoilerToExistingMenu && !migratedContextMenuItems.includes('spoiler')) migratedContextMenuItems.push('spoiler')
+    // Persist one-time additions so a reload does not lose newly introduced
+    // menu entries. Subsequent user edits remain respected once the marker is
+    // complete.
+    if ((addWaveToExistingMenu || addSpoilerToExistingMenu) && Array.isArray(saved.contextMenuItems)) {
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify({ ...saved, contextMenuItems: migratedContextMenuItems }))
+    }
     return {
       showGrid: typeof saved.showGrid === 'boolean' ? saved.showGrid : DEFAULT_PREFERENCES.showGrid,
       allowTileOverlap: typeof saved.allowTileOverlap === 'boolean' ? saved.allowTileOverlap : DEFAULT_PREFERENCES.allowTileOverlap,
