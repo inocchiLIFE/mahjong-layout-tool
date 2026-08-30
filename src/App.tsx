@@ -92,7 +92,9 @@ const DEFAULT_MARKER_PRESET: DrawingPreset = { color: DEFAULT_MARKER_COLOR, stro
 const EFFICIENCY_PANEL_VISIBLE_KEY = 'mahjong-layout-tool:efficiency-panel-visible-v1'
 const EFFICIENCY_PANEL_WIDTH_KEY = 'mahjong-layout-tool:efficiency-panel-width-v1'
 const CONTEXT_MENU_WAVE_MIGRATION_KEY = 'mahjong-layout-tool:context-wave-migration-v1'
-const CONTEXT_MENU_SPOILER_MIGRATION_KEY = 'mahjong-layout-tool:context-spoiler-migration-v1'
+// v2 also repairs installations that loaded the first spoiler release before
+// its one-time menu migration was persisted across reloads.
+const CONTEXT_MENU_SPOILER_MIGRATION_KEY = 'mahjong-layout-tool:context-spoiler-migration-v2'
 const DEFAULT_PREFERENCES: AppPreferences = {
   showGrid: true,
   allowTileOverlap: true,
