@@ -393,7 +393,8 @@
 .placed-drawing.selected::after, .placed-drawing.dragging::after { display: none; }
 .placed-item.locked::before { content: ""; position: absolute; inset: -3px; border: 1px dashed rgba(55, 80, 73, .55); border-radius: 6px; pointer-events: none; }
 .lock-badge { position: absolute; right: -8px; top: -10px; z-index: 4; width: 19px; height: 19px; display: grid; place-items: center; border: 1px solid #cad5cf; border-radius: 50%; background: #fff; font-size: 10px; box-shadow: 0 2px 5px rgba(20, 55, 46, .2); pointer-events: none; }
-.spoiler-cover { position: absolute; inset: 0; z-index: 6; display: block; box-sizing: border-box; border: 1px solid rgba(21, 30, 28, .35); border-radius: 4px; background: #2f343a; cursor: pointer; }
+.spoiler-cover { position: absolute; inset: 0; z-index: 6; display: block; box-sizing: border-box; border: 1px solid rgba(21, 30, 28, .35); border-radius: 4px; background: #2f343a; cursor: grab; }
+.spoiler-cover:active { cursor: grabbing; }
 .spoiler-cover:hover { background: #454b52; }
 .spoiler-cover:focus-visible { outline: 2px solid #277fbd; outline-offset: 2px; }
 .placed-text { border-radius: 4px; font-family: "Yu Mincho", "Hiragino Mincho ProN", serif; white-space: pre-wrap; }

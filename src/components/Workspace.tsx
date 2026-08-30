@@ -468,6 +468,7 @@ const SpoilerCover = ({ onReveal }: { onReveal: () => void }) => <span
   className="spoiler-cover"
   role="button"
   aria-label="非表示部分。クリックで表示、再度クリックで非表示"
+  title="クリックで表示・再クリックで非表示。ドラッグで移動"
   tabIndex={0}
   onClick={(event) => { event.preventDefault(); event.stopPropagation(); onReveal() }}
   onKeyDown={(event) => {

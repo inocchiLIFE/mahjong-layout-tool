@@ -101,6 +101,7 @@ const ToolButton = ({
   onContextMenu,
   iconColor,
   className,
+  title,
 }: {
   label: string
   icon: string
@@ -111,12 +112,14 @@ const ToolButton = ({
   onContextMenu?: () => void
   iconColor?: string
   className?: string
+  title?: string
 }) => (
   <button
     type="button"
     className={`tool-button${active ? ' active' : ''}${danger ? ' danger' : ''}${className ? ` ${className}` : ''}`}
     onClick={onClick}
     disabled={disabled}
+    title={title}
     onContextMenu={(event) => { if (onContextMenu) { event.preventDefault(); onContextMenu() } }}
     aria-pressed={active}
   >
@@ -239,7 +242,7 @@ export const Toolbar = (props: ToolbarProps) => {
           <ToolButton label="回転" icon="↻" onClick={props.onRotate} disabled={!props.hasSelection} />
           <ToolButton label="理牌" icon="≡" onClick={props.onSortSelectedTiles} disabled={!props.canSortSelectedTiles} />
           <ToolButton label="文字編集" icon="Aa" onClick={props.onEditSelectedText} disabled={!props.canEditText} />
-          <ToolButton label={props.allSelectedSpoiler ? '隠し表示を解除' : '隠す'} icon="▮" onClick={props.onToggleSpoiler} disabled={!props.canToggleSpoiler} active={props.allSelectedSpoiler} />
+          <ToolButton label={props.allSelectedSpoiler ? '隠し表示を解除' : '隠す'} icon="▮" onClick={props.onToggleSpoiler} disabled={!props.canToggleSpoiler} active={props.allSelectedSpoiler} title={props.allSelectedSpoiler ? '選択した要素の隠し表示を解除' : '選択した要素を隠す'} />
           <ToolButton label="選択を削除" icon="⌫" onClick={props.onDeleteSelected} disabled={!props.hasSelection} />
           <ToolButton label="すべて削除" icon="×" onClick={props.onClear} disabled={!props.hasItems} danger />
           <div className="font-ribbon" aria-label="フォント">
