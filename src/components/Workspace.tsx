@@ -1831,9 +1831,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
         aria-hidden="true"
       />}
       {editor && !textSelection && textCaret && (() => {
-        const caretIndex = Math.max(0, Math.min(editor.value.length - 1, textCaretIndex ?? 0))
-        const caretStyle = getTextRunStyleAt(editor.value, editor.runs, caretIndex, editor.baseStyle)
-        return <span className="workspace-text-editor-caret export-hidden" style={{ left: textCaret.left, top: textCaret.top, height: textCaret.height, backgroundColor: caretStyle.color }} aria-hidden="true" />
+        return <span className="workspace-text-editor-caret export-hidden" style={{ left: textCaret.left, top: textCaret.top, height: textCaret.height, backgroundColor: '#000' }} aria-hidden="true" />
       })()}
 
       {editor && textFormatMenu && (() => {
