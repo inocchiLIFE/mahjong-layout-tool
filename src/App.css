@@ -157,7 +157,7 @@
 .custom-shape-palette-list button:hover, .custom-shape-toolbar-item button:first-child:hover { background: #edf6f1; }
 .custom-shape-visual { position: absolute; top: 0; left: 0; display: block; transform-origin: top left; pointer-events: none; }
 .custom-shape-part { position: absolute; display: block; box-sizing: border-box; transform-origin: top left; pointer-events: none; }
-.custom-shape-text { overflow: visible; white-space: pre-wrap; line-height: 1.5; text-align: left; }
+.custom-shape-text { overflow: visible; white-space: pre; line-height: 1.5; text-align: left; }
 .custom-shape-image { overflow: hidden; }
 .custom-shape-image img { width: 100%; height: 100%; object-fit: fill; }
 .custom-shape-symbol { border: solid currentColor; border-radius: 0; }
@@ -397,7 +397,7 @@
 .spoiler-cover:active { cursor: grabbing; }
 .spoiler-cover:hover { background: #454b52; }
 .spoiler-cover:focus-visible { outline: 2px solid #277fbd; outline-offset: 2px; }
-.placed-text { border-radius: 4px; font-family: "Yu Mincho", "Hiragino Mincho ProN", serif; white-space: pre-wrap; }
+.placed-text { border-radius: 4px; font-family: "Yu Mincho", "Hiragino Mincho ProN", serif; white-space: pre; }
 .placed-image { border-radius: 5px; }
 .image-visual, .drawing-visual { position: absolute; left: 50%; top: 50%; display: block; transform-origin: center; pointer-events: none; }
 .image-visual { object-fit: contain; border-radius: 4px; }
@@ -417,7 +417,7 @@
 .placed-text.editing .text-visual { visibility: hidden; }
 .text-visual, .symbol-visual { position: absolute; left: 50%; top: 50%; transform-origin: center; pointer-events: none; }
 .symbol-visual { display: grid; place-items: center; }
-.text-visual { left: 0; top: 0; padding: 4px 8px; line-height: 1.35; letter-spacing: .03em; text-align: left; white-space: pre-wrap; }
+.text-visual { left: 0; top: 0; padding: 4px 8px; line-height: 1.35; letter-spacing: .03em; text-align: left; white-space: pre; }
 .text-spoiler-run { border-radius: 3px; color: transparent !important; background: #2f343a !important; cursor: grab; pointer-events: auto; text-shadow: none !important; user-select: none; -webkit-user-select: none; }
 .text-spoiler-run:active { cursor: grabbing; }
 .text-spoiler-run:hover { background: #454b52 !important; }
@@ -440,10 +440,10 @@
 .drop-symbol-cross { display: grid; place-items: center; font: 700 49px/1 "Yu Gothic", sans-serif; }
 .drop-symbol-triangle { overflow: visible; }
 /* Keep the styled preview below the custom caret so text backgrounds cannot cover it. */
-.workspace-text-editor { position: absolute; z-index: 2147483644; min-width: 1ch; min-height: 1.35em; padding: 0; border: 0; outline: none; resize: none; overflow: hidden; background: transparent; box-shadow: none; line-height: 1.35; letter-spacing: .03em; font-weight: 400; caret-color: currentColor; field-sizing: content; pointer-events: none; user-select: text; -webkit-user-select: text; }
+.workspace-text-editor { position: absolute; z-index: 2147483644; width: max-content; max-width: none; min-width: 1ch; min-height: 1.35em; padding: 0; border: 0; outline: none; resize: none; overflow: hidden; background: transparent; box-shadow: none; line-height: 1.35; letter-spacing: .03em; font-weight: 400; white-space: pre; caret-color: currentColor; field-sizing: content; pointer-events: none; user-select: text; -webkit-user-select: text; }
 .workspace-text-editor::selection { background: transparent; color: transparent; }
 .workspace-text-editor::-moz-selection { background: transparent; color: transparent; }
-.workspace-text-editor-preview { position: absolute; z-index: 2147483645; min-width: 1ch; padding: 0; color: inherit; line-height: 1.35; letter-spacing: .03em; font-weight: 400; white-space: pre-wrap; pointer-events: auto; cursor: text; user-select: none; -webkit-user-select: none; }
+.workspace-text-editor-preview { position: absolute; z-index: 2147483645; width: max-content; max-width: none; min-width: 1ch; padding: 0; color: inherit; line-height: 1.35; letter-spacing: .03em; font-weight: 400; white-space: pre; pointer-events: auto; cursor: text; user-select: none; -webkit-user-select: none; }
 .workspace-text-editor-caret { position: absolute; z-index: 2147483646; width: 2px; min-height: 18px; border-radius: 0; background: #000; opacity: 1; pointer-events: none; box-shadow: none; animation: workspace-text-caret-blink 1.2s steps(1, end) infinite; }
 @keyframes workspace-text-caret-blink { 0%, 49.99% { opacity: 1; } 50%, 100% { opacity: 0; } }
 .text-format-context-menu { position: fixed; z-index: 2147483647; display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; width: 270px; max-width: calc(100vw - 16px); box-sizing: border-box; padding: 9px; border: 1px solid #bfcfc7; border-radius: 9px; background: rgba(255, 255, 252, .98); box-shadow: 0 14px 45px rgba(9, 44, 36, .28); backdrop-filter: blur(8px); }
