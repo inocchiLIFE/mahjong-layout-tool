@@ -60,7 +60,8 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   const meldBaseTileIds = melds.flatMap((meld) => meld.tileIds).map((id) => TILE_MAP.get(id)?.baseId ?? id)
   const fixedMeldCount = melds.length
   const concealedTileCount = concealedTileCountForMelds(melds)
-  const result = getEfficiency(baseTileIds, fixedMeldCount, meldBaseTileIds)
+  const hasPlaceholderTile = tileIds.some((id) => TILE_MAP.get(id)?.isPlaceholder)
+  const result = hasPlaceholderTile ? null : getEfficiency(baseTileIds, fixedMeldCount, meldBaseTileIds)
   const discards = baseTileIds.length === concealedTileCount
     ? [...new Set(baseTileIds)].map((discardTileId) => ({ discardTileId, result: getEfficiency(baseTileIds.filter((tileId, index) => tileId !== discardTileId || index !== baseTileIds.indexOf(discardTileId)), fixedMeldCount, meldBaseTileIds) }))
     : []
@@ -153,7 +154,7 @@ export const EfficiencyPanel = ({ tileIds, melds, onClose, onResize }: { tileIds
   const heading = <div className="efficiency-heading"><strong>牌理・受け入れ</strong><button type="button" onClick={onClose} aria-label="牌理・受け入れを隠す" title="隠す">×</button></div>
   const resizeHandle = <button type="button" className="efficiency-resize-handle" onPointerDown={startResize} aria-label="パネル幅を変更" />
   if (!tileIds.length) return <aside ref={panelRef} className="efficiency-panel empty">{resizeHandle}{heading}<span>表向きの牌を選択すると解析します</span></aside>
-  if (!result) return <aside ref={panelRef} className="efficiency-panel invalid">{resizeHandle}{heading}<span>同一牌は4枚まで、解析できるのは14枚までです</span></aside>
+  if (!result) return <aside ref={panelRef} className="efficiency-panel invalid">{resizeHandle}{heading}<span>{hasPlaceholderTile ? '？牌を含む手牌は牌理・受け入れの解析対象外です。' : '同一牌は4枚まで、解析できるのは14枚までです'}</span></aside>
   const meldInput = <div className="meld-input">
     <strong>副露ブロック</strong>
     {melds.length > 0 ? <div className="meld-list">{melds.map((meld) => <div key={meld.id}><span>{MELD_KIND_LABELS[meld.kind]}</span><MeldTiles kind={meld.kind} tileIds={meld.tileIds} /></div>)}</div> : <small>横向きにした牌を含む副露形は、選択すると自動で認識します。</small>}

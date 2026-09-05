@@ -10,6 +10,7 @@ const isSideways = (tile: TileElement) => tile.rotation === 90 || tile.rotation 
 
 const candidateKind = (tileIds: string[]): MeldKind | null => {
   const bases = tileIds.map((tileId) => TILE_MAP.get(tileId)?.baseId ?? tileId)
+  if (bases.some((tileId) => TILE_MAP.get(tileId)?.isPlaceholder)) return null
   if (new Set(bases).size === 1) return bases.length === 4 ? 'open-kan' : 'open-triplet'
   if (bases.length !== 3) return null
   const tiles = bases.map((tileId) => TILE_MAP.get(tileId))

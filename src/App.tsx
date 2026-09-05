@@ -1322,12 +1322,12 @@ const App = () => {
     setClipboard(sources.map((element) => ({ ...element })))
     const notation = (['man', 'pin', 'sou', 'honor'] as const).map((suit) => {
       const digits = sources
-        .filter((element): element is TileElement => element.kind === 'tile' && TILE_MAP.get(element.tileId)?.suit === suit)
+        .filter((element): element is TileElement => element.kind === 'tile' && TILE_MAP.get(element.tileId)?.suit === suit && TILE_MAP.get(element.tileId)?.isPlaceholder !== true)
         .sort((left, right) => (TILE_MAP.get(left.tileId)?.rank ?? 0) - (TILE_MAP.get(right.tileId)?.rank ?? 0))
         .map((element) => element.tileId.startsWith('aka-') ? '0' : String(TILE_MAP.get(element.tileId)?.rank ?? ''))
         .join('')
       return digits ? `${digits}${suit === 'man' ? 'm' : suit === 'pin' ? 'p' : suit === 'sou' ? 's' : 'z'}` : ''
-    }).join('')
+    }).join('') + '?'.repeat(sources.filter((element): element is TileElement => element.kind === 'tile' && TILE_MAP.get(element.tileId)?.isPlaceholder === true).length)
     if (notation) void navigator.clipboard?.writeText(notation).catch(() => undefined)
     notify(`${sources.length}件をコピーしました`)
   }
@@ -1342,6 +1342,7 @@ const App = () => {
       if (pinRank >= 0) return `pin${pinRank + 1}`
       const souRank = '123456789１２３４５６７８９'.indexOf(character)
       if (souRank >= 0) return `sou${souRank % 9 + 1}`
+      if (character === '?' || character === '？') return 'question'
       return ({ 東: 'ton', 南: 'nan', 西: 'sha', 北: 'pei', 白: 'haku', 發: 'hatsu', 発: 'hatsu', 中: 'chun' } as Record<string, string>)[character] ?? null
     }
     const tileIds: Array<string | null> = []

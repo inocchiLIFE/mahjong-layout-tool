@@ -26,6 +26,8 @@ export interface TileDefinition {
   asset: string
   baseId: string
   isRed?: boolean
+  /** Layout-only wildcard tile; excluded from mahjong analysis and random hands. */
+  isPlaceholder?: boolean
   order: number
 }
 

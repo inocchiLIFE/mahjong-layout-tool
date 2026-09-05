@@ -34,7 +34,7 @@ export const createMeldChoices = (kind: MeldKind): string[][] => {
 
   const count = kind === 'open-kan' || kind === 'closed-kan' || kind === 'added-kan' ? 4 : 3
   return [...TILE_MAP.values()]
-    .filter((tile) => !tile.isRed)
+    .filter((tile) => !tile.isRed && !tile.isPlaceholder)
     .map((tile) => Array.from({ length: count }, () => tile.id))
 }
 
@@ -42,6 +42,7 @@ export const isValidMeld = (meld: MahjongMeld) => {
   const expectedCount = meld.kind === 'open-kan' || meld.kind === 'closed-kan' || meld.kind === 'added-kan' ? 4 : 3
   if (meld.tileIds.length !== expectedCount) return false
   const bases = meld.tileIds.map((tileId) => TILE_MAP.get(tileId)?.baseId ?? tileId)
+  if (bases.some((tileId) => TILE_MAP.get(tileId)?.isPlaceholder)) return false
   if (meld.kind === 'open-sequence') {
     const first = TILE_MAP.get(bases[0])
     return Boolean(first && first.suit !== 'honor' && bases.every((tileId, index) => tileId === `${first.suit}${first.rank + index}`))

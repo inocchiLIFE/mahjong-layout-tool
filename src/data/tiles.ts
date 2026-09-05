@@ -39,6 +39,7 @@ const honorInfo = [
   ['haku', '白'],
   ['hatsu', '發'],
   ['chun', '中'],
+  ['question', '？'],
 ] as const
 
 const honorTiles: TileDefinition[] = honorInfo.map(([id, label], index) => ({
@@ -47,8 +48,9 @@ const honorTiles: TileDefinition[] = honorInfo.map(([id, label], index) => ({
   shortLabel: label,
   suit: 'honor',
   rank: index + 1,
-  asset: tileAsset(`${id}.png`),
+  asset: tileAsset(id === 'question' ? 'question.svg' : `${id}.png`),
   baseId: id,
+  ...(id === 'question' ? { isPlaceholder: true } : {}),
   order: 60 + index * 2,
 }))
 

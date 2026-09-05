@@ -169,7 +169,7 @@ export const sortTileIds = (tileIds: string[]) =>
 
 export const buildWall = () => {
   const wall: string[] = []
-  TILE_DEFINITIONS.filter((tile) => !tile.isRed).forEach((tile) => {
+  TILE_DEFINITIONS.filter((tile) => !tile.isRed && !tile.isPlaceholder).forEach((tile) => {
     const count = tile.rank === 5 && tile.suit !== 'honor' ? 3 : 4
     wall.push(...Array.from({ length: count }, () => tile.id))
   })
