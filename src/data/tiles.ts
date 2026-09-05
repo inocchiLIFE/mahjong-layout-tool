@@ -48,7 +48,7 @@ const honorTiles: TileDefinition[] = honorInfo.map(([id, label], index) => ({
   shortLabel: label,
   suit: 'honor',
   rank: index + 1,
-  asset: tileAsset(id === 'question' ? 'question.svg' : `${id}.png`),
+  asset: tileAsset(id === 'question' ? 'question-white.svg' : `${id}.png`),
   baseId: id,
   ...(id === 'question' ? { isPlaceholder: true } : {}),
   order: 60 + index * 2,
