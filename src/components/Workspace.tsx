@@ -264,6 +264,7 @@ const renderTextRuns = (
       return <span
         key={`${index}-${run.text}`}
         className={hidden ? 'text-spoiler-run' : undefined}
+        data-spoiler-toggle={canToggle ? 'true' : undefined}
         style={{ color: hidden ? 'transparent' : colorOverride ?? run.color, fontSize: run.fontSize, fontFamily: run.fontFamily, fontWeight: run.fontWeight, textDecoration: run.textDecoration ?? 'none', backgroundColor: hidden ? '#2f343a' : run.backgroundColor ?? undefined, pointerEvents: canToggle ? 'auto' : undefined }}
         title={hidden ? 'クリックで表示・ドラッグで移動' : revealed && options.onHideSpoiler ? 'クリックで再び非表示・ドラッグで移動' : undefined}
         onClick={canToggle ? (event) => {
@@ -296,6 +297,7 @@ const renderTextRuns = (
       return <span
         key={`${runIndex}-${segmentIndex}-${segmentStart}-${segmentEnd}`}
         className={hidden ? 'text-spoiler-run' : undefined}
+        data-spoiler-toggle={canToggle ? 'true' : undefined}
         style={{
           color: hidden ? 'transparent' : selected ? '#082b26' : colorOverride ?? run.color,
           fontSize: run.fontSize,
@@ -600,6 +602,26 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     })
   }
 
+  // A spoiler click and an element drag start with the same pointer gesture.
+  // Consume the synthetic click created after a real drag so moving a hidden
+  // item does not immediately reveal it.  Conversely, a stationary click is
+  // allowed to reach the spoiler control and reveal/hide it.
+  const consumeSpoilerDragClick = () => {
+    if (!suppressSpoilerClickRef.current) return false
+    suppressSpoilerClickRef.current = false
+    return true
+  }
+
+  const toggleTextSpoilerFromPointer = (id: string, start: number, end: number) => {
+    if (consumeSpoilerDragClick()) return
+    toggleTextSpoilerVisibility(id, start, end)
+  }
+
+  const toggleElementSpoilerFromPointer = (id: string, locked: boolean) => {
+    if (locked || consumeSpoilerDragClick()) return
+    toggleElementSpoilerVisibility(id)
+  }
+
   const syncTextSelection = (input: HTMLTextAreaElement) => {
     const selectionStart = input.selectionStart
     const selectionEnd = input.selectionEnd
@@ -800,7 +822,14 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
     if (element.locked) return
 
     suppressSpoilerClickRef.current = false
-    event.currentTarget.setPointerCapture(event.pointerId)
+    // Pointer capture retargets the browser's click to the outer button in
+    // some browsers.  That prevents the nested spoiler control from receiving
+    // its reveal click.  Window-level pointer listeners already keep dragging
+    // alive outside the button, so leave the pointer uncaptured for spoiler
+    // controls while preserving normal capture for every other element.
+    const isSpoilerPointerTarget = event.target instanceof Element
+      && Boolean(event.target.closest('.spoiler-cover, [data-spoiler-toggle="true"]'))
+    if (!isSpoilerPointerTarget) event.currentTarget.setPointerCapture(event.pointerId)
     const selectedElements = props.scene.elements.filter((item) => item.selected && !item.locked)
     const group = element.selected
       ? selectedElements
@@ -1561,7 +1590,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   style={{ transform: `translate(-50%, -50%) rotate(${element.rotation}deg)` }}
                 />
               )}
-              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
+              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => toggleElementSpoilerFromPointer(element.id, element.locked)} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1605,10 +1634,10 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 }}
               >{renderTextRuns(element.text, element.textRuns, { color: element.color, fontSize: element.fontSize, fontFamily: element.fontFamily, fontWeight: element.fontWeight, textDecoration: element.textDecoration ?? 'none', backgroundColor: element.backgroundColor ?? null }, undefined, undefined, {
                 isSpoilerRevealed: (start, end) => revealedTextSpoilers.has(spoilerRangeKey(element.id, start, end)),
-                onRevealSpoiler: !element.locked ? (start, end) => toggleTextSpoilerVisibility(element.id, start, end) : undefined,
-                onHideSpoiler: !element.locked ? (start, end) => toggleTextSpoilerVisibility(element.id, start, end) : undefined,
+                onRevealSpoiler: !element.locked ? (start, end) => toggleTextSpoilerFromPointer(element.id, start, end) : undefined,
+                onHideSpoiler: !element.locked ? (start, end) => toggleTextSpoilerFromPointer(element.id, start, end) : undefined,
               })}</span>
-              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
+              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => toggleElementSpoilerFromPointer(element.id, element.locked)} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1621,7 +1650,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
               <span className="image-crop-frame" style={{ width: element.width, height: element.height, opacity: element.opacity, transform: `translate(-50%, -50%) rotate(${element.rotation}deg)` }}>
                 <img className="image-crop-source" src={element.src} alt="" draggable={false} style={{ width: `${100 / crop.width}%`, height: `${100 / crop.height}%`, left: `${-crop.x / crop.width * 100}%`, top: `${-crop.y / crop.height * 100}%` }} />
               </span>
-              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
+              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => toggleElementSpoilerFromPointer(element.id, element.locked)} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1652,7 +1681,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 return <span key={part.id} className={`custom-shape-part custom-shape-symbol custom-shape-${part.symbolType}`} style={{ ...style, color, borderWidth: part.strokeWidth, borderStyle: getCssBorderStyle(part.strokePattern) }} />
               })}
             </span>
-            {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
+            {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => toggleElementSpoilerFromPointer(element.id, element.locked)} />}
             {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
           </button>
         }
@@ -1679,7 +1708,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                   </>}
                 </>}
               </svg>
-              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
+              {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => toggleElementSpoilerFromPointer(element.id, element.locked)} />}
               {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
             </button>
           )
@@ -1739,7 +1768,7 @@ export const Workspace = forwardRef<HTMLDivElement, WorkspaceProps>((props, ref)
                 }}
               />
             )}
-            {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => { if (!element.locked) toggleElementSpoilerVisibility(element.id) }} />}
+            {element.spoiler && !spoilerRevealed && <SpoilerCover onReveal={() => toggleElementSpoilerFromPointer(element.id, element.locked)} />}
             {element.locked && <span className="lock-badge" aria-hidden="true">🔒</span>}
           </button>
         )
