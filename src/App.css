@@ -43,7 +43,7 @@
   .app-shell .ribbon-tabs .quick-access button { width: 34px; height: 34px; padding: 0; font-size: 26px; }
   .app-shell .ribbon-tabs .quick-access button:first-child { font-size: 23px; }
   .app-shell .ribbon-content { min-height: 90px; padding: 5px 15px 8px; }
-  .app-shell .tool-group { min-height: 61px; padding: 14px 11px 0; gap: 6px; }
+  .app-shell .tool-group { --tool-group-gap: 6px; min-height: 61px; padding: 14px 11px 0; gap: var(--tool-group-gap); }
   .app-shell .tool-group-label { top: 0; left: 11px; font-size: 10px; }
   .app-shell .ribbon-content .tool-group:first-child .tool-group-label { left: 0; }
   .app-shell .tool-button, .app-shell .text-add-button { min-height: 43px; padding: 6px 10px; gap: 6px; font-size: 13.5px; }
@@ -130,11 +130,12 @@
 .toolbar.collapsed .ribbon-content { display: none; }
 
 .tool-group {
+  --tool-group-gap: 5px;
   flex: 0 0 auto;
   min-height: 49px;
   padding: 11px 9px 0;
   display: flex;
-  gap: 5px;
+  gap: var(--tool-group-gap);
   align-items: center;
   position: relative;
   border-right: 1px solid rgba(21, 65, 55, .12);
@@ -196,7 +197,8 @@
 .font-ribbon select { grid-column: 1; grid-row: 2; }
 .font-ribbon-controls { grid-column: 2; grid-row: 2; }
 .text-palette-row { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; min-width: max-content; }
-.shape-style-ribbon { order: -1; align-self: stretch; display: grid; grid-template-columns: auto minmax(88px, 1fr) auto; grid-template-rows: 14px 28px; gap: 3px 6px; min-width: 340px; margin-right: 5px; padding-left: 8px; padding-right: 8px; border-left: 1px solid rgba(21, 65, 55, .12); border-right: 1px solid rgba(21, 65, 55, .12); }
+.shape-style-ribbon { position: relative; order: -1; align-self: stretch; display: grid; grid-template-columns: auto minmax(88px, 1fr) auto; grid-template-rows: 14px 28px; gap: 3px 6px; min-width: 340px; margin-right: 5px; padding-left: 8px; padding-right: 8px; border-right: 1px solid rgba(21, 65, 55, .12); }
+.shape-style-ribbon::before { position: absolute; top: 0; bottom: 0; left: calc(-1 * var(--tool-group-gap)); width: 1px; background: rgba(21, 65, 55, .12); content: ''; }
 .shape-style-label { grid-column: 1 / -1; color: #84958f; font-size: 9px; font-weight: 800; letter-spacing: .12em; }
 .shape-stroke-control { display: flex; align-items: center; gap: 5px; color: #607a72; font-size: 10px; font-weight: 800; white-space: nowrap; }
 .shape-stroke-control input { width: 72px; accent-color: #23826a; }
