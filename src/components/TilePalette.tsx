@@ -121,7 +121,6 @@ export const TilePalette = ({ onAddTile, placementMode, trashActive, onSelectPla
 
     <div className="panel-heading">
       <div>
-        <span className="eyebrow">TILE LIBRARY</span>
         <h2>牌一覧</h2>
       </div>
       <span className="panel-hint">クリック / ドラッグ</span>
